@@ -3,6 +3,8 @@
  * Strictly NO React, NO I/O, NO external side effects.
  */
 
+import type { EpgMatchMethod } from './epg/matching.ts';
+
 export type PlaylistSourceType = 'm3u' | 'xtream' | 'file' | 'demo';
 
 export interface XtreamCredentials {
@@ -54,13 +56,76 @@ export interface Program {
   id: string;
   channelId: string;
   tvgId?: string;
+  /** EPG source that produced this programme (indexed for source cascade). */
+  sourceId?: string;
   start: number; // Unix timestamp in ms
   stop: number;  // Unix timestamp in ms
   title: string;
+  subTitle?: string;
   description?: string;
   category?: string;
   icon?: string;
   rating?: string;
+  episodeNumber?: string;
+  language?: string;
+}
+
+export type EpgSourceKind = 'remote' | 'file' | 'xtream';
+
+/**
+ * One XMLTV feed attached to a playlist. A playlist may hold several sources;
+ * they are merged in `priority` order (lower wins) when resolving a channel.
+ * Remote Xtream URLs embed credentials, so they are never logged or rendered
+ * unmasked.
+ */
+export interface EpgSource {
+  id: string;
+  playlistId: string;
+  name: string;
+  url?: string;
+  kind: EpgSourceKind;
+  enabled: boolean;
+  priority: number;
+  /** Conditional-refresh validators, when the server exposes them via CORS. */
+  etag?: string;
+  lastModified?: string;
+  lastFetchedAt?: number;
+  /** Timestamp of the last successful parse (guide "updated N h ago"). */
+  lastUpdatedAt?: number;
+  channelCount: number;
+  programmeCount: number;
+  /** Fraction of the playlist's channels this source matched (0..1). */
+  matchRate?: number;
+  /** Per-source TTL override for the default 12 h refresh window. */
+  ttlHours?: number;
+}
+
+/** A channel advertised by an XMLTV feed. */
+export interface EpgChannel {
+  /** Stable id: `${sourceId}::${xmltvId}` so it survives a source refresh. */
+  id: string;
+  sourceId: string;
+  playlistId: string;
+  xmltvId: string;
+  displayNames: string[];
+  icon?: string;
+}
+
+/**
+ * Resolved channel → XMLTV channel mapping. Keyed by `channelId` so one
+ * playlist channel maps to exactly one EPG channel. `manual` mappings always
+ * override auto-matching and survive re-sync and EPG refresh.
+ */
+export interface EpgMapping {
+  channelId: string;
+  playlistId: string;
+  sourceId?: string;
+  epgChannelId: string;
+  xmltvId: string;
+  method: EpgMatchMethod;
+  confidence: number;
+  manual: boolean;
+  updatedAt: number;
 }
 
 export interface VodItem {

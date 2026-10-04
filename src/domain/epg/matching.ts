@@ -23,19 +23,22 @@ export interface EpgChannelCandidate {
   displayNames: string[];
 }
 
-export type EpgMatchMethod = 'tvg-id' | 'name' | 'fuzzy';
+export type EpgAutoMatchMethod = 'tvg-id' | 'name' | 'fuzzy';
+
+/** Stored mapping method; `manual` always overrides auto-matching. */
+export type EpgMatchMethod = EpgAutoMatchMethod | 'manual';
 
 export interface EpgMatch {
   channelId: string;
   xmltvId: string;
-  method: EpgMatchMethod;
+  method: EpgAutoMatchMethod;
   /** 0..1; 1 = exact id/name, lower = fuzzier. */
   confidence: number;
 }
 
 export interface EpgCandidateScore {
   xmltvId: string;
-  method: EpgMatchMethod;
+  method: EpgAutoMatchMethod;
   confidence: number;
 }
 

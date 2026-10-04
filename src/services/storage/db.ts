@@ -1,5 +1,5 @@
 import Dexie, { Table, type DexieOptions } from 'dexie';
-import { Playlist, Channel, Group, Program, HistoryEntry } from '../../domain/types.ts';
+import { Playlist, Channel, Group, Program, HistoryEntry, EpgSource, EpgChannel, EpgMapping } from '../../domain/types.ts';
 
 export class AetherDatabase extends Dexie {
   playlists!: Table<Playlist, string>;
@@ -7,6 +7,9 @@ export class AetherDatabase extends Dexie {
   groups!: Table<Group, string>;
   programs!: Table<Program, string>;
   history!: Table<HistoryEntry, string>;
+  epgSources!: Table<EpgSource, string>;
+  epgChannels!: Table<EpgChannel, string>;
+  epgMappings!: Table<EpgMapping, string>;
 
   constructor(name = 'AetherIptvDatabase', options?: DexieOptions) {
     super(name, options);
@@ -17,6 +20,23 @@ export class AetherDatabase extends Dexie {
       programs: 'id, channelId, tvgId, start, stop, [channelId+start]',
       history: 'id, channelId, watchedAt',
     });
+
+    // v2 adds the EPG source/channel/mapping tables and a `sourceId` index on
+    // programs so a source delete cascades without a channel join. Existing v1
+    // rows are preserved as-is (`sourceId` is optional), so the upgrade body
+    // only needs to declare the new index.
+    this.version(2)
+      .stores({
+        programs: 'id, channelId, tvgId, start, stop, sourceId, [channelId+start]',
+        epgSources: 'id, playlistId, enabled, priority',
+        epgChannels: 'id, sourceId, playlistId, xmltvId, [sourceId+xmltvId]',
+        epgMappings: 'channelId, playlistId, sourceId, epgChannelId, manual',
+      })
+      .upgrade(async () => {
+        // No data migration required: v1 programme rows simply have no
+        // `sourceId`. This hook exists so future changes have a version to
+        // attach to (AGENTS Rule 10).
+      });
   }
 }
 
@@ -57,7 +77,7 @@ export async function savePlaylist(playlist: Playlist, database: AetherDatabase 
 }
 
 export async function deletePlaylist(playlistId: string, database: AetherDatabase = db): Promise<void> {
-  await database.transaction('rw', [database.playlists, database.channels, database.groups, database.programs, database.history], async () => {
+  await database.transaction('rw', [database.playlists, database.channels, database.groups, database.programs, database.history, database.epgSources, database.epgChannels, database.epgMappings], async () => {
     const channelIds = await database.channels.where({ playlistId }).primaryKeys();
 
     await database.playlists.delete(playlistId);
@@ -70,6 +90,11 @@ export async function deletePlaylist(playlistId: string, database: AetherDatabas
       await database.programs.where('channelId').anyOf(channelIds).delete();
       await database.history.where('channelId').anyOf(channelIds).delete();
     }
+
+    // EPG sources, their channels and mappings all carry playlistId.
+    await database.epgSources.where({ playlistId }).delete();
+    await database.epgChannels.where({ playlistId }).delete();
+    await database.epgMappings.where({ playlistId }).delete();
   });
 }
 
