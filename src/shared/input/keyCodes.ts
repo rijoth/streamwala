@@ -68,7 +68,9 @@ export function normalizeKeyEvent(e: KeyboardEvent): NormalizedKeyEvent | null {
     code === 4 ||       // Android KEYCODE_BACK
     code === 10009 ||   // Tizen Return
     code === 461 ||     // webOS Back
-    key === 'BrowserBack'
+    key === 'BrowserBack' ||
+    key === 'Backspace' ||
+    code === 8          // Backspace outside text fields
   ) {
     return { action: 'BACK', rawKey: key, keyCode: code };
   }
@@ -80,7 +82,7 @@ export function normalizeKeyEvent(e: KeyboardEvent): NormalizedKeyEvent | null {
   if (key === 'MediaPlay' || code === 415) {
     return { action: 'PLAY', rawKey: key, keyCode: code };
   }
-  if (key === 'MediaPause' || code === 19) {
+  if (key === 'MediaPause' || code === 127) {
     return { action: 'PAUSE', rawKey: key, keyCode: code };
   }
   if (key === 'MediaStop' || code === 413) {
