@@ -77,6 +77,12 @@ function ensureNavRepeatListener() {
       const step = repeatStep(heldMs, navRepeatConfig);
       if (step > 1) {
         accelerateListeners.forEach((listener) => listener(action, step, heldMs));
+        if (accelerateListeners.size > 0) {
+          // The screen consumed the accelerated step; the engine must not also
+          // apply a single-step move for the same keydown.
+          e.preventDefault();
+          e.stopPropagation();
+        }
       }
     },
     { capture: true }

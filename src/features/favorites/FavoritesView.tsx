@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Channel } from '../../domain/types.ts';
 import { FocusZone, useFocusable } from '../../shared/focus/index.ts';
 import { Button } from '../../shared/ui/index.ts';
 import { Icon } from '../../shared/icons/index.ts';
+import { ScrollPositionIndicator, VirtualGrid, useGridScroller } from '../../shared/scroll/index.ts';
 
 export interface FavoritesViewProps {
   channels: Channel[];
@@ -11,55 +12,82 @@ export interface FavoritesViewProps {
   onGoToLive: () => void;
 }
 
+const FAVORITE_ITEM_HEIGHT = 208;
+const FAVORITE_GAP = 16;
+
 export const FavoritesView: React.FC<FavoritesViewProps> = ({
   channels,
   onSelectChannel,
   onToggleFavorite,
   onGoToLive,
 }) => {
-  const favorites = channels.filter(c => c.isFavorite);
+  const favorites = useMemo(() => channels.filter((c) => c.isFavorite), [channels]);
+
+  const { axis, columns } = useGridScroller({
+    screenKey: 'favorites',
+    count: favorites.length,
+    rowSize: FAVORITE_ITEM_HEIGHT + FAVORITE_GAP,
+    minItemWidth: 180,
+    gap: FAVORITE_GAP,
+    maxColumns: 5,
+  });
+  const totalRows = Math.max(1, Math.ceil(favorites.length / Math.max(1, columns)));
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden p-6 text-[var(--md-sys-color-on-surface)]">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Favorite Channels</h2>
-          <p className="text-xs text-[var(--md-sys-color-outline)]">Your pinned channels for instant 10-foot remote access.</p>
+          <p className="text-xs text-[var(--md-sys-color-outline)]">
+            Your pinned channels for instant 10-foot remote access.
+          </p>
         </div>
-        <div className="flex items-center gap-2 text-xs font-semibold text-amber-400 bg-amber-950/40 border border-amber-800/60 px-3 py-1.5 rounded-full">
-          <Icon name="star" size={16} filled />
-          <span>{favorites.length} Pinned</span>
+        <div className="flex items-center gap-3">
+          <ScrollPositionIndicator axis={axis} itemSize={FAVORITE_ITEM_HEIGHT + FAVORITE_GAP} count={totalRows} />
+          <div className="flex items-center gap-2 text-xs font-semibold text-amber-400 bg-amber-950/40 border border-amber-800/60 px-3 py-1.5 rounded-full">
+            <Icon name="star" size={16} filled />
+            <span>{favorites.length} Pinned</span>
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 -m-3 scroll-p-6">
+      <div className="flex-1 min-h-0">
         {favorites.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center text-[var(--md-sys-color-outline)]">
             <div className="w-16 h-16 rounded-2xl bg-[var(--md-sys-color-surface-container)] flex items-center justify-center mb-3">
               <Icon name="star_outline" size={32} />
             </div>
-            <h3 className="font-semibold text-lg text-[var(--md-sys-color-on-surface)]">No favorites pinned yet</h3>
+            <h3 className="font-semibold text-lg text-[var(--md-sys-color-on-surface)]">
+              No favorites pinned yet
+            </h3>
             <p className="text-sm max-w-sm mt-1 mb-6">
-              Browse channels in Live TV and press the Star button or Red remote key to pin your favorites here.
+              Browse channels in Live TV and press the Star button or Red remote key to pin your
+              favorites here.
             </p>
             <Button variant="filled" icon="live_tv" autoFocus onClick={onGoToLive}>
               Browse Channels
             </Button>
           </div>
         ) : (
-          <FocusZone
-            focusKey="FAVORITES_GRID"
-            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 p-1 pb-6"
-          >
-            {favorites.map((channel, idx) => (
-              <FavoriteCard
-                key={channel.id}
-                channel={channel}
-                autoFocus={idx === 0}
-                onSelect={() => onSelectChannel(channel)}
-                onToggleFavorite={() => onToggleFavorite(channel.id)}
+          <FocusZone focusKey="FAVORITES_GRID" className="h-full">
+            <div ref={axis.viewportRef} data-scroll-axis="vertical" className="relative h-full overflow-hidden">
+              <VirtualGrid<Channel>
+                axis={axis}
+                items={favorites}
+                columns={columns}
+                itemHeight={FAVORITE_ITEM_HEIGHT}
+                gap={FAVORITE_GAP}
+                className="px-[var(--focus-ring-pad)]"
+                getKey={(channel) => channel.id}
+                renderItem={(channel) => (
+                  <FavoriteCard
+                    channel={channel}
+                    onSelect={() => onSelectChannel(channel)}
+                    onToggleFavorite={() => onToggleFavorite(channel.id)}
+                  />
+                )}
               />
-            ))}
+            </div>
           </FocusZone>
         )}
       </div>
@@ -69,19 +97,13 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
 
 interface FavoriteCardProps {
   channel: Channel;
-  autoFocus?: boolean;
   onSelect: () => void;
   onToggleFavorite: () => void;
 }
 
-const FavoriteCard: React.FC<FavoriteCardProps> = ({
-  channel,
-  autoFocus,
-  onSelect,
-  onToggleFavorite,
-}) => {
+const FavoriteCard: React.FC<FavoriteCardProps> = ({ channel, onSelect, onToggleFavorite }) => {
   const { ref, focused } = useFocusable({
-    autoFocus,
+    focusKey: `FAVORITES_${channel.id}`,
     onEnterPress: onSelect,
   });
 
@@ -89,12 +111,11 @@ const FavoriteCard: React.FC<FavoriteCardProps> = ({
     <div
       ref={ref as React.Ref<HTMLDivElement>}
       onClick={onSelect}
+      style={{ height: FAVORITE_ITEM_HEIGHT }}
       className={`
-        tv-focus-target group relative rounded-2xl p-4 flex flex-col items-center text-center cursor-pointer outline-none
+        tv-focus-target group relative rounded-2xl p-4 flex flex-col items-center text-center cursor-pointer outline-none overflow-hidden
         bg-[var(--md-sys-color-surface-container)] border border-[var(--md-sys-color-outline-variant)]
-        transition-all duration-150 hover:bg-[var(--md-sys-color-surface-container-high)]
-        scroll-m-6
-        ${focused ? 'tv-focused ring-3 ring-[var(--md-sys-color-focus-ring)] scale-103 !bg-[var(--md-sys-color-primary-container)] !border-[var(--md-sys-color-primary)] z-10' : ''}
+        ${focused ? 'tv-focused ring-3 ring-[var(--md-sys-color-focus-ring)] !bg-[var(--md-sys-color-primary-container)] !border-[var(--md-sys-color-primary)] z-10' : ''}
       `}
     >
       <div className="w-full flex items-center justify-between mb-2">
@@ -113,13 +134,15 @@ const FavoriteCard: React.FC<FavoriteCardProps> = ({
         </button>
       </div>
 
-      <div className="w-18 h-18 rounded-2xl bg-black/20 p-2 flex items-center justify-center mb-2">
+      <div className="w-18 h-18 rounded-2xl bg-[var(--md-sys-color-surface-container-highest)] p-2 flex items-center justify-center mb-2 shrink-0">
         {channel.logo ? (
           <img
             src={channel.logo}
             alt={channel.name}
             className="w-full h-full object-contain"
-            onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+            onError={(e) => {
+              (e.target as HTMLElement).style.display = 'none';
+            }}
           />
         ) : (
           <span className="font-bold text-base text-[var(--md-sys-color-primary)]">

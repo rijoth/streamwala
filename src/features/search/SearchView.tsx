@@ -1,14 +1,22 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Channel } from '../../domain/types.ts';
 import { FocusZone, useFocusable } from '../../shared/focus/index.ts';
 import { TextField } from '../../shared/ui/index.ts';
 import { Icon } from '../../shared/icons/index.ts';
+import {
+  ScrollPositionIndicator,
+  VirtualGrid,
+  useGridScroller,
+} from '../../shared/scroll/index.ts';
 
 export interface SearchViewProps {
   channels: Channel[];
   onSelectChannel: (channel: Channel) => void;
   onToggleFavorite: (channelId: string) => void;
 }
+
+const SEARCH_ITEM_HEIGHT = 168;
+const SEARCH_GAP = 16;
 
 export const SearchView: React.FC<SearchViewProps> = ({
   channels,
@@ -28,6 +36,16 @@ export const SearchView: React.FC<SearchViewProps> = ({
     );
   }, [channels, query]);
 
+  const { axis, columns } = useGridScroller({
+    screenKey: 'search',
+    count: filtered.length,
+    rowSize: SEARCH_ITEM_HEIGHT + SEARCH_GAP,
+    minItemWidth: 180,
+    gap: SEARCH_GAP,
+    maxColumns: 5,
+  });
+  const totalRows = Math.max(1, Math.ceil(filtered.length / Math.max(1, columns)));
+
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden p-6 text-[var(--md-sys-color-on-surface)]">
       <div className="max-w-2xl w-full mb-6">
@@ -43,13 +61,14 @@ export const SearchView: React.FC<SearchViewProps> = ({
         />
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 -m-3 scroll-p-6">
+      <div className="flex items-center gap-3 mb-3 min-h-[20px] text-sm text-[var(--md-sys-color-outline)] px-1">
         {query && (
-          <div className="text-sm text-[var(--md-sys-color-outline)] mb-3 px-1">
-            Found {filtered.length} matching channels
-          </div>
+          <span>Found {filtered.length} matching channels</span>
         )}
+        <ScrollPositionIndicator axis={axis} itemSize={SEARCH_ITEM_HEIGHT + SEARCH_GAP} count={totalRows} />
+      </div>
 
+      <div className="flex-1 min-h-0">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center text-[var(--md-sys-color-outline)]">
             <Icon name="search" size={48} className="mb-2 opacity-40" />
@@ -58,18 +77,25 @@ export const SearchView: React.FC<SearchViewProps> = ({
             </p>
           </div>
         ) : (
-          <FocusZone
-            focusKey="SEARCH_RESULTS"
-            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 p-1 pb-6"
-          >
-            {filtered.map((channel) => (
-              <SearchChannelCard
-                key={channel.id}
-                channel={channel}
-                onSelect={() => onSelectChannel(channel)}
-                onToggleFavorite={() => onToggleFavorite(channel.id)}
+          <FocusZone focusKey="SEARCH_RESULTS" className="h-full">
+            <div ref={axis.viewportRef} data-scroll-axis="vertical" className="relative h-full overflow-hidden">
+              <VirtualGrid<Channel>
+                axis={axis}
+                items={filtered}
+                columns={columns}
+                itemHeight={SEARCH_ITEM_HEIGHT}
+                gap={SEARCH_GAP}
+                className="px-[var(--focus-ring-pad)]"
+                getKey={(channel) => channel.id}
+                renderItem={(channel) => (
+                  <SearchChannelCard
+                    channel={channel}
+                    onSelect={() => onSelectChannel(channel)}
+                    onToggleFavorite={() => onToggleFavorite(channel.id)}
+                  />
+                )}
               />
-            ))}
+            </div>
           </FocusZone>
         )}
       </div>
@@ -83,11 +109,7 @@ interface SearchChannelCardProps {
   onToggleFavorite: () => void;
 }
 
-const SearchChannelCard: React.FC<SearchChannelCardProps> = ({
-  channel,
-  onSelect,
-  onToggleFavorite,
-}) => {
+const SearchChannelCard: React.FC<SearchChannelCardProps> = ({ channel, onSelect, onToggleFavorite }) => {
   const { ref, focused } = useFocusable({
     focusKey: `SEARCH_RESULT_${channel.id}`,
     onEnterPress: onSelect,
@@ -97,12 +119,11 @@ const SearchChannelCard: React.FC<SearchChannelCardProps> = ({
     <div
       ref={ref as React.Ref<HTMLDivElement>}
       onClick={onSelect}
+      style={{ height: SEARCH_ITEM_HEIGHT }}
       className={`
-        tv-focus-target group relative rounded-2xl p-4 flex flex-col items-center text-center cursor-pointer outline-none
+        tv-focus-target group relative rounded-2xl p-4 flex flex-col items-center text-center cursor-pointer outline-none overflow-hidden
         bg-[var(--md-sys-color-surface-container)] border border-[var(--md-sys-color-outline-variant)]
-        transition-all duration-150 hover:bg-[var(--md-sys-color-surface-container-high)]
-        scroll-m-6
-        ${focused ? 'tv-focused ring-3 ring-[var(--md-sys-color-focus-ring)] scale-103 !bg-[var(--md-sys-color-primary-container)] !border-[var(--md-sys-color-primary)] z-10' : ''}
+        ${focused ? 'tv-focused ring-3 ring-[var(--md-sys-color-focus-ring)] !bg-[var(--md-sys-color-primary-container)] !border-[var(--md-sys-color-primary)] z-10' : ''}
       `}
     >
       <div className="w-full flex items-center justify-between mb-2">
@@ -121,13 +142,15 @@ const SearchChannelCard: React.FC<SearchChannelCardProps> = ({
         </button>
       </div>
 
-      <div className="w-16 h-16 rounded-xl bg-black/20 p-1 flex items-center justify-center mb-2">
+      <div className="w-16 h-16 rounded-xl bg-[var(--md-sys-color-surface-container-highest)] p-1 flex items-center justify-center mb-2 shrink-0">
         {channel.logo ? (
           <img
             src={channel.logo}
             alt={channel.name}
             className="w-full h-full object-contain"
-            onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+            onError={(e) => {
+              (e.target as HTMLElement).style.display = 'none';
+            }}
           />
         ) : (
           <span className="font-bold text-sm text-[var(--md-sys-color-primary)]">

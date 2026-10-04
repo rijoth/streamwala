@@ -30,10 +30,17 @@ export function useFocusedItemIndex(
       const focused = root.querySelector<HTMLElement>('[data-focused="true"]');
       if (!focused || !root.contains(focused)) return;
       const rowEl = focused.closest<HTMLElement>('[data-scroll-row]');
+      const itemEl = focused.closest<HTMLElement>('[data-scroll-item]');
+      const itemIndex = itemEl?.dataset.scrollItem !== undefined ? Number(itemEl.dataset.scrollItem) : undefined;
       const row = rowEl?.dataset.scrollRow !== undefined ? Number(rowEl.dataset.scrollRow) : 0;
       const index =
-        focused.dataset.scrollIndex !== undefined ? Number(focused.dataset.scrollIndex) : row;
-      const col = focused.dataset.scrollCol !== undefined ? Number(focused.dataset.scrollCol) : 0;
+        focused.dataset.scrollIndex !== undefined
+          ? Number(focused.dataset.scrollIndex)
+          : itemIndex ?? row;
+      const col =
+        focused.dataset.scrollCol !== undefined
+          ? Number(focused.dataset.scrollCol)
+          : itemIndex ?? 0;
       onFocusItem({ index, row, col });
     };
 

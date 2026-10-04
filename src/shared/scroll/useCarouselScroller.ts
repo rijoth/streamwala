@@ -54,7 +54,7 @@ export function useCarouselScroller(options: CarouselScrollerOptions): CarouselS
       if (memoryKeyRef.current) {
         writeScrollMemory(memoryKeyRef.current, {
           focusKey: getCurrentFocusKey() ?? null,
-          offset: axis.getOffset(),
+          offset: target,
           row: info.row,
         });
       }

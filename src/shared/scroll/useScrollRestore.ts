@@ -4,23 +4,33 @@ import { readScrollMemory } from './scrollMemory.ts';
 import type { ScrollAxisApi } from './useScrollAxis.ts';
 
 /**
- * Restores the remembered focus key and offset for a memory slot once the
- * viewport has a measurable size. Focus is restored first, so the row-snap /
- * minimal-scroll logic re-derives the deterministic offset on top of the
- * remembered one.
+ * Restores the remembered offset and focus key for a memory slot once the
+ * viewport has a measurable size.
+ *
+ * The offset is applied first so the windowing primitive renders the remembered
+ * row, then focus is set (on the next frame if the target is not rendered yet).
+ * This restores the exact row/card after the player, a dialog or a route change
+ * with no visible jump.
  */
 export function useScrollRestore(memoryKey: string, axis: ScrollAxisApi): void {
   useEffect(() => {
     const entry = readScrollMemory(memoryKey);
     if (!entry) return;
 
-    const restore = () => {
-      if (entry.focusKey && focusKeyExists(entry.focusKey)) {
+    const restoreFocus = () => {
+      if (!entry.focusKey) return;
+      if (focusKeyExists(entry.focusKey)) {
         setFocus(entry.focusKey);
+        return;
       }
-      if (entry.offset > 0) {
-        axis.setPendingOffset(entry.offset);
-      }
+      requestAnimationFrame(() => {
+        if (entry.focusKey && focusKeyExists(entry.focusKey)) setFocus(entry.focusKey);
+      });
+    };
+
+    const restore = () => {
+      if (entry.offset > 0) axis.setPendingOffset(entry.offset);
+      restoreFocus();
     };
 
     if (axis.isSized()) {
