@@ -58,6 +58,9 @@ export function useFocusable(config: AppFocusableConfig = {}) {
   useEffect(() => {
     if (focused && autoScroll && elementRef.current) {
       const el = elementRef.current;
+      // Some webviews (and jsdom) do not implement scrollIntoView; focusing must
+      // never throw because of it.
+      if (typeof el.scrollIntoView !== 'function') return;
       try {
         el.scrollIntoView({
           behavior: 'smooth',
