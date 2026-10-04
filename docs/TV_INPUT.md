@@ -30,6 +30,31 @@ The `src/shared/input` module intercepts raw keyboard and remote events and conv
 - Long press on OK (holding > 600ms) triggers channel context actions (Favorite / Hide / Details).
 - Overscan safe zones: `padding: 32px 48px`.
 
+## Focus Zones Own Their Children
+`FocusZone` (`src/shared/focus/FocusZone.tsx`) provides `FocusContext` for its
+children by default, so the zone is the **focus parent** of everything inside
+it. The navigation library moves strictly between *siblings* and only descends
+into a component's children when focus is set on that component, so this is what
+makes tree navigation work.
+
+- A zone with focusable children is a **routing node, never a stop**: setting
+  focus on it lands on its last-focused child (or the child nearest the origin).
+- A zone that must not be a stop at all (a pure layout wrapper) takes
+  `focusable={false}`; a `Card` with `isInteractive={false}` is likewise never
+  focusable. A large container that captures focus has no ring and swallows
+  arrow presses — that was BUG-020.
+- Children that register against the root instead (the old behaviour) make every
+  control a flat sibling of every other control on the screen, so the
+  geometry-based sibling sort jumps between unrelated sections.
+- **Every D-pad stop must be a real control** with `tv-focus-target` (focus
+  styling) and an `onEnterPress` handler. Plain `<button>`/`<div>` elements are
+  invisible to the engine: use a `shared/ui` primitive or wrap the element in a
+  component that calls `useFocusable`. `e2e/dpad.spec.ts` enforces this on every
+  top-level screen.
+- Per-screen entry targets live in `PRIMARY_FOCUS_TARGETS` in `src/App.tsx`.
+  Settings has no monolithic container: focus enters on the active tab tile
+  (`SETTINGS_TAB_*`).
+
 ## Navigation Rail Focus Rules
 The rail (`src/shared/ui/NavigationRail.tsx`) is a permanent, icon-only Material
 3 rail in normal layout flow. It owns the focus zone `NAV_RAIL` and its items own

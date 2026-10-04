@@ -24,6 +24,10 @@ export const Card: React.FC<CardProps> = ({
 }) => {
   const { ref, focused, focusSelf } = useFocusable({
     focusKey,
+    // A non-interactive card is layout only: it must not be a D-pad stop,
+    // otherwise focus lands on it, draws no ring (`focused && isInteractive`)
+    // and every arrow press looks dead (BUG-020).
+    focusable: isInteractive,
     onEnterPress: () => {
       if (isInteractive && onClick) {
         onClick();

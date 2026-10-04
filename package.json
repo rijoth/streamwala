@@ -13,9 +13,17 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "e2e": "playwright test",
-    "check": "npm run lint && npm run lint:eslint && npm run test:coverage && npm run e2e"
+    "check": "npm run lint && npm run lint:eslint && npm run test:coverage && npm run e2e",
+    "android:assets": "python3 scripts/android-assets.py",
+    "android:sync": "npm run build && cap sync android",
+    "android:debug": "npm run android:sync && bash scripts/android-gradle.sh assembleMobileDebug assembleTvDebug",
+    "android:release": "npm run android:sync && bash scripts/android-gradle.sh assembleMobileRelease assembleTvRelease",
+    "android:java": "bash scripts/android-gradle.sh --version"
   },
   "dependencies": {
+    "@capacitor/android": "^7.6.9",
+    "@capacitor/app": "^7.1.2",
+    "@capacitor/core": "^7.6.9",
     "@google/genai": "^2.4.0",
     "@noriginmedia/norigin-spatial-navigation": "^3.3.0",
     "@tailwindcss/vite": "^4.3.3",
@@ -37,6 +45,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@capacitor/cli": "^7.6.9",
     "@playwright/test": "^1.63.0",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",

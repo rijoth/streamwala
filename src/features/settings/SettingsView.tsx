@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSettingsStore } from '../../app/settingsStore.ts';
-import { FocusZone } from '../../shared/focus/index.ts';
+import { FocusZone, useFocusable } from '../../shared/focus/index.ts';
 import { Button, Card, TextField } from '../../shared/ui/index.ts';
 import { Icon } from '../../shared/icons/index.ts';
 import { Playlist, PROXY_PRESETS } from '../../domain/types.ts';
@@ -11,6 +11,44 @@ export interface SettingsViewProps {
   onAddNewPlaylist: () => void;
   onRefreshData: () => void;
 }
+
+interface FocusableTileProps
+  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onClick' | 'type'> {
+  onPress: () => void;
+  focusKey?: string;
+}
+
+/**
+ * Styled settings tile registered with the spatial-navigation engine.
+ * Plain `<button>` elements are invisible to the D-pad: only components that
+ * call `useFocusable` are navigation stops and only they receive
+ * `onEnterPress` (BUG-020).
+ */
+const FocusableTile: React.FC<FocusableTileProps> = ({
+  onPress,
+  focusKey,
+  className = '',
+  children,
+  ...props
+}) => {
+  const { ref, focused } = useFocusable({ focusKey, onEnterPress: onPress });
+
+  return (
+    <button
+      ref={ref as React.Ref<HTMLButtonElement>}
+      type="button"
+      onClick={onPress}
+      className={`
+        tv-focus-target cursor-pointer outline-none transition-all
+        ${focused ? 'tv-focused' : ''}
+        ${className}
+      `}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+};
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
   playlists,
@@ -54,7 +92,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
       {/* Tabs Row */}
       <div className="flex items-center gap-2 pb-4 border-b border-[var(--md-sys-color-outline-variant)]">
-        <FocusZone focusKey="SETTINGS_TABS" className="flex items-center gap-2 overflow-x-auto whitespace-nowrap">
+        <FocusZone focusKey="SETTINGS_TABS" ownsChildren className="flex items-center gap-2 overflow-x-auto whitespace-nowrap">
           {[
             { id: 'appearance', label: 'Appearance & TV Safe Area', icon: 'palette' },
             { id: 'playback', label: 'Playback & Engines', icon: 'play_circle' },
@@ -62,12 +100,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             { id: 'network', label: 'Network & CORS Proxy', icon: 'lan' },
             { id: 'about', label: 'About & Legal Disclaimer', icon: 'info' },
           ].map((tab) => (
-            <button
+            <FocusableTile
               key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id as typeof activeTab)}
+              focusKey={`SETTINGS_TAB_${tab.id}`}
+              onPress={() => setActiveTab(tab.id as typeof activeTab)}
               className={`
-                tv-focus-target px-4 py-2.5 rounded-full text-xs font-bold flex items-center gap-2 cursor-pointer outline-none transition-all
+                px-4 py-2.5 rounded-full text-xs font-bold flex items-center gap-2
                 ${activeTab === tab.id
                   ? 'bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)] shadow-md'
                   : 'bg-[var(--md-sys-color-surface-container)] text-[var(--md-sys-color-on-surface-variant)] hover:bg-[var(--md-sys-color-surface-container-high)]'
@@ -76,7 +114,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             >
               <Icon name={tab.icon} size={16} />
               <span>{tab.label}</span>
-            </button>
+            </FocusableTile>
           ))}
         </FocusZone>
       </div>
@@ -87,6 +125,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         {activeTab === 'appearance' && (
           <FocusZone className="flex flex-col gap-6">
             <Card variant="filled" isInteractive={false} className="p-6 flex flex-col gap-4">
+              <FocusZone focusKey="SETTINGS_SECTION_THEME" ownsChildren className="flex flex-col gap-4">
               <h3 className="font-bold text-lg">Display Theme</h3>
               <div className="grid grid-cols-3 gap-3">
                 {[
@@ -105,9 +144,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   </Button>
                 ))}
               </div>
+              </FocusZone>
             </Card>
 
             <Card variant="filled" isInteractive={false} className="p-6 flex flex-col gap-4">
+              <FocusZone focusKey="SETTINGS_SECTION_SAFE_AREA" ownsChildren className="flex flex-col gap-4">
               <h3 className="font-bold text-lg">TV Overscan Safe Area</h3>
               <p className="text-xs text-[var(--md-sys-color-outline)]">
                 Adds 48px horizontal & 32px vertical margins to prevent UI clipping on older Smart TV screens.
@@ -121,9 +162,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   {settings.safePadding ? 'Safe Padding Enabled' : 'Safe Padding Disabled'}
                 </Button>
               </div>
+              </FocusZone>
             </Card>
 
             <Card variant="filled" isInteractive={false} className="p-6 flex flex-col gap-4">
+              <FocusZone focusKey="SETTINGS_SECTION_HINTS" ownsChildren className="flex flex-col gap-4">
               <h3 className="font-bold text-lg">Remote Hint Bar</h3>
               <p className="text-xs text-[var(--md-sys-color-outline)]">
                 Shows the color-key legend (Favs / Guide / Search / Settings) in the content footer on browse screens.
@@ -137,9 +180,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   {settings.showRemoteHints ? 'Remote Hints Shown' : 'Remote Hints Hidden'}
                 </Button>
               </div>
+              </FocusZone>
             </Card>
 
             <Card variant="filled" isInteractive={false} className="p-6 flex flex-col gap-4">
+              <FocusZone focusKey="SETTINGS_SECTION_SCALE" ownsChildren className="flex flex-col gap-4">
               <h3 className="font-bold text-lg">TV UI Scale Factor</h3>
               <div className="flex items-center gap-4">
                 {[0.9, 1.0, 1.1, 1.25].map((scale) => (
@@ -153,6 +198,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   </Button>
                 ))}
               </div>
+              </FocusZone>
             </Card>
           </FocusZone>
         )}
@@ -161,6 +207,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         {activeTab === 'playback' && (
           <FocusZone className="flex flex-col gap-6">
             <Card variant="filled" isInteractive={false} className="p-6 flex flex-col gap-4">
+              <FocusZone focusKey="SETTINGS_SECTION_ENGINE" ownsChildren className="flex flex-col gap-4">
               <h3 className="font-bold text-lg">Default Playback Engine</h3>
               <div className="grid grid-cols-2 gap-3">
                 {[
@@ -169,12 +216,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   { id: 'mpegts', label: 'MPEG-TS Engine', desc: 'Direct transport stream decoding' },
                   { id: 'native', label: 'Native HTML5 Video', desc: 'Hardware-accelerated browser fallback' },
                 ].map((eng) => (
-                  <button
+                  <FocusableTile
                     key={eng.id}
-                    type="button"
-                    onClick={() => updateSettings({ defaultEngine: eng.id as 'auto' | 'hls' | 'mpegts' | 'native' })}
+                    focusKey={`SETTINGS_ENGINE_${eng.id}`}
+                    onPress={() => updateSettings({ defaultEngine: eng.id as 'auto' | 'hls' | 'mpegts' | 'native' })}
                     className={`
-                      tv-focus-target p-4 rounded-2xl text-left border cursor-pointer outline-none transition-all
+                      p-4 rounded-2xl text-left border
                       ${settings.defaultEngine === eng.id
                         ? 'bg-[var(--md-sys-color-primary-container)] border-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary-container)]'
                         : 'bg-[var(--md-sys-color-surface-container-high)] border-transparent text-[var(--md-sys-color-on-surface)]'
@@ -183,12 +230,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   >
                     <div className="font-bold text-sm">{eng.label}</div>
                     <div className="text-xs opacity-70 mt-1">{eng.desc}</div>
-                  </button>
+                  </FocusableTile>
                 ))}
               </div>
+              </FocusZone>
             </Card>
 
             <Card variant="filled" isInteractive={false} className="p-6 flex flex-col gap-4">
+              <FocusZone focusKey="SETTINGS_SECTION_NERD" ownsChildren className="flex flex-col gap-4">
               <h3 className="font-bold text-lg">Technical Nerd Diagnostics</h3>
               <Button
                 variant={settings.showNerdStats ? 'filled' : 'tonal'}
@@ -197,13 +246,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               >
                 {settings.showNerdStats ? 'Always Show Nerd Stats on Playback' : 'Nerd Stats Hidden by Default'}
               </Button>
+              </FocusZone>
             </Card>
           </FocusZone>
         )}
 
         {/* PLAYLISTS */}
         {activeTab === 'playlists' && (
-          <FocusZone className="flex flex-col gap-4">
+          <FocusZone focusKey="SETTINGS_SECTION_PLAYLISTS" ownsChildren className="flex flex-col gap-4">
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-bold text-lg">Installed Playlists</h3>
               <Button variant="filled" icon="add" onClick={onAddNewPlaylist}>
@@ -249,6 +299,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         {activeTab === 'network' && (
           <FocusZone className="flex flex-col gap-6">
             <Card variant="filled" isInteractive={false} className="p-6 flex flex-col gap-4">
+              <FocusZone focusKey="SETTINGS_SECTION_PROXY" ownsChildren className="flex flex-col gap-4">
               <div>
                 <h3 className="font-bold text-lg">CORS Proxy Configuration</h3>
                 <p className="text-xs text-[var(--md-sys-color-outline)] leading-relaxed mt-1">
@@ -265,17 +316,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   {PROXY_PRESETS.map((preset) => {
                     const isSelected = proxyTemplate === preset.template;
                     return (
-                      <button
+                      <FocusableTile
                         key={preset.id}
-                        type="button"
-                        onClick={() => {
+                        focusKey={`SETTINGS_PROXY_${preset.id}`}
+                        onPress={() => {
                           setProxyTemplate(preset.template);
                           updateSettings({ proxyUrlTemplate: preset.template });
                           setIsSavedMessage(true);
                           setTimeout(() => setIsSavedMessage(false), 2000);
                         }}
                         className={`
-                          tv-focus-target p-3.5 rounded-2xl text-left border cursor-pointer outline-none transition-all
+                          p-3.5 rounded-2xl text-left border
                           ${isSelected
                             ? 'bg-[var(--md-sys-color-primary-container)] border-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary-container)] shadow-sm'
                             : 'bg-[var(--md-sys-color-surface-container-high)] border-transparent text-[var(--md-sys-color-on-surface)] hover:bg-[var(--md-sys-color-surface-container-highest)]'
@@ -293,7 +344,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                         <div className="text-[11px] opacity-75 mt-1 leading-snug">
                           {preset.description}
                         </div>
-                      </button>
+                      </FocusableTile>
                     );
                   })}
                 </div>
@@ -314,9 +365,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   </Button>
                 </div>
               </div>
+              </FocusZone>
             </Card>
 
             <Card variant="filled" isInteractive={false} className="p-6 flex flex-col gap-4">
+              <FocusZone focusKey="SETTINGS_SECTION_DANGER" ownsChildren className="flex flex-col gap-4">
               <h3 className="font-bold text-lg text-red-400">Danger Zone</h3>
               <p className="text-xs text-[var(--md-sys-color-outline)]">
                 Purge all downloaded channel lists, EPG program guides, and history from local IndexedDB storage.
@@ -326,6 +379,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   Clear All Local Data & Reset
                 </Button>
               </div>
+              </FocusZone>
             </Card>
           </FocusZone>
         )}
@@ -343,8 +397,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-black/40 border border-white/10 text-xs text-[var(--md-sys-color-on-surface-variant)] space-y-2">
-              <h4 className="font-bold text-white text-sm">Legal Notice & Disclaimer</h4>
+            <div className="p-4 rounded-2xl bg-[var(--md-sys-color-surface-container-high)] border border-[var(--md-sys-color-outline-variant)] text-xs text-[var(--md-sys-color-on-surface-variant)] space-y-2">
+              <h4 className="font-bold text-[var(--md-sys-color-on-surface)] text-sm">Legal Notice & Disclaimer</h4>
               <p>
                 Aether IPTV is purely a client-side media player software application. It does not provide, host, bundle, or distribute any copyrighted media streams or TV channels.
               </p>

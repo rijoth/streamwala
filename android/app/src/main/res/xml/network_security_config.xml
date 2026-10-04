@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  IPTV panels (Xtream Codes, M3U playlists, EPG XMLTV) are commonly served over
+  plain HTTP and often on private IP ranges / non-standard ports. Cleartext must
+  stay permitted or playback and guide data fail silently on Android 9+.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
