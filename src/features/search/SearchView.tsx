@@ -38,6 +38,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
           onChange={setQuery}
           placeholder="Type to search with remote keyboard..."
           icon="search"
+          focusKey="SEARCH_FIELD"
           autoFocus
         />
       </div>
@@ -88,6 +89,7 @@ const SearchChannelCard: React.FC<SearchChannelCardProps> = ({
   onToggleFavorite,
 }) => {
   const { ref, focused } = useFocusable({
+    focusKey: `SEARCH_RESULT_${channel.id}`,
     onEnterPress: onSelect,
   });
 

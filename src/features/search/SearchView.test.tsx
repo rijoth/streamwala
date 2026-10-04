@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '../../test/renderWithProviders.tsx';
+import { getCurrentFocusKey } from '../../shared/focus/index.ts';
 import { SearchView } from './SearchView.tsx';
 import type { Channel } from '../../domain/types.ts';
 
@@ -40,6 +41,8 @@ describe('SearchView focus (BUG-003 regression)', () => {
     await user.type(input, 'al');
 
     // Result cards must not steal focus (they used to autoFocus index 0).
+    // Assert both the engine focus key and DOM focus.
+    expect(getCurrentFocusKey()).toBe('SEARCH_FIELD');
     expect(document.activeElement).toBe(input);
     expect(screen.getByText('Alpha News')).toBeInTheDocument();
   });
