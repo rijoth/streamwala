@@ -13,6 +13,8 @@ export interface HomeViewProps {
   groups: Group[];
   onSelectChannel: (channel: Channel) => void;
   onGoToLive: () => void;
+  /** Go to Live TV with the given group already selected. */
+  onGoToCategory: (groupId: string) => void;
   onGoToGuide: () => void;
 }
 
@@ -21,6 +23,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   groups,
   onSelectChannel,
   onGoToLive,
+  onGoToCategory,
   onGoToGuide,
 }) => {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
@@ -116,7 +119,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
               index={index}
               rowIndex={rowIndex + index}
               focusKey={`HOME_CAT_${group.id}`}
-              onClick={onGoToLive}
+              onClick={() => onGoToCategory(group.id)}
             />
           ))}
         </FocusZone>

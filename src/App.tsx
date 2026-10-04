@@ -245,6 +245,10 @@ export default function App() {
               groups={groups}
               onSelectChannel={setPlayingChannel}
               onGoToLive={() => setActiveNavId('live')}
+              onGoToCategory={(groupId) => {
+                setActiveGroupId(groupId);
+                setActiveNavId('live');
+              }}
               onGoToGuide={() => setActiveNavId('guide')}
             />
           )}

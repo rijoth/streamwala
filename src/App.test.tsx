@@ -57,6 +57,27 @@ describe('App navigation shell', () => {
     expect(screen.queryByTestId('navigation-rail')).not.toBeInTheDocument();
   });
 
+  it('opens Live TV filtered to the clicked home category', async () => {
+    await installDemoPlaylist();
+    renderWithProviders(<App />);
+
+    await screen.findByText('Featured Live', undefined, { timeout: 5_000 });
+
+    // Clicking a category spotlight on Home must carry the group into Live TV
+    // instead of dropping the selection and showing "All Channels". The group
+    // name also appears on channel cards, so target the category tile's heading.
+    const categoryTile = screen
+      .getAllByText('Sports & Outdoors')
+      .find((el) => el.tagName === 'H4');
+    expect(categoryTile).toBeDefined();
+    fireEvent.click(categoryTile!);
+
+    expect(
+      await screen.findByRole('heading', { name: 'Sports & Outdoors' })
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'All Channels' })).not.toBeInTheDocument();
+  });
+
   it('shows the remote hint bar in the content footer and hides it when disabled', async () => {
     await installDemoPlaylist();
     renderWithProviders(<App />);
