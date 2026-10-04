@@ -207,16 +207,27 @@ export function useScrollAxis({ orientation, config }: UseScrollAxisOptions): Sc
     if (!viewport) return;
 
     const onWheel = (event: WheelEvent) => {
+      const primary = orientation === 'vertical' ? event.deltaY : event.deltaX;
+      const secondary = orientation === 'vertical' ? event.deltaX : event.deltaY;
+      // Only own the gesture when this axis dominates; otherwise let it bubble
+      // to the parent axis (e.g. a vertical wheel over a horizontal carousel).
+      if (primary === 0 || Math.abs(primary) <= Math.abs(secondary)) return;
       event.preventDefault();
-      scrollBy(orientation === 'vertical' ? event.deltaY : event.deltaX);
+      scrollBy(primary);
     };
     let dragStartCoord = 0;
     let dragStartOffset = 0;
+    let dragStartX = 0;
+    let dragStartY = 0;
     let dragging = false;
+    let axisDecided = false;
     const onTouchStart = (event: TouchEvent) => {
       const touch = event.touches[0];
       if (!touch) return;
       dragging = true;
+      axisDecided = false;
+      dragStartX = touch.clientX;
+      dragStartY = touch.clientY;
       dragStartCoord = orientation === 'vertical' ? touch.clientY : touch.clientX;
       dragStartOffset = offsetRef.current;
     };
@@ -224,6 +235,18 @@ export function useScrollAxis({ orientation, config }: UseScrollAxisOptions): Sc
       if (!dragging) return;
       const touch = event.touches[0];
       if (!touch) return;
+      if (!axisDecided) {
+        const dx = Math.abs(touch.clientX - dragStartX);
+        const dy = Math.abs(touch.clientY - dragStartY);
+        if (dx < 6 && dy < 6) return;
+        const vertical = dy >= dx;
+        const ownsGesture = orientation === 'vertical' ? vertical : !vertical;
+        if (!ownsGesture) {
+          dragging = false; // the parent axis handles this drag
+          return;
+        }
+        axisDecided = true;
+      }
       const coord = orientation === 'vertical' ? touch.clientY : touch.clientX;
       event.preventDefault();
       scrollToOffset(dragStartOffset + (dragStartCoord - coord), { animate: false });

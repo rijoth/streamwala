@@ -141,10 +141,15 @@ test('RIGHT restores the previously focused content element', async () => {
   await page.goto('/');
   await expect(page.getByText('Featured Live')).toBeVisible({ timeout: 15_000 });
 
+  // Navigation is now transform-animated, so wait for the focus marker to
+  // settle after each press before reading it.
+  const settle = () => page.waitForTimeout(250);
+
   // Move into a horizontal content row, remembering the exact element that was
   // focused on the press that entered the rail.
   await page.keyboard.press('ArrowRight');
   await page.keyboard.press('ArrowDown');
+  await settle();
 
   let before: string | null = null;
   for (let i = 0; i < 8; i++) {
@@ -152,6 +157,7 @@ test('RIGHT restores the previously focused content element', async () => {
     if (state.inRail) break;
     before = state.text;
     await page.keyboard.press('ArrowLeft');
+    await settle();
   }
   expect((await focusedState(page)).inRail).toBe(true);
   expect(before).not.toBeNull();

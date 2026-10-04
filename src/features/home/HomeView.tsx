@@ -134,7 +134,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
     <ScrollViewport
       api={axis}
       testId="home-viewport"
-      className="flex-1"
+      className="flex-1 h-full min-h-0"
       contentClassName="relative p-8 space-y-8"
     >
       {rows}

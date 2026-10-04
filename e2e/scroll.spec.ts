@@ -167,6 +167,31 @@ test('Home row snap keeps focus on the focus line and toggles the hero', async (
   await page.setViewportSize({ width: 1920, height: 1080 });
 });
 
+test('Home scrolls vertically with D-pad and mouse wheel', async () => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.locator('aside button').first().click();
+  await expect(page.getByText('Featured Live')).toBeVisible();
+  await page.waitForTimeout(300);
+
+  const homeOffset = async () =>
+    Number(await page.getByTestId('home-viewport').getAttribute('data-scroll-offset'));
+
+  // A vertical wheel over a horizontal carousel must scroll the page, not be
+  // swallowed by the carousel's axis.
+  await page.locator('[data-testid="carousel-ROW_LIVE"]').hover();
+  await page.mouse.wheel(0, 500);
+  await expect.poll(homeOffset, { timeout: 3_000 }).toBeGreaterThan(0);
+
+  // D-pad down into the rows reaches Categories with focus visible.
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('ArrowDown');
+  await expectFocusedFullyVisible(page, 'home categories row');
+  expect(await homeOffset(), 'D-pad row snap should have scrolled').toBeGreaterThan(0);
+
+  await page.setViewportSize({ width: 1920, height: 1080 });
+});
+
 test('10k channel list: held Down settles aligned and in view', async () => {
   await page.getByRole('button', { name: 'Live TV' }).click();
   await expect(page.getByText('All Channels').first()).toBeVisible();
