@@ -1,103 +1,156 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Channel, Program } from '../../domain/types.ts';
 import { getProgramsForChannel } from '../../services/storage/db.ts';
 import { FocusZone, useFocusable } from '../../shared/focus/index.ts';
 import { SideSheet, Button } from '../../shared/ui/index.ts';
 import { Icon } from '../../shared/icons/index.ts';
+import {
+  DEFAULT_SCROLL_CONFIG,
+  clamp,
+  maxOffset,
+  rowSnapOffset,
+  useFocusedItemIndex,
+  useScrollAxis,
+  type FocusedItemInfo,
+} from '../../shared/scroll/index.ts';
+import { EpgMirror } from './EpgMirror.tsx';
 
 export interface EpgGuideViewProps {
   channels: Channel[];
   onSelectChannel: (channel: Channel) => void;
 }
 
-export const EpgGuideView: React.FC<EpgGuideViewProps> = ({
-  channels,
-  onSelectChannel,
-}) => {
+const ROW_HEIGHT = 64;
+const CHANNEL_COL_WIDTH = 192;
+const SLOT_WIDTH = 192;
+const SLOT_MS = 1_800_000;
+const VISIBLE_CHANNEL_LIMIT = 30;
+
+export const EpgGuideView: React.FC<EpgGuideViewProps> = ({ channels, onSelectChannel }) => {
   const [selectedProgram, setSelectedProgram] = useState<{ program: Program; channel: Channel } | null>(null);
   const [channelPrograms, setChannelPrograms] = useState<Map<string, Program[]>>(new Map());
 
-  // Base timeline: current hour minus 30 mins, up to +4 hours
   const now = Date.now();
-  const startTime = Math.floor(now / 1800000) * 1800000 - 1800000;
+  const startTime = Math.floor(now / SLOT_MS) * SLOT_MS - SLOT_MS;
+  const endTime = startTime + 5 * 3_600_000;
   const timeSlots: number[] = [];
-  for (let t = startTime; t < startTime + 5 * 3600000; t += 1800000) {
-    timeSlots.push(t);
-  }
+  for (let t = startTime; t < endTime; t += SLOT_MS) timeSlots.push(t);
 
-  // Fetch programs for visible channels
+  const visibleChannels = channels.slice(0, VISIBLE_CHANNEL_LIMIT);
+  const timelineWidth = timeSlots.length * SLOT_WIDTH;
+
   useEffect(() => {
     let isMounted = true;
     const fetchAll = async () => {
       const map = new Map<string, Program[]>();
-      for (const ch of channels.slice(0, 30)) {
-        const progs = await getProgramsForChannel(ch.id, startTime, startTime + 5 * 3600000);
+      for (const ch of visibleChannels) {
+        const progs = await getProgramsForChannel(ch.id, startTime, endTime);
         map.set(ch.id, progs);
       }
-      if (isMounted) {
-        setChannelPrograms(map);
-      }
+      if (isMounted) setChannelPrograms(map);
     };
-
     fetchAll();
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+    };
   }, [channels, startTime]);
 
-  const formatTime = (ts: number) => {
-    return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
+  const vAxis = useScrollAxis({ orientation: 'vertical' });
+  const hAxis = useScrollAxis({ orientation: 'horizontal' });
+
+  const handleVerticalFocus = useCallback(
+    (info: FocusedItemInfo) => {
+      const target = rowSnapOffset(
+        info.row * ROW_HEIGHT,
+        vAxis.getViewportSize(),
+        vAxis.getContentSize(),
+        DEFAULT_SCROLL_CONFIG
+      );
+      vAxis.scrollToOffset(target, { animate: true });
+    },
+    [vAxis]
+  );
+
+  const handleHorizontalFocus = useCallback(
+    (info: FocusedItemInfo) => {
+      const target = clamp(
+        info.x - SLOT_WIDTH / 2,
+        0,
+        maxOffset(hAxis.getContentSize(), hAxis.getViewportSize())
+      );
+      hAxis.scrollToOffset(target, { animate: true });
+    },
+    [hAxis]
+  );
+
+  useFocusedItemIndex(vAxis.viewportRef, handleVerticalFocus);
+  useFocusedItemIndex(hAxis.viewportRef, handleHorizontalFocus);
+
+  const formatTime = (ts: number) =>
+    new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  const nowX = clamp(Math.round(((now - startTime) / SLOT_MS) * SLOT_WIDTH), 0, timelineWidth);
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden text-[var(--md-sys-color-on-surface)] p-6">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Electronic Program Guide (EPG)</h2>
-          <p className="text-xs text-[var(--md-sys-color-outline)]">Navigate timeline with remote D-pad. Press OK to view details or watch.</p>
+          <p className="text-xs text-[var(--md-sys-color-outline)]">
+            Navigate timeline with remote D-pad. Press OK to view details or watch.
+          </p>
         </div>
-
         <div className="flex items-center gap-2 text-xs font-mono text-[var(--md-sys-color-primary)]">
           <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
           <span>CURRENT TIME: {formatTime(now)}</span>
         </div>
       </div>
 
-      {/* Timeline Grid Container */}
-      <div className="flex-1 overflow-auto rounded-2xl border border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container)]">
-        {/* Header: Time slots */}
-        <div className="flex sticky top-0 z-20 bg-[var(--md-sys-color-surface-container-high)] border-b border-[var(--md-sys-color-outline-variant)]">
-          <div className="w-48 shrink-0 p-3 font-bold text-xs uppercase tracking-wider text-[var(--md-sys-color-outline)] border-r border-[var(--md-sys-color-outline-variant)]">
+      <div className="flex-1 min-h-0 flex flex-col rounded-2xl border border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container)] overflow-hidden">
+        {/* Time header, pinned vertically and mirrored horizontally. */}
+        <div className="flex shrink-0 border-b border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container-high)]">
+          <div
+            className="shrink-0 p-3 font-bold text-xs uppercase tracking-wider text-[var(--md-sys-color-outline)] border-r border-[var(--md-sys-color-outline-variant)]"
+            style={{ width: CHANNEL_COL_WIDTH }}
+          >
             Channel
           </div>
-          <div className="flex-1 flex min-w-[1200px]">
-            {timeSlots.map((slot) => (
-              <div
-                key={slot}
-                className="w-48 shrink-0 p-3 text-xs font-mono font-semibold border-r border-[var(--md-sys-color-outline-variant)]"
-              >
-                {formatTime(slot)}
-              </div>
-            ))}
+          <div className="flex-1 relative overflow-hidden">
+            <EpgMirror axis={hAxis} orientation="x" className="flex" >
+              {timeSlots.map((slot) => (
+                <div
+                  key={slot}
+                  className="shrink-0 p-3 text-xs font-mono font-semibold border-r border-[var(--md-sys-color-outline-variant)]"
+                  style={{ width: SLOT_WIDTH }}
+                >
+                  {formatTime(slot)}
+                </div>
+              ))}
+            </EpgMirror>
           </div>
         </div>
 
-        {/* Channels Rows */}
-        <FocusZone focusKey="EPG_GRID" className="flex flex-col min-w-[1392px]">
-          {channels.map((channel) => {
-            const progs = channelPrograms.get(channel.id) || [];
-
-            return (
-              <div
-                key={channel.id}
-                className="flex border-b border-[var(--md-sys-color-outline-variant)] hover:bg-[var(--md-sys-color-surface-container-low)]"
-              >
-                {/* Channel Label */}
-                <div className="w-48 shrink-0 p-3 flex items-center gap-3 border-r border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container-high)]">
+        {/* Body: pinned channel column + two-axis program grid. */}
+        <div className="flex-1 min-h-0 flex">
+          <div
+            className="shrink-0 relative overflow-hidden border-r border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container-high)]"
+            style={{ width: CHANNEL_COL_WIDTH }}
+          >
+            <EpgMirror axis={vAxis} orientation="y">
+              {visibleChannels.map((channel) => (
+                <div
+                  key={channel.id}
+                  className="flex items-center gap-3 p-3 border-b border-[var(--md-sys-color-outline-variant)]"
+                  style={{ height: ROW_HEIGHT }}
+                >
                   {channel.logo ? (
                     <img
                       src={channel.logo}
                       alt={channel.name}
                       className="w-7 h-7 object-contain rounded shrink-0"
-                      onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = 'none';
+                      }}
                     />
                   ) : (
                     <div className="w-7 h-7 rounded bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)] flex items-center justify-center text-xs font-bold shrink-0">
@@ -111,51 +164,92 @@ export const EpgGuideView: React.FC<EpgGuideViewProps> = ({
                     </div>
                   </div>
                 </div>
+              ))}
+            </EpgMirror>
+          </div>
 
-                {/* Programs Row */}
-                <div className="flex-1 flex relative">
-                  {progs.length > 0 ? (
-                    progs.map((program) => {
-                      const start = typeof program.start === 'number' && !Number.isNaN(program.start) ? program.start : 0;
-                      const stop = typeof program.stop === 'number' && !Number.isNaN(program.stop) ? program.stop : start + 1800000;
-                      const diffMins = Math.round((stop - start) / 60000);
-                      const durationMinutes = !Number.isNaN(diffMins) && diffMins > 0 ? Math.max(15, diffMins) : 30;
-                      const calcWidth = Math.round((durationMinutes / 30) * 192);
-                      const widthPx = !Number.isNaN(calcWidth) && calcWidth > 0 ? calcWidth : 192;
-
+          <div ref={vAxis.viewportRef} data-scroll-axis="vertical" className="flex-1 relative overflow-hidden">
+            <div
+              ref={vAxis.contentRef}
+              className="will-change-transform"
+              style={{ height: visibleChannels.length * ROW_HEIGHT }}
+            >
+              <div ref={hAxis.viewportRef} data-scroll-axis="horizontal" className="h-full relative overflow-hidden">
+                <div
+                  ref={hAxis.contentRef}
+                  className="will-change-transform relative"
+                  style={{ width: timelineWidth }}
+                >
+                  <FocusZone focusKey="EPG_GRID" className="relative">
+                    {visibleChannels.map((channel, rowIndex) => {
+                      const progs = channelPrograms.get(channel.id) || [];
                       return (
-                        <EpgProgramCell
-                          key={program.id}
-                          program={program}
-                          channel={channel}
-                          widthPx={widthPx}
-                          onSelect={() => setSelectedProgram({ program, channel })}
-                        />
+                        <div
+                          key={channel.id}
+                          data-scroll-row={rowIndex}
+                          className="flex border-b border-[var(--md-sys-color-outline-variant)]"
+                          style={{ height: ROW_HEIGHT }}
+                        >
+                          {progs.length > 0 ? (
+                            progs.map((program, colIndex) => {
+                              const start =
+                                typeof program.start === 'number' && !Number.isNaN(program.start)
+                                  ? program.start
+                                  : startTime;
+                              const stop =
+                                typeof program.stop === 'number' && !Number.isNaN(program.stop)
+                                  ? program.stop
+                                  : start + SLOT_MS;
+                              const durationMinutes = Math.max(15, Math.round((stop - start) / 60000));
+                              const widthPx = Math.max(
+                                SLOT_WIDTH,
+                                Math.round((durationMinutes / 30) * SLOT_WIDTH)
+                              );
+                              const x = Math.max(0, Math.round(((start - startTime) / SLOT_MS) * SLOT_WIDTH));
+                              return (
+                                <EpgProgramCell
+                                  key={program.id}
+                                  program={program}
+                                  widthPx={widthPx}
+                                  x={x}
+                                  colIndex={colIndex}
+                                  onSelect={() => setSelectedProgram({ program, channel })}
+                                />
+                              );
+                            })
+                          ) : (
+                            <EpgProgramCell
+                              program={{
+                                id: `empty_${channel.id}`,
+                                channelId: channel.id,
+                                title: 'Live Stream Broadcast',
+                                start: startTime,
+                                stop: endTime,
+                                description: 'Real-time transmission.',
+                              }}
+                              widthPx={timelineWidth}
+                              x={0}
+                              colIndex={0}
+                              onSelect={() => onSelectChannel(channel)}
+                            />
+                          )}
+                        </div>
                       );
-                    })
-                  ) : (
-                    <EpgProgramCell
-                      program={{
-                        id: `empty_${channel.id}`,
-                        channelId: channel.id,
-                        title: 'Live Stream Broadcast',
-                        start: startTime,
-                        stop: startTime + 5 * 3600000,
-                        description: 'Real-time transmission.',
-                      }}
-                      channel={channel}
-                      widthPx={960}
-                      onSelect={() => onSelectChannel(channel)}
+                    })}
+                    {/* "Now" indicator scrolls horizontally with the timeline. */}
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute top-0 bottom-0 w-0.5 bg-red-500 z-20"
+                      style={{ left: nowX }}
                     />
-                  )}
+                  </FocusZone>
                 </div>
               </div>
-            );
-          })}
-        </FocusZone>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Program Details Side Sheet */}
       <SideSheet
         isOpen={!!selectedProgram}
         onClose={() => setSelectedProgram(null)}
@@ -216,29 +310,25 @@ export const EpgGuideView: React.FC<EpgGuideViewProps> = ({
 
 interface EpgProgramCellProps {
   program: Program;
-  channel: Channel;
   widthPx: number;
+  x: number;
+  colIndex: number;
   onSelect: () => void;
 }
 
-const EpgProgramCell: React.FC<EpgProgramCellProps> = ({
-  program,
-  widthPx,
-  onSelect,
-}) => {
-  const { ref, focused } = useFocusable({
-    onEnterPress: onSelect,
-  });
+const EpgProgramCell: React.FC<EpgProgramCellProps> = ({ program, widthPx, x, colIndex, onSelect }) => {
+  const { ref, focused } = useFocusable({ onEnterPress: onSelect });
 
   return (
     <div
       ref={ref as React.Ref<HTMLDivElement>}
+      data-scroll-col={colIndex}
+      data-scroll-x={x}
       onClick={onSelect}
       style={{ width: `${widthPx}px` }}
       className={`
         tv-focus-target shrink-0 p-3 h-16 border-r border-[var(--md-sys-color-outline-variant)]
-        cursor-pointer outline-none transition-all duration-100 flex flex-col justify-center overflow-hidden
-        hover:bg-[var(--md-sys-color-surface-container-high)]
+        cursor-pointer outline-none flex flex-col justify-center overflow-hidden
         ${focused ? 'tv-focused ring-3 ring-[var(--md-sys-color-focus-ring)] !bg-[var(--md-sys-color-primary-container)] !text-[var(--md-sys-color-on-primary-container)] z-10' : ''}
       `}
     >

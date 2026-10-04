@@ -8,6 +8,8 @@ export interface FocusedItemInfo {
   row: number;
   /** Column index within the row (from `data-scroll-col`, default 0). */
   col: number;
+  /** Leading edge along a secondary axis (`data-scroll-x`), when provided. */
+  x: number;
 }
 
 /**
@@ -41,7 +43,8 @@ export function useFocusedItemIndex(
         focused.dataset.scrollCol !== undefined
           ? Number(focused.dataset.scrollCol)
           : itemIndex ?? 0;
-      onFocusItem({ index, row, col });
+      const x = focused.dataset.scrollX !== undefined ? Number(focused.dataset.scrollX) : 0;
+      onFocusItem({ index, row, col, x });
     };
 
     const observer = new MutationObserver(read);

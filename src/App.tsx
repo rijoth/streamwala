@@ -24,7 +24,6 @@ import { EpgGuideView } from './features/guide/index.ts';
 import { FavoritesView } from './features/favorites/index.ts';
 import { SearchView } from './features/search/index.ts';
 import { SettingsView } from './features/settings/index.ts';
-import { GalleryView } from './features/gallery/index.ts';
 
 const NAV_DESTINATIONS: NavDestination[] = [
   { id: 'home', label: 'Home', icon: 'home', path: '/' },
@@ -33,7 +32,6 @@ const NAV_DESTINATIONS: NavDestination[] = [
   { id: 'favorites', label: 'Favorites', icon: 'star', path: '/favorites' },
   { id: 'search', label: 'Search', icon: 'search', path: '/search' },
   { id: 'settings', label: 'Settings', icon: 'settings', path: '/settings' },
-  { id: 'gallery', label: 'Dev Gallery', icon: 'widgets', path: '/dev/gallery' },
 ];
 
 /**
@@ -47,10 +45,18 @@ const PRIMARY_FOCUS_TARGETS: Record<string, string[]> = {
   guide: ['EPG_GRID'],
   favorites: ['FAVORITES_GRID'],
   search: ['SEARCH_FIELD'],
-  settings: ['SETTINGS_TABS'],
+  // The settings screen has no single focusable container; the first D-pad
+  // stop is the active tab tile.
+  settings: ['SETTINGS_TAB_appearance'],
 };
 
-/** Focus the first mounted primary target for a destination, if any. */
+/**
+ * Focus the first mounted primary target for a destination, if any.
+ *
+ * Settings has no single focusable container: its tabs row is a zone whose
+ * children are the tab tiles, so the entry point is the active tab tile
+ * itself (BUG-020).
+ */
 function focusPrimaryTarget(destinationId: string): void {
   clearContentFocusMemory();
   for (const key of PRIMARY_FOCUS_TARGETS[destinationId] ?? []) {
@@ -169,14 +175,30 @@ export default function App() {
   );
 
   // Changing destinations must land focus on the new screen's primary target.
+  // The screen mounts asynchronously, so retry for a short window instead of a
+  // single tick: a miss used to leave focus on the navigation rail.
   const didMountRef = useRef(false);
   useEffect(() => {
     if (!didMountRef.current) {
       didMountRef.current = true;
       return;
     }
-    const handle = window.setTimeout(() => focusPrimaryTarget(activeNavId), 0);
-    return () => window.clearTimeout(handle);
+    let cancelled = false;
+    let attempts = 0;
+    let raf = requestAnimationFrame(function tryFocus() {
+      if (cancelled) return;
+      for (const key of PRIMARY_FOCUS_TARGETS[activeNavId] ?? []) {
+        if (focusKeyExists(key)) {
+          setFocus(key);
+          return;
+        }
+      }
+      if (attempts++ < 120) raf = requestAnimationFrame(tryFocus);
+    });
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+    };
   }, [activeNavId]);
 
   const handleToggleFavorite = async (channelId: string) => {
@@ -268,10 +290,6 @@ export default function App() {
               onAddNewPlaylist={() => setShowOnboarding(true)}
               onRefreshData={refreshData}
             />
-          )}
-
-          {activeNavId === 'gallery' && (
-            <GalleryView />
           )}
           </div>
 
