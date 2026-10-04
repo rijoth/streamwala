@@ -33,6 +33,7 @@ docs/          # architectural records, decisions, input guides
 - **Rule 8:** Never register raw `keydown`/`keyup`/`keypress` listeners on `window`, `document`, `document.body`, `globalThis`, or `self`, and never add JSX `onKeyDown`/`onKeyUp`/`onKeyPress` outside `src/shared/input/**` and the two allow-listed files `src/shared/input/useTvInput.ts` and `src/shared/ui/TextField.tsx`. Route keyboard input through `src/shared/input`. Enforced by `eslint-rules/no-raw-key-listeners` (BUG-002).
 - **Rule 9:** UI bug fixes require a component (Vitest + Testing Library) or e2e (Playwright) regression test. Geometry-dependent D-pad behaviour must be covered by a Playwright spec; jsdom is only for non-geometric behaviour. See `docs/GUARDRAILS.md`.
 - **Rule 10:** Any change to the Dexie schema requires a new `.version(n)` with an `.upgrade()` function and a migration test. Never mutate an existing version's stores in place, or reopen-preservation tests in `src/services/storage/db.test.ts` must be extended.
+- **Rule 11:** Scrolling is focus-driven and owned by `src/shared/scroll`. Never call `scrollIntoView`, `scrollTo`/`scrollTop`, or use `scroll-behavior: smooth` (Tailwind `scroll-smooth`) outside that module. Derive offsets from the focused item's `data-scroll-*` index via the shared scroller hooks. See `docs/SCROLLING.md`. Enforced by `aether/no-adhoc-scroll`.
 
 ## 4. Definition of Done for Milestones
 1. Typecheck passes cleanly (`npm run lint`).
@@ -40,3 +41,12 @@ docs/          # architectural records, decisions, input guides
 3. D-pad navigation works cleanly across all new UI elements without focus traps.
 4. Clean accessibility (visible focus ring, high contrast, readable at 3 meters).
 5. Document key architectural decisions in `docs/DECISIONS.md`.
+
+## 5. Secrets and Local Files
+- **Never commit credentials.** `.env` and every `.env.*` variant are ignored. `.env.example` is the only committed env file and must hold placeholders only (`YOUR_KEY_HERE`, `example.invalid`).
+- **IPTV data is secret.** Xtream URLs embed credentials in the URL itself (`get.php?username=…&password=…`), so `*.m3u`, `*.m3u8`, `*.xmltv`, `*.epg.xml*`, `playlists/`, `xtream/`, `local/`, `private/` and app backup/settings exports are ignored by `.gitignore` and must never be committed.
+- **Sanitized fixtures are the only exception,** in `src/test/fixtures/` (explicitly un-ignored at the bottom of `.gitignore`). They must contain no real hosts, usernames, passwords or tokens — use `example.invalid` and `demo:demo`.
+- **Never commit keys or cloud credentials:** `*.pem`, `*.key`, `*.p12`, `*.pfx`, `*.jks`, `*.keystore`, `id_rsa*`, `id_ed25519*`, `*credentials*.json`, `service-account*.json`, `.npmrc`, `.netrc`, `.aws/`, `.gcloud/`, `.firebase/`, `.vercel/`, `.netlify/`, and the Android signing config `android/keystore.properties`.
+- **Generated output stays out:** `dist/`, `coverage/`, `playwright-report/`, `test-results/`, `*.tsbuildinfo`, `.eslintcache`.
+- **`.gitignore` does not untrack anything.** If a secret reaches a commit, rotate the credential first, then `git rm --cached` it and scrub history — see `docs/DECISIONS.md` (ADR 016).
+- Scan before pushing a release branch: `gitleaks git . --log-opts="--all"`.

@@ -1,5 +1,6 @@
 import tseslint from 'typescript-eslint';
 import noRawKeyListeners from './eslint-rules/no-raw-key-listeners.mjs';
+import noAdhocScroll from './eslint-rules/no-adhoc-scroll.mjs';
 
 /**
  * Flat ESLint config. Intentionally minimal: it only enforces the guardrail
@@ -18,10 +19,11 @@ export default [
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
     plugins: {
-      aether: { rules: { 'no-raw-key-listeners': noRawKeyListeners } },
+      aether: { rules: { 'no-raw-key-listeners': noRawKeyListeners, 'no-adhoc-scroll': noAdhocScroll } },
     },
     rules: {
       'aether/no-raw-key-listeners': 'error',
+      'aether/no-adhoc-scroll': 'error',
       // JSX key handlers may only live in the allow-listed text-input primitives.
       'no-restricted-syntax': [
         'error',

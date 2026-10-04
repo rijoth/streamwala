@@ -35,7 +35,12 @@ feature's `index.ts` barrel.
   Features and `app` never import the navigation library directly.
 - **Input** lives in `src/shared/input`. `normalizeKeyEvent` maps keyboard and
   TV-remote codes to semantic actions; `useTvInput` is the single owner of
-  keyboard events; a module-level listener owns the BACK stack.
+  keyboard events; a module-level listener owns the BACK stack. The same owner
+  throttles held NAV repeats and reports accelerated steps to screens.
+- **Scrolling** lives in `src/shared/scroll`. Scroll position is derived from the
+  focused item's `data-scroll-*` index (index math) and applied as a `transform`
+  by a retargetable rAF tween. `useFocusable` never scrolls. See
+  [`SCROLLING.md`](./SCROLLING.md) and ADR 015.
 
 ## Data and storage
 

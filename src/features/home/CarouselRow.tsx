@@ -64,7 +64,7 @@ export const CarouselRow: React.FC<CarouselRowProps> = ({
         <ScrollViewport
           api={axis}
           testId={`carousel-${focusKey}`}
-          contentClassName="flex items-center gap-4 py-3"
+          contentClassName="flex items-center gap-4 px-[var(--focus-ring-pad)] py-3"
         >
           {items.map((channel, index) => (
             <ChannelTile

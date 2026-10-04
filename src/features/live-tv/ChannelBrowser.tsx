@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Channel, Group } from '../../domain/types.ts';
-import { FocusZone, getCurrentFocusKey, setFocus } from '../../shared/focus/index.ts';
+import { FocusZone, focusKeyExists, getCurrentFocusKey, setFocus } from '../../shared/focus/index.ts';
 import { useTvInput } from '../../shared/input/index.ts';
 import { Chip } from '../../shared/ui/index.ts';
 import { Icon } from '../../shared/icons/index.ts';
@@ -95,10 +95,17 @@ export const ChannelBrowser: React.FC<ChannelBrowserProps> = ({
 
   const jumpToIndex = (index: number) => {
     if (index < 0 || index >= filteredChannels.length) return;
+    const key = keyForIndex(index);
+    // Fast path: the target is already inside the rendered window (within
+    // overscan), so focus it directly and let minimal-scroll keep it in view.
+    if (focusKeyExists(key)) {
+      setFocus(key);
+      return;
+    }
     const row = Math.floor(index / Math.max(1, columns));
     const target = rowSnapOffset(row * rowSize, axis.getViewportSize(), axis.getContentSize(), config);
     axis.scrollToOffset(target, { animate: false });
-    requestAnimationFrame(() => setFocus(keyForIndex(index)));
+    requestAnimationFrame(() => setFocus(key));
   };
 
   const jumpRows = (deltaRows: number) => {

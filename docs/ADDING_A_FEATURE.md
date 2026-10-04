@@ -32,6 +32,8 @@ rules each step protects.
      (Rule 8).
    - Verify every card/button has a focus ring (`tv-focus-target`,
      `tv-focused`), D-pad navigation, BACK behaviour, and no focus trap.
+   - If the screen scrolls, use the shared scroller hooks and never
+     `scrollIntoView`; see [`SCROLLING.md`](./SCROLLING.md).
    - Add a component test (Vitest + Testing Library) for non-geometric behaviour
      and a **Playwright D-pad traversal test** in `e2e/` for the screen
      (Rule 9).

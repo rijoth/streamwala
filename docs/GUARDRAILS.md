@@ -45,6 +45,13 @@ Each guardrail below prevents a bug class found in the audit (see
   `renderWithProviders`, `pressKey`, `expectFocused` from `src/test`. Put any
   geometry-dependent behaviour in `e2e/`. Raise, never lower, the coverage
   thresholds once coverage improves.
+- **Focus guardrail (BUG-020):** `e2e/dpad.spec.ts` asserts that after every
+  arrow press on every top-level screen the engine cursor
+  (`[data-focused="true"]`) exists and carries `tv-focus-target`, and
+  `e2e/settings-dpad.spec.ts` does the same while walking the settings screen,
+  including OK activation. This is what catches a screen that is technically
+  "navigable" but silently stops on non-interactive containers (the previous
+  test only checked `document.activeElement`, which a click leaves on the rail).
 - **Negative proof:** reintroducing `autoFocus` on search results makes
   `SearchView.test.tsx` fail (`expected 'sn:focusable-item-1' to be
   'SEARCH_FIELD'`).
@@ -63,6 +70,25 @@ Each guardrail below prevents a bug class found in the audit (see
   schema-version fixtures in `src/test/fixtures/db/` when a v2 migration lands.
 - **Negative proof:** removing the programs cascade from `deletePlaylist` makes
   `db.test.ts` fail (`expected 1 to be +0`).
+
+## E. Focus-driven scrolling only
+
+- **Prevents:** edge-pinned focus, stacked smooth-scroll animations, clipped
+  hero/headings/rings and unvirtualized long lists (the class removed by
+  ADR 015).
+- **Enforcement:** `eslint-rules/no-adhoc-scroll.mjs` (custom rule) rejects
+  `*.scrollIntoView(...)` calls and `scroll-behavior: smooth` /
+  `scroll-smooth` strings outside `src/shared/scroll/**`. Scroll offsets come
+  from `src/shared/scroll` index math and animate `transform`.
+  `e2e/scroll.spec.ts` asserts the focused element (ring included) stays inside
+  its clipping container on a 10k-channel fixture, that Home hero states toggle
+  without clipping, that a 3 s held key settles without a queued tween, and that
+  the player restores the exact card and offset at 720p/1080p/4K.
+- **Extend:** add a scroller hook for new layouts (see
+  [`SCROLLING.md`](./SCROLLING.md)); never reintroduce `scrollIntoView`. Add a
+  RuleTester case for new banned APIs.
+- **Negative proof:** `el.scrollIntoView()` in a feature →
+  `aether/no-adhoc-scroll` error. Verified via RuleTester.
 
 ## Wiring into CI
 

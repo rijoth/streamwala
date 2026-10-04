@@ -237,3 +237,55 @@ test('focused item stays visible at 720p, 1080p and 4K', async () => {
     }
   }
 });
+
+test('held-key traversal stays responsive under 4x CPU throttling', async () => {
+  const client = await page.context().newCDPSession(page);
+  await client.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+  try {
+    await page.getByRole('button', { name: 'Live TV' }).click();
+    await page.waitForTimeout(300);
+    await page.keyboard.press('ArrowDown'); // chips -> grid
+    await page.waitForTimeout(300);
+
+    const result = await page.evaluate(async () => {
+      const handlerDurations: number[] = [];
+      const before = document.querySelector('[data-scroll-index]')?.getAttribute('data-scroll-index');
+      const focusedBefore = document.querySelector('[data-focused="true"]')?.getAttribute('data-focus-key') ?? null;
+
+      const fire = (repeat: boolean) => {
+        const event = new KeyboardEvent('keydown', {
+          key: 'ArrowDown',
+          code: 'ArrowDown',
+          repeat,
+          bubbles: true,
+          cancelable: true,
+        });
+        Object.defineProperty(event, 'keyCode', { get: () => 40 });
+        const start = performance.now();
+        window.dispatchEvent(event);
+        const elapsed = performance.now() - start;
+        if (repeat) handlerDurations.push(elapsed);
+      };
+
+      const start = performance.now();
+      fire(false);
+      while (performance.now() - start < 1500) {
+        await new Promise((resolve) => setTimeout(resolve, 30));
+        fire(true);
+      }
+      window.dispatchEvent(new KeyboardEvent('keyup', { key: 'ArrowDown', code: 'ArrowDown', bubbles: true }));
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      return { handlerDurations, before, focusedBefore };
+    });
+
+    const sorted = result.handlerDurations.slice().sort((a, b) => a - b);
+    const p95 = sorted[Math.floor(sorted.length * 0.95)] ?? 0;
+    // Documented budget for the synchronous focus + render work of one repeat
+    // under 4x CPU throttling. Frame cadence itself is environment-bound in
+    // headless Chromium, so the app's own handler cost is the meaningful signal.
+    expect(result.handlerDurations.length, 'held key produced repeats').toBeGreaterThan(4);
+    expect(p95, `p95 key-handler was ${p95.toFixed(1)}ms (budget 100ms)`).toBeLessThan(100);
+  } finally {
+    await client.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+  }
+});
