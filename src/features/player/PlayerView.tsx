@@ -178,6 +178,21 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
   useTvInput((event) => {
     if (showMiniList) return; // Allow mini list to handle its own navigation
 
+    // When an overlay owns focus (controls or error recovery), let the
+    // spatial-navigation engine move focus. Otherwise arrow keys both moved
+    // control focus AND zapped channels on every press.
+    if (
+      (showControls || playerState.status === 'error') &&
+      (event.action === 'NAV_UP' ||
+        event.action === 'NAV_DOWN' ||
+        event.action === 'NAV_LEFT' ||
+        event.action === 'NAV_RIGHT' ||
+        event.action === 'SELECT')
+    ) {
+      resetControlsTimer();
+      return;
+    }
+
     if (event.action === 'DIGIT' && event.digit !== undefined) {
       const newDigits = zapDigits + event.digit;
       setZapDigits(newDigits);
