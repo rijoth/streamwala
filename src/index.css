@@ -1,0 +1,146 @@
+@import "tailwindcss";
+
+:root {
+  /* Material Design 3 Tokens - Dark Mode (Default) */
+  --md-sys-color-primary: #a0caff;
+  --md-sys-color-on-primary: #00315d;
+  --md-sys-color-primary-container: #1b4578;
+  --md-sys-color-on-primary-container: #d2e4ff;
+  
+  --md-sys-color-secondary: #bec7d7;
+  --md-sys-color-on-secondary: #28313e;
+  --md-sys-color-secondary-container: #3e4755;
+  --md-sys-color-on-secondary-container: #dae3f4;
+
+  --md-sys-color-tertiary: #d6bdfb;
+  --md-sys-color-on-tertiary: #3b2559;
+  --md-sys-color-tertiary-container: #533b72;
+  --md-sys-color-on-tertiary-container: #eedcff;
+
+  --md-sys-color-surface: #11131a;
+  --md-sys-color-surface-dim: #0b0c13;
+  --md-sys-color-surface-bright: #373942;
+  --md-sys-color-surface-container-lowest: #08090e;
+  --md-sys-color-surface-container-low: #191b23;
+  --md-sys-color-surface-container: #1e2029;
+  --md-sys-color-surface-container-high: #282a34;
+  --md-sys-color-surface-container-highest: #33353f;
+
+  --md-sys-color-on-surface: #e2e2ec;
+  --md-sys-color-on-surface-variant: #c4c6d0;
+  --md-sys-color-outline: #8e909a;
+  --md-sys-color-outline-variant: #44464f;
+
+  --md-sys-color-error: #ffb4ab;
+  --md-sys-color-on-error: #690005;
+  --md-sys-color-error-container: #93000a;
+  --md-sys-color-on-error-container: #ffdad6;
+
+  --md-sys-color-focus-ring: #a0caff;
+
+  /* TV Safe Areas */
+  --tv-safe-x: 48px;
+  --tv-safe-y: 32px;
+
+  /* UI Scaling Factor */
+  --ui-scale: 1;
+
+  /* Shape tokens */
+  --md-shape-xs: 4px;
+  --md-shape-sm: 8px;
+  --md-shape-md: 12px;
+  --md-shape-lg: 16px;
+  --md-shape-xl: 28px;
+  --md-shape-full: 9999px;
+}
+
+/* AMOLED Black theme variant */
+html.theme-amoled {
+  --md-sys-color-surface: #000000;
+  --md-sys-color-surface-dim: #000000;
+  --md-sys-color-surface-container-lowest: #000000;
+  --md-sys-color-surface-container-low: #08080c;
+  --md-sys-color-surface-container: #101015;
+  --md-sys-color-surface-container-high: #191920;
+  --md-sys-color-surface-container-highest: #23232b;
+}
+
+/* Base Body Styles */
+body {
+  font-family: 'Roboto Flex', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  background-color: var(--md-sys-color-surface-dim);
+  color: var(--md-sys-color-on-surface);
+  user-select: none;
+  -webkit-user-select: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/* Material Symbols Rounded font formatting */
+.material-symbols-rounded {
+  font-family: 'Material Symbols Rounded';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.material-symbols-rounded.filled {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* 10-Foot Remote Focus Ring styling */
+.tv-focus-target {
+  transition: transform 140ms cubic-bezier(0.2, 0, 0, 1),
+              box-shadow 140ms cubic-bezier(0.2, 0, 0, 1),
+              border-color 140ms cubic-bezier(0.2, 0, 0, 1),
+              background-color 140ms cubic-bezier(0.2, 0, 0, 1);
+  outline: none;
+}
+
+.tv-focused {
+  transform: scale(1.04);
+  box-shadow: 0 0 0 3px var(--md-sys-color-focus-ring), 0 8px 24px rgba(0, 0, 0, 0.65);
+  z-index: 20;
+}
+
+/* Subtle focus without heavy scale for inline list rows or nav items */
+.tv-focused-subtle {
+  box-shadow: inset 0 0 0 2px var(--md-sys-color-focus-ring);
+  background-color: var(--md-sys-color-surface-container-highest) !important;
+}
+
+/* Custom leanback scrollbars (hidden on TV by default) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--md-sys-color-surface-container-highest);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--md-sys-color-outline);
+}
+
+/* Over-scan padding container */
+.tv-safe-container {
+  padding-left: var(--tv-safe-x);
+  padding-right: var(--tv-safe-x);
+  padding-top: var(--tv-safe-y);
+  padding-bottom: var(--tv-safe-y);
+}

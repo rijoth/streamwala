@@ -1,0 +1,12 @@
+# Project Roadmap (docs/ROADMAP.md)
+
+- [x] **Milestone 1: Scaffold** (Vite + TS + tooling, folder layout, AGENTS.md, theme tokens, `<Icon />`, App Shell)
+- [x] **Milestone 2: Input & Focus Foundation** (Key normalization, focus abstraction, focus ring, D-pad navigation)
+- [x] **Milestone 3: M3 Component Library & /dev/gallery** (Buttons, Cards, Modals, Virtual Keyboard, Overlays)
+- [x] **Milestone 4: Storage & Domain & Parser Engine** (Dexie DB schemas, M3U/M3U8 parser, Xtream client, XMLTV EPG parser, legal test demo streams)
+- [x] **Milestone 5: Onboarding Flow** (Welcome, Source Selection, Validation, CORS diagnostics, Streaming Import)
+- [x] **Milestone 6: Live TV & Player Engines** (hls.js, mpegts.js, native fallback, zapping, direct number entry, Now/Next banner, Mini channel overlay)
+- [x] **Milestone 7: EPG Timeline Guide** (Channel x time timeline grid, 2D D-pad navigation, "Now" indicator, program details sheet)
+- [x] **Milestone 8: Favorites, Search, Settings & Parental Lock** (Multi-list, PIN lock, theme/scaling settings, proxy template)
+- [x] **Milestone 9: VOD & Series Browser** (Posters, plot, resume playback)
+- [x] **Milestone 10: TV Polish & Quality Gate** (Accessibility, TV safe overscan, keyboard legend, production build verification)

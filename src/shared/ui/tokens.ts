@@ -1,0 +1,32 @@
+export const M3_TOKENS = {
+  colors: {
+    primary: 'var(--md-sys-color-primary)',
+    onPrimary: 'var(--md-sys-color-on-primary)',
+    primaryContainer: 'var(--md-sys-color-primary-container)',
+    onPrimaryContainer: 'var(--md-sys-color-on-primary-container)',
+    surface: 'var(--md-sys-color-surface)',
+    surfaceDim: 'var(--md-sys-color-surface-dim)',
+    surfaceContainer: 'var(--md-sys-color-surface-container)',
+    surfaceContainerHigh: 'var(--md-sys-color-surface-container-high)',
+    surfaceContainerHighest: 'var(--md-sys-color-surface-container-highest)',
+    onSurface: 'var(--md-sys-color-on-surface)',
+    onSurfaceVariant: 'var(--md-sys-color-on-surface-variant)',
+    outline: 'var(--md-sys-color-outline)',
+    outlineVariant: 'var(--md-sys-color-outline-variant)',
+    error: 'var(--md-sys-color-error)',
+    focusRing: 'var(--md-sys-color-focus-ring)',
+  },
+  elevation: {
+    level0: 'none',
+    level1: '0 1px 3px 1px rgba(0, 0, 0, 0.35)',
+    level2: '0 2px 6px 2px rgba(0, 0, 0, 0.4)',
+    level3: '0 4px 12px 3px rgba(0, 0, 0, 0.45)',
+  },
+  shape: {
+    sm: 'var(--md-shape-sm)',
+    md: 'var(--md-shape-md)',
+    lg: 'var(--md-shape-lg)',
+    xl: 'var(--md-shape-xl)',
+    full: 'var(--md-shape-full)',
+  },
+};
