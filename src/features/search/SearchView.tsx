@@ -16,6 +16,7 @@ export interface SearchViewProps {
 }
 
 const SEARCH_ITEM_HEIGHT = 168;
+const SEARCH_ITEM_MIN_HEIGHT = '10.5rem';
 const SEARCH_GAP = 16;
 
 export const SearchView: React.FC<SearchViewProps> = ({
@@ -36,13 +37,15 @@ export const SearchView: React.FC<SearchViewProps> = ({
     );
   }, [channels, query]);
 
-  const { axis, columns } = useGridScroller({
+  const { axis, columns, itemHeight, rowSize } = useGridScroller({
     screenKey: 'search',
     count: filtered.length,
     rowSize: SEARCH_ITEM_HEIGHT + SEARCH_GAP,
     minItemWidth: 180,
     gap: SEARCH_GAP,
     maxColumns: 5,
+    // Cards are rem-sized, so the row pitch must come from the rendered cell.
+    measureItemHeight: true,
   });
   const totalRows = Math.max(1, Math.ceil(filtered.length / Math.max(1, columns)));
 
@@ -65,7 +68,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
         {query && (
           <span>Found {filtered.length} matching channels</span>
         )}
-        <ScrollPositionIndicator axis={axis} itemSize={SEARCH_ITEM_HEIGHT + SEARCH_GAP} count={totalRows} />
+        <ScrollPositionIndicator axis={axis} itemSize={rowSize} count={totalRows} />
       </div>
 
       <div className="flex-1 min-h-0">
@@ -83,7 +86,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
                 axis={axis}
                 items={filtered}
                 columns={columns}
-                itemHeight={SEARCH_ITEM_HEIGHT}
+                itemHeight={itemHeight}
                 gap={SEARCH_GAP}
                 className="px-[var(--focus-ring-pad)]"
                 getKey={(channel) => channel.id}
@@ -119,7 +122,7 @@ const SearchChannelCard: React.FC<SearchChannelCardProps> = ({ channel, onSelect
     <div
       ref={ref as React.Ref<HTMLDivElement>}
       onClick={onSelect}
-      style={{ height: SEARCH_ITEM_HEIGHT }}
+      style={{ minHeight: SEARCH_ITEM_MIN_HEIGHT }}
       className={`
         tv-focus-target group relative rounded-2xl p-4 flex flex-col items-center text-center cursor-pointer outline-none overflow-hidden
         bg-[var(--md-sys-color-surface-container)] border border-[var(--md-sys-color-outline-variant)]

@@ -53,17 +53,20 @@ export const ChannelBrowser: React.FC<ChannelBrowserProps> = ({
     [channels, activeGroupId]
   );
 
-  const itemHeight = isList ? CHANNEL_LIST_ITEM_HEIGHT : CHANNEL_GRID_ITEM_HEIGHT;
-  const rowSize = itemHeight + (isList ? 8 : CHANNEL_GAP);
+  const listGap = 8;
+  const gap = isList ? listGap : CHANNEL_GAP;
+  const fallbackItemHeight = isList ? CHANNEL_LIST_ITEM_HEIGHT : CHANNEL_GRID_ITEM_HEIGHT;
 
-  const { axis, config, columns } = useGridScroller({
+  const { axis, config, columns, itemHeight, rowSize } = useGridScroller({
     screenKey: `live:${activeGroupId}:${viewMode}`,
     count: filteredChannels.length,
-    rowSize,
+    rowSize: fallbackItemHeight + gap,
     minItemWidth: 180,
-    gap: CHANNEL_GAP,
+    gap,
     maxColumns: 6,
     columns: isList ? 1 : undefined,
+    // Cards are rem-sized, so the row pitch must come from the rendered cell.
+    measureItemHeight: true,
   });
 
   const chips = useMemo(() => {
@@ -221,7 +224,7 @@ export const ChannelBrowser: React.FC<ChannelBrowserProps> = ({
                 items={filteredChannels}
                 columns={columns}
                 itemHeight={itemHeight}
-                gap={isList ? 8 : CHANNEL_GAP}
+                gap={gap}
                 className="px-[var(--focus-ring-pad)]"
                 getKey={(item) => item.id}
                 renderItem={(channel, index) => {

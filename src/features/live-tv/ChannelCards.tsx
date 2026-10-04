@@ -3,8 +3,16 @@ import { Channel } from '../../domain/types.ts';
 import { useFocusable } from '../../shared/focus/index.ts';
 import { Icon } from '../../shared/icons/index.ts';
 
-export const CHANNEL_GRID_ITEM_HEIGHT = 208;
-export const CHANNEL_LIST_ITEM_HEIGHT = 64;
+/**
+ * Card heights are authored in rem so the 10-foot typography scales with the
+ * viewer's font size; `overflow-hidden` must never crop the channel name. The
+ * px constants below are only the first-paint fallback for the scroller's index
+ * math — the live value is measured from the rendered cell (BUG-022).
+ */
+export const CHANNEL_GRID_ITEM_MIN_HEIGHT = '13rem';
+export const CHANNEL_LIST_ITEM_MIN_HEIGHT = '4rem';
+export const CHANNEL_GRID_ITEM_HEIGHT = 210;
+export const CHANNEL_LIST_ITEM_HEIGHT = 70;
 export const CHANNEL_GAP = 16;
 
 interface ChannelItemProps {
@@ -15,7 +23,7 @@ interface ChannelItemProps {
   onToggleFavorite: () => void;
 }
 
-/** Fixed-height grid card. Height is fixed so index math stays exact. */
+/** Rem-sized grid card. Height is uniform per row so index math stays exact. */
 export const ChannelGridCard: React.FC<ChannelItemProps> = ({
   channel,
   index,
@@ -30,7 +38,7 @@ export const ChannelGridCard: React.FC<ChannelItemProps> = ({
       ref={ref as React.Ref<HTMLDivElement>}
       data-scroll-index={index}
       onClick={onSelect}
-      style={{ height: CHANNEL_GRID_ITEM_HEIGHT }}
+      style={{ minHeight: CHANNEL_GRID_ITEM_MIN_HEIGHT }}
       className={`
         tv-focus-target group relative rounded-2xl p-4 flex flex-col items-center text-center cursor-pointer outline-none overflow-hidden
         bg-[var(--md-sys-color-surface-container)] border border-[var(--md-sys-color-outline-variant)]
@@ -80,7 +88,7 @@ export const ChannelGridCard: React.FC<ChannelItemProps> = ({
   );
 };
 
-/** Fixed-height list row. */
+/** Rem-sized list row. */
 export const ChannelListItem: React.FC<ChannelItemProps> = ({
   channel,
   index,
@@ -95,7 +103,7 @@ export const ChannelListItem: React.FC<ChannelItemProps> = ({
       ref={ref as React.Ref<HTMLDivElement>}
       data-scroll-index={index}
       onClick={onSelect}
-      style={{ height: CHANNEL_LIST_ITEM_HEIGHT }}
+      style={{ minHeight: CHANNEL_LIST_ITEM_MIN_HEIGHT }}
       className={`
         tv-focus-target group flex items-center gap-4 p-3 rounded-2xl cursor-pointer outline-none overflow-hidden
         bg-[var(--md-sys-color-surface-container)] border border-[var(--md-sys-color-outline-variant)]

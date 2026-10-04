@@ -28,6 +28,7 @@ animations, and clipped the hero, headings and focus rings).
 | `ScrollViewport.tsx` | Clipping viewport + transformed content for an axis. |
 | `useFocusedItemIndex.ts` | Observes `data-focused="true"` and reports `{ index, row, col, x }`. |
 | `useRowMetrics.ts` / `useItemOffsets.ts` | Cached layout metrics (mount/resize only). |
+| `useMeasuredItemHeight.ts` | Layout-pass measurement of the first rendered cell's height, for rem-sized grid/list items. |
 | `useVirtualWindow.ts` / `VirtualGrid.tsx` | Windowing driven by the offset for grids/long lists; the content keeps full index-math height so clamping stays correct. |
 | `useRowSnapScroller.ts` | Vertical page scroller (Home): focused row top on the focus line. |
 | `useCarouselScroller.ts` | Horizontal fixed-slot carousel. |
@@ -63,7 +64,11 @@ Public API is exported from `src/shared/scroll/index.ts` only.
 4. Do **not** scroll from your own `onFocus`; the scroller's
    `useFocusedItemIndex` observer already reacts to `data-focused`.
 5. For long lists pass `count`/`rowSize` and use `VirtualGrid`; add
-   `ScrollPositionIndicator` when the list can exceed the viewport.
+   `ScrollPositionIndicator` when the list can exceed the viewport. If item
+   heights are authored in rem (so they track the viewer's font size), pass
+   `measureItemHeight: true` and use the scroller's returned `itemHeight` /
+   `rowSize` for `VirtualGrid` — a hard-coded px height would drift from the
+   layout and crop rem-sized text (BUG-022).
 6. Avoid putting content above the focused item in a way that shifts it (the
    leading spacer in `VirtualGrid` is a transform, never layout).
 
@@ -91,7 +96,10 @@ playlist change and falls back to "no focus key" when indices are invalidated.
   single DOM tree (see `HeroSection.tsx`), otherwise DOM focus can drop to
   `<body>`.
 - Give `useGridScroller` the real rendered `itemHeight`; a mismatch makes the
-  window and the offset model disagree.
+  window and the offset model disagree. Rem-sized cards therefore never set a
+  px height: they declare a rem `min-height` and the scroller measures the cell.
+- Item measurements come from `offsetHeight`, never the bounding rect: the
+  focused card's `scale(1.04)` transform must not feed back into the row pitch.
 - Do not animate `scrollTop`; animate the content `transform` only.
 
 ## Not yet migrated

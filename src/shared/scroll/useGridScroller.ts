@@ -5,6 +5,7 @@ import { gridColumns, minimalScrollOffset, rowForIndex } from './math.ts';
 import { writeScrollMemory } from './scrollMemory.ts';
 import { FocusedItemInfo, useFocusedItemIndex } from './useFocusedItemIndex.ts';
 import { useElementWidth } from './useElementWidth.ts';
+import { useMeasuredItemHeight } from './useMeasuredItemHeight.ts';
 import { ScrollAxisApi, useScrollAxis } from './useScrollAxis.ts';
 import { useScrollRestore } from './useScrollRestore.ts';
 
@@ -12,7 +13,10 @@ export interface GridScrollerOptions {
   screenKey: string;
   /** Total number of items (grids/lists can be 100k+). */
   count: number;
-  /** Fixed row height in px (item height + gap). */
+  /**
+   * Fallback row height in px (item height + gap). Only used for the first paint
+   * when `measureItemHeight` is on; after that the first rendered cell decides.
+   */
   rowSize: number;
   /** Minimum item width used to derive the column count. */
   minItemWidth: number;
@@ -21,6 +25,13 @@ export interface GridScrollerOptions {
   /** Force a column count (e.g. list view = 1); otherwise derived from width. */
   columns?: number;
   maxColumns?: number;
+  /**
+   * Derive the row height from the first rendered cell instead of trusting
+   * `rowSize`. Required when item heights are authored in rem and therefore
+   * track the viewer's font size, so index math cannot drift from layout
+   * (BUG-022).
+   */
+  measureItemHeight?: boolean;
   config?: Partial<ScrollConfig>;
 }
 
@@ -28,6 +39,10 @@ export interface GridScroller {
   axis: ScrollAxisApi;
   config: ScrollConfig;
   columns: number;
+  /** Item height in px, measured when `measureItemHeight` is enabled. */
+  itemHeight: number;
+  /** Item height + gap in px; the scroller's index-math row pitch. */
+  rowSize: number;
 }
 
 /**
@@ -42,13 +57,23 @@ export function useGridScroller(options: GridScrollerOptions): GridScroller {
   const config = resolveScrollConfig(options.config);
   const configRef = useRef(config);
   configRef.current = config;
-  const rowSizeRef = useRef(options.rowSize);
-  rowSizeRef.current = options.rowSize;
   const screenKeyRef = useRef(options.screenKey);
   screenKeyRef.current = options.screenKey;
 
   const axis = useScrollAxis({ orientation: 'vertical', config: options.config });
   const width = useElementWidth(axis.viewportRef);
+
+  const fallbackItemHeight = Math.max(0, options.rowSize - options.gap);
+  const measuredItemHeight = useMeasuredItemHeight(
+    axis.contentRef,
+    options.measureItemHeight === true
+  );
+  const itemHeight = measuredItemHeight ?? fallbackItemHeight;
+  const rowSize = itemHeight + options.gap;
+
+  const rowSizeRef = useRef(rowSize);
+  rowSizeRef.current = rowSize;
+
   const columns = options.columns
     ? Math.max(1, options.columns)
     : gridColumns(width, options.minItemWidth, options.gap, options.maxColumns ?? 8);
@@ -79,6 +104,6 @@ export function useGridScroller(options: GridScrollerOptions): GridScroller {
   useFocusedItemIndex(axis.viewportRef, handleFocusItem);
   useScrollRestore(options.screenKey, axis);
 
-  return { axis, config, columns };
+  return { axis, config, columns, itemHeight, rowSize };
 }
 

@@ -13,6 +13,7 @@ export interface FavoritesViewProps {
 }
 
 const FAVORITE_ITEM_HEIGHT = 208;
+const FAVORITE_ITEM_MIN_HEIGHT = '13rem';
 const FAVORITE_GAP = 16;
 
 export const FavoritesView: React.FC<FavoritesViewProps> = ({
@@ -23,13 +24,15 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
 }) => {
   const favorites = useMemo(() => channels.filter((c) => c.isFavorite), [channels]);
 
-  const { axis, columns } = useGridScroller({
+  const { axis, columns, itemHeight, rowSize } = useGridScroller({
     screenKey: 'favorites',
     count: favorites.length,
     rowSize: FAVORITE_ITEM_HEIGHT + FAVORITE_GAP,
     minItemWidth: 180,
     gap: FAVORITE_GAP,
     maxColumns: 5,
+    // Cards are rem-sized, so the row pitch must come from the rendered cell.
+    measureItemHeight: true,
   });
   const totalRows = Math.max(1, Math.ceil(favorites.length / Math.max(1, columns)));
 
@@ -43,7 +46,7 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <ScrollPositionIndicator axis={axis} itemSize={FAVORITE_ITEM_HEIGHT + FAVORITE_GAP} count={totalRows} />
+          <ScrollPositionIndicator axis={axis} itemSize={rowSize} count={totalRows} />
           <div className="flex items-center gap-2 text-xs font-semibold text-amber-400 bg-amber-950/40 border border-amber-800/60 px-3 py-1.5 rounded-full">
             <Icon name="star" size={16} filled />
             <span>{favorites.length} Pinned</span>
@@ -75,7 +78,7 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
                 axis={axis}
                 items={favorites}
                 columns={columns}
-                itemHeight={FAVORITE_ITEM_HEIGHT}
+                itemHeight={itemHeight}
                 gap={FAVORITE_GAP}
                 className="px-[var(--focus-ring-pad)]"
                 getKey={(channel) => channel.id}
@@ -111,7 +114,7 @@ const FavoriteCard: React.FC<FavoriteCardProps> = ({ channel, onSelect, onToggle
     <div
       ref={ref as React.Ref<HTMLDivElement>}
       onClick={onSelect}
-      style={{ height: FAVORITE_ITEM_HEIGHT }}
+      style={{ minHeight: FAVORITE_ITEM_MIN_HEIGHT }}
       className={`
         tv-focus-target group relative rounded-2xl p-4 flex flex-col items-center text-center cursor-pointer outline-none overflow-hidden
         bg-[var(--md-sys-color-surface-container)] border border-[var(--md-sys-color-outline-variant)]

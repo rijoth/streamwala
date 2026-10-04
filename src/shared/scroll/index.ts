@@ -6,6 +6,7 @@ export * from './useFocusedItemIndex.ts';
 export * from './useRowMetrics.ts';
 export * from './useItemOffsets.ts';
 export * from './useElementWidth.ts';
+export * from './useMeasuredItemHeight.ts';
 export * from './VirtualGrid.tsx';
 export * from './useStripScroller.ts';
 export * from './useVirtualWindow.ts';

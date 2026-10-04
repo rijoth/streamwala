@@ -87,6 +87,17 @@ Each guardrail below prevents a bug class found in the audit (see
 - **Extend:** add a scroller hook for new layouts (see
   [`SCROLLING.md`](./SCROLLING.md)); never reintroduce `scrollIntoView`. Add a
   RuleTester case for new banned APIs.
+- **Item-size guardrail (BUG-022):** a virtualized cell must never carry a
+  hard-coded px height — its contents are rem-sized, so the viewer's font size
+  decides the real row pitch. Declare a rem `min-height` and pass
+  `measureItemHeight: true` to `useGridScroller`, then use the returned
+  `itemHeight`/`rowSize`. `e2e/channel-cards.spec.ts` renders the channel grid
+  at 16/20/24 px root font sizes and fails if a name/group line box is clipped
+  or if the scroller's content height is not an exact multiple of the real row
+  pitch (which would desync the window from the offset model).
+- **Negative proof:** re-adding `style={{ height: 208 }}` to `ChannelGridCard`
+  fails `e2e/channel-cards.spec.ts` at a 20 px root font size (measured line
+  boxes collapse to 0 px).
 - **Negative proof:** `el.scrollIntoView()` in a feature →
   `aether/no-adhoc-scroll` error. Verified via RuleTester.
 
