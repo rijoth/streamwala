@@ -5,3 +5,6 @@ export * from './xmltvTokenizer.ts';
 export * from './parseXmltv.ts';
 export * from './workerProtocol.ts';
 export * from './workerClient.ts';
+export * from './detect.ts';
+export * from './refresh.ts';
+export * from './matchReport.ts';

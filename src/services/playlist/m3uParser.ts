@@ -119,6 +119,30 @@ export async function parseAndSaveM3U(
   };
 }
 
+export interface M3uHeaderInfo {
+  epgUrls: string[];
+}
+
+/**
+ * Reads the playlist header (`#EXTM3U url-tvg="..." x-tvg-url="..."`). The
+ * URLs are suggestions only: the UI must ask before fetching an unknown host.
+ */
+export function parseM3uHeader(content: string): M3uHeaderInfo {
+  const firstLineEnd = content.indexOf('\n');
+  const headerLine = firstLineEnd === -1 ? content : content.slice(0, firstLineEnd);
+  const epgUrls: string[] = [];
+  const attrRe = /(?:url-tvg|x-tvg-url|url-tvg-url)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s,]+))/gi;
+  let match: RegExpExecArray | null;
+  while ((match = attrRe.exec(headerLine)) !== null) {
+    const value = match[1] ?? match[2] ?? match[3] ?? '';
+    for (const part of value.split(',')) {
+      const url = part.trim();
+      if (url) epgUrls.push(url);
+    }
+  }
+  return { epgUrls };
+}
+
 function parseExtInfLine(extInf: string, streamUrl: string, playlistId: string, index: number): Channel {
   // Extract attributes: tvg-id, tvg-name, tvg-logo, group-title, tvg-chno
   const tvgId = extractAttribute(extInf, 'tvg-id');
@@ -126,6 +150,7 @@ function parseExtInfLine(extInf: string, streamUrl: string, playlistId: string, 
   const tvgLogo = extractAttribute(extInf, 'tvg-logo');
   const groupTitle = extractAttribute(extInf, 'group-title') || 'General';
   const tvgChno = extractAttribute(extInf, 'tvg-chno');
+  const tvgShift = extractAttribute(extInf, 'tvg-shift');
 
   // Channel title is after the last comma in EXTINF line
   let name = `Channel ${index}`;
@@ -147,6 +172,12 @@ function parseExtInfLine(extInf: string, streamUrl: string, playlistId: string, 
     }
   }
 
+  let shiftVal: number | undefined;
+  if (tvgShift) {
+    const parsed = Number.parseFloat(tvgShift);
+    if (Number.isFinite(parsed) && parsed !== 0) shiftVal = parsed;
+  }
+
   return {
     id: channelId,
     playlistId,
@@ -157,6 +188,7 @@ function parseExtInfLine(extInf: string, streamUrl: string, playlistId: string, 
     streamUrl,
     tvgId: tvgId || undefined,
     tvgName: tvgName || undefined,
+    tvgShift: shiftVal,
     number: numberVal,
     isFavorite: false,
     isHidden: false,

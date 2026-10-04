@@ -11,6 +11,7 @@ export const PlaylistSchema = z.object({
     password: z.string(),
   }).optional(),
   epgUrl: z.string().url().optional().or(z.literal('')),
+  epgPromptDismissed: z.boolean().optional(),
   createdAt: z.number(),
   lastSyncedAt: z.number(),
   channelCount: z.number(),
@@ -103,4 +104,8 @@ export const SettingsSchema = z.object({
   bufferLengthSeconds: z.number().min(1).max(60),
   lowPowerMode: z.boolean(),
   showNerdStats: z.boolean(),
+  epgTtlHours: z.number().positive(),
+  epgRetentionPastDays: z.number().min(0),
+  epgRetentionFutureDays: z.number().min(0),
+  epgRemindersEnabled: z.boolean(),
 });

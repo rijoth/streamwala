@@ -4,7 +4,8 @@ import { FocusZone, useFocusable } from '../../shared/focus/index.ts';
 import { Button, Card, TextField } from '../../shared/ui/index.ts';
 import { Icon } from '../../shared/icons/index.ts';
 import { Playlist, PROXY_PRESETS } from '../../domain/types.ts';
-import { db } from '../../services/storage/db.ts';
+import { db, savePlaylist } from '../../services/storage/db.ts';
+import { PlaylistEpgPanel, EpgFirstRunBanner } from './epg/index.ts';
 
 export interface SettingsViewProps {
   playlists: Playlist[];
@@ -60,6 +61,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [proxyTemplate, setProxyTemplate] = useState(settings.proxyUrlTemplate);
   const [pinCode, setPinCode] = useState(settings.parentalPin);
   const [isSavedMessage, setIsSavedMessage] = useState(false);
+  const [editingPlaylist, setEditingPlaylist] = useState<Playlist | null>(null);
 
   const handleSaveNetwork = () => {
     updateSettings({ proxyUrlTemplate: proxyTemplate, parentalPin: pinCode });
@@ -253,46 +255,73 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
         {/* PLAYLISTS */}
         {activeTab === 'playlists' && (
-          <FocusZone focusKey="SETTINGS_SECTION_PLAYLISTS" ownsChildren className="flex flex-col gap-4">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-bold text-lg">Installed Playlists</h3>
-              <Button variant="filled" icon="add" onClick={onAddNewPlaylist}>
-                Add New Source
-              </Button>
-            </div>
-
-            {playlists.map((pl) => (
-              <div
-                key={pl.id}
-                className="p-4 rounded-2xl bg-[var(--md-sys-color-surface-container)] border border-[var(--md-sys-color-outline-variant)] flex items-center justify-between"
-              >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-bold text-base">{pl.name}</h4>
-                    {pl.isActive && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 font-semibold">
-                        Active
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-[var(--md-sys-color-outline)] mt-0.5">
-                    {pl.channelCount} channels • Type: {pl.type.toUpperCase()} • Synced: {new Date(pl.lastSyncedAt).toLocaleDateString()}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="tonal"
-                    icon="refresh"
-                    onClick={onRefreshData}
-                    className="!px-3 !py-1.5 text-xs"
-                  >
-                    Refresh
-                  </Button>
-                </div>
+          editingPlaylist ? (
+            <FocusZone focusKey="SETTINGS_SECTION_EPG" ownsChildren className="h-full min-h-0">
+              <PlaylistEpgPanel
+                playlist={editingPlaylist}
+                onClose={() => setEditingPlaylist(null)}
+                onChanged={onRefreshData}
+              />
+            </FocusZone>
+          ) : (
+            <FocusZone focusKey="SETTINGS_SECTION_PLAYLISTS" ownsChildren className="flex flex-col gap-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-bold text-lg">Installed Playlists</h3>
+                <Button variant="filled" icon="add" onClick={onAddNewPlaylist}>
+                  Add New Source
+                </Button>
               </div>
-            ))}
-          </FocusZone>
+
+              {playlists.map((pl) => (
+                <div key={pl.id} className="flex flex-col gap-2">
+                  {!pl.epgUrl && !pl.epgPromptDismissed && (
+                    <EpgFirstRunBanner
+                      playlist={pl}
+                      onAddGuide={() => setEditingPlaylist(pl)}
+                      onDismiss={() => {
+                        void savePlaylist({ ...pl, epgPromptDismissed: true }).then(onRefreshData);
+                      }}
+                    />
+                  )}
+                  <div className="p-4 rounded-2xl bg-[var(--md-sys-color-surface-container)] border border-[var(--md-sys-color-outline-variant)] flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-base">{pl.name}</h4>
+                        {pl.isActive && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 font-semibold">
+                            Active
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-[var(--md-sys-color-outline)] mt-0.5">
+                        {pl.channelCount} channels • Type: {pl.type.toUpperCase()} • Synced: {new Date(pl.lastSyncedAt).toLocaleDateString()}
+                        {pl.epgUrl ? ' • EPG attached' : ' • No EPG'}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="filled"
+                        icon="schedule"
+                        onClick={() => setEditingPlaylist(pl)}
+                        className="!px-3 !py-1.5 text-xs"
+                      >
+                        Edit EPG
+                      </Button>
+                      <Button
+                        variant="tonal"
+                        icon="refresh"
+                        onClick={onRefreshData}
+                        className="!px-3 !py-1.5 text-xs"
+                      >
+                        Refresh
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </FocusZone>
+          )
         )}
 
         {/* NETWORK & PROXY */}

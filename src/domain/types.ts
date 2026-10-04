@@ -20,6 +20,8 @@ export interface Playlist {
   url?: string;
   xtream?: XtreamCredentials;
   epgUrl?: string;
+  /** Whether the "add a program guide?" banner was dismissed for this playlist. */
+  epgPromptDismissed?: boolean;
   createdAt: number;
   lastSyncedAt: number;
   channelCount: number;
@@ -176,6 +178,13 @@ export interface AppSettings {
   showNerdStats: boolean;
   /** Show the remote color-key legend in the content footer. */
   showRemoteHints: boolean;
+  /** EPG refresh TTL in hours (default 12). */
+  epgTtlHours: number;
+  /** EPG retention window in days before/after now. */
+  epgRetentionPastDays: number;
+  epgRetentionFutureDays: number;
+  /** Feature flag: in-app reminders for upcoming programmes. */
+  epgRemindersEnabled: boolean;
 }
 
 export interface ProxyPreset {
@@ -225,5 +234,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   lowPowerMode: false,
   showNerdStats: false,
   showRemoteHints: true,
+  epgTtlHours: 12,
+  epgRetentionPastDays: 1,
+  epgRetentionFutureDays: 3,
+  epgRemindersEnabled: false,
 };
 
