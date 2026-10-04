@@ -1,4 +1,4 @@
-package tv.aether.iptv;
+package tv.streamwala.iptv;
 
 import android.os.Bundle;
 import android.view.KeyEvent;
@@ -13,7 +13,7 @@ import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
 
 /**
- * Native shell for the Aether 10-foot player.
+ * Native shell for the Streamwala 10-foot player.
  *
  * Responsibilities kept deliberately thin — the web layer owns navigation,
  * focus and playback. The shell only supplies what a browser page cannot:
@@ -53,9 +53,9 @@ public class MainActivity extends BridgeActivity {
       // tap, so the WebView never connects to the IME and Android never raises
       // the soft keyboard when the user taps a text input. That is correct on
       // TV (no touch, D-pad owns focus) but breaks every text field on phones.
-      // The flavor supplies `aether_touch_device` so both form factors behave.
+      // The flavor supplies `streamwala_touch_device` so both form factors behave.
       // Regression: BUG-018, guarded by androidTest/MainActivityImeTest.
-      boolean touchDevice = getResources().getBoolean(R.bool.aether_touch_device);
+      boolean touchDevice = getResources().getBoolean(R.bool.streamwala_touch_device);
       webView.setFocusable(true);
       webView.setFocusableInTouchMode(touchDevice);
       webView.requestFocus();

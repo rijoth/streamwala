@@ -31,7 +31,7 @@ Each guardrail below prevents a bug class found in the audit (see
   needs a raw listener, add it to the allowlist deliberately and to the rule's
   RuleTester cases.
 - **Negative proof:** `window.addEventListener('keydown', () => {})` →
-  `aether/no-raw-key-listeners` error. Verified via `eslint --stdin`.
+  `streamwala/no-raw-key-listeners` error. Verified via `eslint --stdin`.
 
 ## C. Component + browser regression tests
 
@@ -60,7 +60,7 @@ Each guardrail below prevents a bug class found in the audit (see
 
 - **Prevents:** BUG-004 (orphaned EPG/history), BUG-015 (partial import),
   BUG-016 (raw storage errors), BUG-017 (flags lost on re-sync).
-- **Enforcement:** `fake-indexeddb` + `createAetherDatabase(name, options)` give
+- **Enforcement:** `fake-indexeddb` + `createStreamwalaDatabase(name, options)` give
   each test an isolated database; repository/parser functions accept an optional
   handle. `db.test.ts` proves cascade delete, reopen preservation and error
   mapping; `m3uParser.persistence.test.ts` proves import atomicity;
@@ -99,7 +99,7 @@ Each guardrail below prevents a bug class found in the audit (see
   fails `e2e/channel-cards.spec.ts` at a 20 px root font size (measured line
   boxes collapse to 0 px).
 - **Negative proof:** `el.scrollIntoView()` in a feature →
-  `aether/no-adhoc-scroll` error. Verified via RuleTester.
+  `streamwala/no-adhoc-scroll` error. Verified via RuleTester.
 
 ## Wiring into CI
 

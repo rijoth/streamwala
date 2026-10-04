@@ -1,5 +1,5 @@
 import { Channel, Group } from '../../domain/types.ts';
-import { db, type AetherDatabase } from '../storage/db.ts';
+import { db, type StreamwalaDatabase } from '../storage/db.ts';
 
 export interface ParseProgress {
   channelsFound: number;
@@ -12,7 +12,7 @@ export interface ParseM3UOptions {
   playlistId: string;
   onProgress?: (progress: ParseProgress) => void;
   batchSize?: number;
-  database?: AetherDatabase;
+  database?: StreamwalaDatabase;
 }
 
 export async function parseAndSaveM3U(

@@ -12,9 +12,9 @@
 # Usage:
 #   bash scripts/android-gradle.sh assembleMobileDebug assembleTvDebug
 #   bash scripts/android-gradle.sh installTvRelease
-#   AETHER_JAVA_HOME=/path/to/jdk-21 bash scripts/android-gradle.sh tasks
+#   STREAMWALA_JAVA_HOME=/path/to/jdk-21 bash scripts/android-gradle.sh tasks
 #
-# Override the JDK explicitly with AETHER_JAVA_HOME (highest priority).
+# Override the JDK explicitly with STREAMWALA_JAVA_HOME (highest priority).
 
 set -euo pipefail
 
@@ -39,7 +39,7 @@ java_major() {
 resolve_jdk() {
   local candidate
   local candidates=(
-    "${AETHER_JAVA_HOME:-}"
+    "${STREAMWALA_JAVA_HOME:-}"
     "${JAVA_HOME:-}"
     "$HOME/.java/jdk"
     "$HOME/Android/android-studio/jbr"
@@ -82,7 +82,7 @@ resolve_android_sdk() {
 
 JAVA_HOME="$(resolve_jdk || true)"
 if [ -z "$JAVA_HOME" ]; then
-  die "no JDK ${MIN_JAVA_MAJOR}+ found. Set AETHER_JAVA_HOME=/path/to/jdk-21 (checked \$AETHER_JAVA_HOME, \$JAVA_HOME, ~/.java/jdk, ~/Android/android-studio/jbr, ~/Android/jdk, /usr/lib/jvm)."
+  die "no JDK ${MIN_JAVA_MAJOR}+ found. Set STREAMWALA_JAVA_HOME=/path/to/jdk-21 (checked \$STREAMWALA_JAVA_HOME, \$JAVA_HOME, ~/.java/jdk, ~/Android/android-studio/jbr, ~/Android/jdk, /usr/lib/jvm)."
 fi
 export JAVA_HOME
 

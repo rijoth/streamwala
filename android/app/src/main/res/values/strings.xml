@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Aether IPTV</string>
-    <string name="title_activity_main">Aether IPTV</string>
-    <string name="package_name">tv.aether.iptv</string>
-    <string name="custom_url_scheme">tv.aether.iptv</string>
+    <string name="app_name">Streamwala</string>
+    <string name="title_activity_main">Streamwala</string>
+    <string name="package_name">tv.streamwala.iptv</string>
+    <string name="custom_url_scheme">tv.streamwala.iptv</string>
 </resources>

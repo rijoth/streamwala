@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { indexedDB, IDBKeyRange } from 'fake-indexeddb';
-import { createAetherDatabase } from '../storage/db.ts';
+import { createStreamwalaDatabase } from '../storage/db.ts';
 import { parseAndSaveM3U } from './m3uParser.ts';
 
 const M3U = [
@@ -15,7 +15,7 @@ const M3U = [
 
 describe('parseAndSaveM3U persistence atomicity', () => {
   it('rolls back all writes when a batch fails mid-import', async () => {
-    const database = createAetherDatabase(`AetherAtomic_${Date.now()}`, { indexedDB, IDBKeyRange });
+    const database = createStreamwalaDatabase(`StreamwalaAtomic_${Date.now()}`, { indexedDB, IDBKeyRange });
 
     const originalBulkPut = database.channels.bulkPut.bind(database.channels);
     let calls = 0;

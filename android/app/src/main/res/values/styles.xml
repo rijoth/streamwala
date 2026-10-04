@@ -12,8 +12,8 @@
     <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
-        <item name="android:background">@color/aether_background</item>
-        <item name="android:windowBackground">@color/aether_background</item>
+        <item name="android:background">@color/streamwala_background</item>
+        <item name="android:windowBackground">@color/streamwala_background</item>
     </style>
 
     <!--
@@ -21,13 +21,13 @@
       fully immersive with the app's dark surface to avoid a white flash between
       the splash screen and the first WebView paint.
     -->
-    <style name="Theme.AetherTv" parent="AppTheme.NoActionBar">
+    <style name="Theme.StreamwalaTv" parent="AppTheme.NoActionBar">
         <item name="android:windowFullscreen">true</item>
         <item name="android:windowContentOverlay">@null</item>
-        <item name="android:windowBackground">@color/aether_background</item>
+        <item name="android:windowBackground">@color/streamwala_background</item>
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowActionBar">false</item>
-        <item name="android:colorBackground">@color/aether_background</item>
+        <item name="android:colorBackground">@color/streamwala_background</item>
     </style>
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">

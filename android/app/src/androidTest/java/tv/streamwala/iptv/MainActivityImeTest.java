@@ -1,4 +1,4 @@
-package tv.aether.iptv;
+package tv.streamwala.iptv;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -37,7 +37,7 @@ public class MainActivityImeTest {
       scenario.onActivity(activity -> {
         WebView webView = activity.getBridge().getWebView();
         assertNotNull("WebView is expected to exist", webView);
-        boolean touchDevice = activity.getResources().getBoolean(R.bool.aether_touch_device);
+        boolean touchDevice = activity.getResources().getBoolean(R.bool.streamwala_touch_device);
         assertEquals(
             "WebView focusableInTouchMode must match the form factor (BUG-018)",
             touchDevice,

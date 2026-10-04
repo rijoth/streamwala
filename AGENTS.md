@@ -1,7 +1,7 @@
-# AGENTS.md — Aether IPTV Engineer & Agent Guidelines
+# AGENTS.md — Streamwala Engineer & Agent Guidelines
 
 ## 1. Project Overview
-Aether IPTV is a production-grade, 100% client-side IPTV web player designed for 10-foot TV interfaces (Android TV, Google TV, Fire TV, Chromecast with Google TV, desktop monitors, and tablets). It adheres strictly to Material Design 3 (M3) with a dark theme by default, full remote (D-pad) navigation, and zero server-side requirements.
+Streamwala is a production-grade, 100% client-side IPTV web player designed for 10-foot TV interfaces (Android TV, Google TV, Fire TV, Chromecast with Google TV, desktop monitors, and tablets). It adheres strictly to Material Design 3 (M3) with a dark theme by default, full remote (D-pad) navigation, and zero server-side requirements.
 
 ## 2. General Guidelines
 
@@ -46,10 +46,10 @@ docs/          # architectural records, decisions, input guides
 - **Rule 8:** Never register raw `keydown`/`keyup`/`keypress` listeners on `window`, `document`, `document.body`, `globalThis`, or `self`, and never add JSX `onKeyDown`/`onKeyUp`/`onKeyPress` outside `src/shared/input/**` and the two allow-listed files `src/shared/input/useTvInput.ts` and `src/shared/ui/TextField.tsx`. Route keyboard input through `src/shared/input`. Enforced by `eslint-rules/no-raw-key-listeners` (BUG-002).
 - **Rule 9:** UI bug fixes require a component (Vitest + Testing Library) or e2e (Playwright) regression test. Geometry-dependent D-pad behaviour must be covered by a Playwright spec; jsdom is only for non-geometric behaviour. See `docs/GUARDRAILS.md`.
 - **Rule 10:** Any change to the Dexie schema requires a new `.version(n)` with an `.upgrade()` function and a migration test. Never mutate an existing version's stores in place, or reopen-preservation tests in `src/services/storage/db.test.ts` must be extended.
-- **Rule 11:** Scrolling is focus-driven and owned by `src/shared/scroll`. Never call `scrollIntoView`, `scrollTo`/`scrollTop`, or use `scroll-behavior: smooth` (Tailwind `scroll-smooth`) outside that module. Derive offsets from the focused item's `data-scroll-*` index via the shared scroller hooks. See `docs/SCROLLING.md`. Enforced by `aether/no-adhoc-scroll`.
+- **Rule 11:** Scrolling is focus-driven and owned by `src/shared/scroll`. Never call `scrollIntoView`, `scrollTo`/`scrollTop`, or use `scroll-behavior: smooth` (Tailwind `scroll-smooth`) outside that module. Derive offsets from the focused item's `data-scroll-*` index via the shared scroller hooks. See `docs/SCROLLING.md`. Enforced by `streamwala/no-adhoc-scroll`.
 
 ## 5. Android / Capacitor Shell
-The web app is the product; `android/` is a thin Capacitor 7 shell that builds **two APKs from one `dist/`** via Gradle product flavors: `mobile` (`tv.aether.iptv`, touch/portrait) and `tv` (`tv.aether.iptv.tv`, leanback/landscape/D-pad only). Full build, install, signing and verification guide: `docs/ANDROID.md`.
+The web app is the product; `android/` is a thin Capacitor 7 shell that builds **two APKs from one `dist/`** via Gradle product flavors: `mobile` (`tv.streamwala.iptv`, touch/portrait) and `tv` (`tv.streamwala.iptv.tv`, leanback/landscape/D-pad only). Full build, install, signing and verification guide: `docs/ANDROID.md`.
 
 ```
 npm run android:sync     # build dist + cap sync android (after web changes)
@@ -58,11 +58,11 @@ npm run android:release  # same, signed (needs android/keystore.properties)
 npm run android:assets   # regenerate icons / TV banner / splash (needs Python 3 + Pillow)
 bash scripts/android-gradle.sh installTvDebug   # adb install onto a connected TV
 ```
-Outputs land in `android/app/build/outputs/apk/{mobile,tv}/{debug,release}/aether-iptv-*.apk`.
+Outputs land in `android/app/build/outputs/apk/{mobile,tv}/{debug,release}/streamwala-*.apk`.
 
-- **Rule 12:** Run Gradle only through `scripts/android-gradle.sh`, never bare `./gradlew`. Capacitor 7 / AGP 8.7 compile against **JDK 21**; the wrapper resolves a JDK 21+ and refreshes `android/local.properties`. Override with `AETHER_JAVA_HOME`.
+- **Rule 12:** Run Gradle only through `scripts/android-gradle.sh`, never bare `./gradlew`. Capacitor 7 / AGP 8.7 compile against **JDK 21**; the wrapper resolves a JDK 21+ and refreshes `android/local.properties`. Override with `STREAMWALA_JAVA_HOME`.
 - **Rule 13:** Keep the native shell thin. No product logic in `MainActivity.java`; native input/lifecycle must funnel into `src/shared/input` (BACK arrives as `@capacitor/app` `backButton` → `src/shared/input/nativeBackBridge.ts`). Never add a native capability the web layer could own.
-- **Rule 14:** Form-factor differences live in Gradle `productFlavors` + `manifestPlaceholders` (`leanbackRequired`, `touchscreenRequired`, `screenOrientation`, `aether_touch_device`), never in JS user-agent sniffing. The `tv` flavor must stay leanback-required, landscape, touchscreen-not-required; `mobile` the inverse.
+- **Rule 14:** Form-factor differences live in Gradle `productFlavors` + `manifestPlaceholders` (`leanbackRequired`, `touchscreenRequired`, `screenOrientation`, `streamwala_touch_device`), never in JS user-agent sniffing. The `tv` flavor must stay leanback-required, landscape, touchscreen-not-required; `mobile` the inverse.
 - **Rule 15:** Android change is done when the APK is verified, not when it compiles. Check badging (`aapt2 dump badging` → TV shows `leanback-launchable-activity` and `uses-feature-not-required: android.hardware.touchscreen`; mobile shows neither) plus an `adb shell input keyevent` D-pad smoke. Touch-mode focus / IME behaviour is locked by `MainActivityImeTest` — run `bash scripts/android-gradle.sh connectedMobileDebugAndroidTest connectedTvDebugAndroidTest`.
 
 ## 6. Definition of Done for Milestones

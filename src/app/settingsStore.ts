@@ -7,6 +7,9 @@ interface SettingsState {
   resetSettings: () => void;
 }
 
+// Persistent on-device key: intentionally keeps the pre-rename brand string so
+// existing user settings survive the rename. Do not rename without a migration.
+// See DECISIONS.md (ADR 019).
 const STORAGE_KEY = 'aether_iptv_settings_v1';
 
 function loadInitialSettings(): AppSettings {

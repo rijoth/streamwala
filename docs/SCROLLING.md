@@ -1,6 +1,6 @@
 # Focus-Driven Scrolling (`docs/SCROLLING.md`)
 
-Scrolling in Aether IPTV is **derived from focus**, not the other way around.
+Scrolling in Streamwala is **derived from focus**, not the other way around.
 The D-pad moves focus; the scroll offset is computed from the focused item. The
 old ad-hoc `scrollIntoView({ behavior: 'smooth', block: 'nearest' })` call on
 every focus change is gone (it pinned cards to the screen edge, stacked
@@ -91,7 +91,7 @@ playlist change and falls back to "no focus key" when indices are invalidated.
 ## Pitfalls
 
 - **Never** re-introduce `scrollIntoView` or `scroll-behavior: smooth` outside
-  `src/shared/scroll`. `aether/no-adhoc-scroll` fails `npm run lint:eslint`.
+  `src/shared/scroll`. `streamwala/no-adhoc-scroll` fails `npm run lint:eslint`.
 - Hero state changes must not remount the focused element — toggle classes on a
   single DOM tree (see `HeroSection.tsx`), otherwise DOM focus can drop to
   `<body>`.

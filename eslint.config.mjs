@@ -19,11 +19,11 @@ export default [
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
     plugins: {
-      aether: { rules: { 'no-raw-key-listeners': noRawKeyListeners, 'no-adhoc-scroll': noAdhocScroll } },
+      streamwala: { rules: { 'no-raw-key-listeners': noRawKeyListeners, 'no-adhoc-scroll': noAdhocScroll } },
     },
     rules: {
-      'aether/no-raw-key-listeners': 'error',
-      'aether/no-adhoc-scroll': 'error',
+      'streamwala/no-raw-key-listeners': 'error',
+      'streamwala/no-adhoc-scroll': 'error',
       // JSX key handlers may only live in the allow-listed text-input primitives.
       'no-restricted-syntax': [
         'error',
@@ -39,7 +39,7 @@ export default [
     // The only two files permitted to own raw keyboard concerns.
     files: ['src/shared/input/useTvInput.ts', 'src/shared/ui/TextField.tsx'],
     rules: {
-      'aether/no-raw-key-listeners': 'off',
+      'streamwala/no-raw-key-listeners': 'off',
       'no-restricted-syntax': 'off',
     },
   },

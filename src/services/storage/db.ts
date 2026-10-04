@@ -1,7 +1,7 @@
 import Dexie, { Table, type DexieOptions } from 'dexie';
 import { Playlist, Channel, Group, Program, HistoryEntry, EpgSource, EpgChannel, EpgMapping } from '../../domain/types.ts';
 
-export class AetherDatabase extends Dexie {
+export class StreamwalaDatabase extends Dexie {
   playlists!: Table<Playlist, string>;
   channels!: Table<Channel, string>;
   groups!: Table<Group, string>;
@@ -11,6 +11,10 @@ export class AetherDatabase extends Dexie {
   epgChannels!: Table<EpgChannel, string>;
   epgMappings!: Table<EpgMapping, string>;
 
+  // IMPORTANT: the database name `AetherIptvDatabase` is a persistent on-device
+  // identifier. It intentionally keeps the pre-rename brand string so existing
+  // IndexedDB data (saved playlists, favorites, settings, EPG) is not orphaned.
+  // Do not rename without a versioned data migration. See DECISIONS.md (ADR 019).
   constructor(name = 'AetherIptvDatabase', options?: DexieOptions) {
     super(name, options);
     this.version(1).stores({
@@ -48,25 +52,25 @@ export class AetherDatabase extends Dexie {
  * `.upgrade()` function and a migration test (see AGENTS.md and
  * docs/GUARDRAILS.md). Never mutate the v1 stores in place.
  */
-export function createAetherDatabase(name = 'AetherIptvDatabase', options?: DexieOptions): AetherDatabase {
-  return new AetherDatabase(name, options);
+export function createStreamwalaDatabase(name = 'AetherIptvDatabase', options?: DexieOptions): StreamwalaDatabase {
+  return new StreamwalaDatabase(name, options);
 }
 
-export const db = createAetherDatabase();
+export const db = createStreamwalaDatabase();
 
 // Repository functions. Each takes an optional database handle so they can be
 // pointed at an isolated test database; production callers use the singleton.
-export async function getActivePlaylist(database: AetherDatabase = db): Promise<Playlist | undefined> {
+export async function getActivePlaylist(database: StreamwalaDatabase = db): Promise<Playlist | undefined> {
   const active = await database.playlists.filter(p => p.isActive).first();
   if (active) return active;
   return await database.playlists.orderBy('lastSyncedAt').reverse().first();
 }
 
-export async function getAllPlaylists(database: AetherDatabase = db): Promise<Playlist[]> {
+export async function getAllPlaylists(database: StreamwalaDatabase = db): Promise<Playlist[]> {
   return await database.playlists.toArray();
 }
 
-export async function savePlaylist(playlist: Playlist, database: AetherDatabase = db): Promise<void> {
+export async function savePlaylist(playlist: Playlist, database: StreamwalaDatabase = db): Promise<void> {
   await database.transaction('rw', database.playlists, async () => {
     // If setting to active, deactivate other playlists
     if (playlist.isActive) {
@@ -76,7 +80,7 @@ export async function savePlaylist(playlist: Playlist, database: AetherDatabase 
   });
 }
 
-export async function deletePlaylist(playlistId: string, database: AetherDatabase = db): Promise<void> {
+export async function deletePlaylist(playlistId: string, database: StreamwalaDatabase = db): Promise<void> {
   await database.transaction('rw', [database.playlists, database.channels, database.groups, database.programs, database.history, database.epgSources, database.epgChannels, database.epgMappings], async () => {
     const channelIds = await database.channels.where({ playlistId }).primaryKeys();
 
@@ -98,11 +102,11 @@ export async function deletePlaylist(playlistId: string, database: AetherDatabas
   });
 }
 
-export async function getGroupsForPlaylist(playlistId: string, database: AetherDatabase = db): Promise<Group[]> {
+export async function getGroupsForPlaylist(playlistId: string, database: StreamwalaDatabase = db): Promise<Group[]> {
   return await database.groups.where({ playlistId }).toArray();
 }
 
-export async function getChannelsByGroup(playlistId: string, groupId?: string, search?: string, database: AetherDatabase = db): Promise<Channel[]> {
+export async function getChannelsByGroup(playlistId: string, groupId?: string, search?: string, database: StreamwalaDatabase = db): Promise<Channel[]> {
   const collection = database.channels.where({ playlistId });
 
   let results = await collection.toArray();
@@ -121,7 +125,7 @@ export async function getChannelsByGroup(playlistId: string, groupId?: string, s
   return results.filter(ch => !ch.isHidden);
 }
 
-export async function toggleChannelFavorite(channelId: string, database: AetherDatabase = db): Promise<boolean> {
+export async function toggleChannelFavorite(channelId: string, database: StreamwalaDatabase = db): Promise<boolean> {
   const channel = await database.channels.get(channelId);
   if (!channel) return false;
 
@@ -130,7 +134,7 @@ export async function toggleChannelFavorite(channelId: string, database: AetherD
   return nextState;
 }
 
-export async function getProgramsForChannel(channelId: string, startFrom: number, endTo: number, database: AetherDatabase = db): Promise<Program[]> {
+export async function getProgramsForChannel(channelId: string, startFrom: number, endTo: number, database: StreamwalaDatabase = db): Promise<Program[]> {
   return await database.programs
     .where('channelId')
     .equals(channelId)
@@ -138,7 +142,7 @@ export async function getProgramsForChannel(channelId: string, startFrom: number
     .sortBy('start');
 }
 
-export async function addWatchHistory(entry: Omit<HistoryEntry, 'id' | 'watchedAt'>, database: AetherDatabase = db): Promise<void> {
+export async function addWatchHistory(entry: Omit<HistoryEntry, 'id' | 'watchedAt'>, database: StreamwalaDatabase = db): Promise<void> {
   const existing = await database.history.where('channelId').equals(entry.channelId).first();
   const id = existing ? existing.id : `hist_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   await database.history.put({
@@ -148,7 +152,7 @@ export async function addWatchHistory(entry: Omit<HistoryEntry, 'id' | 'watchedA
   });
 }
 
-export async function getRecentWatchHistory(limit = 20, database: AetherDatabase = db): Promise<HistoryEntry[]> {
+export async function getRecentWatchHistory(limit = 20, database: StreamwalaDatabase = db): Promise<HistoryEntry[]> {
   return await database.history.orderBy('watchedAt').reverse().limit(limit).toArray();
 }
 

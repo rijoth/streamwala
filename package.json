@@ -1,8 +1,9 @@
 {
-  "name": "react-example",
+  "name": "streamwala",
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "description": "Streamwala - production-grade, 100% client-side IPTV web player for 10-foot TV interfaces.",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
     "build": "vite build",

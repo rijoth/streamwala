@@ -11,10 +11,10 @@ if (keystorePropsFile.exists()) {
 }
 
 android {
-    namespace "tv.aether.iptv"
+    namespace "tv.streamwala.iptv"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "tv.aether.iptv"
+        applicationId "tv.streamwala.iptv"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -39,11 +39,11 @@ android {
     productFlavors {
         mobile {
             dimension "formFactor"
-            applicationId "tv.aether.iptv"
-            resValue "string", "app_name", "Aether IPTV"
+            applicationId "tv.streamwala.iptv"
+            resValue "string", "app_name", "Streamwala"
             // Touch devices need touch-mode WebView focus so tapping a text
             // input raises the soft keyboard (IME). See BUG-018 / MainActivity.
-            resValue "bool", "aether_touch_device", "true"
+            resValue "bool", "streamwala_touch_device", "true"
             manifestPlaceholders = [
                 leanbackRequired  : "false",
                 touchscreenRequired: "true",
@@ -52,11 +52,11 @@ android {
         }
         tv {
             dimension "formFactor"
-            applicationId "tv.aether.iptv.tv"
-            resValue "string", "app_name", "Aether IPTV"
+            applicationId "tv.streamwala.iptv.tv"
+            resValue "string", "app_name", "Streamwala"
             // No touch input on TV: keep touch-mode focus off so D-pad focus
             // ownership stays deterministic. See BUG-018 / MainActivity.
-            resValue "bool", "aether_touch_device", "false"
+            resValue "bool", "streamwala_touch_device", "false"
             manifestPlaceholders = [
                 leanbackRequired  : "true",
                 touchscreenRequired: "false",
@@ -88,7 +88,7 @@ android {
 
     applicationVariants.all { variant ->
         variant.outputs.all { output ->
-            outputFileName = "aether-iptv-${variant.productFlavors[0].name}-${variant.buildType.name}.apk"
+            outputFileName = "streamwala-${variant.productFlavors[0].name}-${variant.buildType.name}.apk"
         }
     }
 }

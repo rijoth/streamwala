@@ -114,7 +114,7 @@ Regression coverage: `src/shared/focus/decision.test.ts` (including
 All keyboard input is owned by `src/shared/input`. Registering raw listeners
 elsewhere caused the BACK double-dispatch bug (BUG-002), so it is banned:
 
-- `aether/no-raw-key-listeners` (custom ESLint rule) rejects
+- `streamwala/no-raw-key-listeners` (custom ESLint rule) rejects
   `addEventListener('keydown' | 'keyup' | 'keypress', ...)` on `window`,
   `document`, `document.body`, `globalThis`, `self`, and bare global calls.
   It also rejects non-literal event names (variables/templates) because they

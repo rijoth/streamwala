@@ -6,8 +6,8 @@ Gradle product flavors:
 
 | Artifact | Application id | Form factor target |
 | --- | --- | --- |
-| `aether-iptv-mobile-*.apk` | `tv.aether.iptv` | Phones / tablets (touch, portrait allowed) |
-| `aether-iptv-tv-*.apk` | `tv.aether.iptv.tv` | Android TV, Google TV, Fire TV (leanback, landscape, D-pad only) |
+| `streamwala-mobile-*.apk` | `tv.streamwala.iptv` | Phones / tablets (touch, portrait allowed) |
+| `streamwala-tv-*.apk` | `tv.streamwala.iptv.tv` | Android TV, Google TV, Fire TV (leanback, landscape, D-pad only) |
 
 Different application ids mean a box can have both APKs installed side by side.
 
@@ -30,7 +30,7 @@ Different application ids mean a box can have both APKs installed side by side.
 Run Gradle through **`scripts/android-gradle.sh`**, never bare `./gradlew` when
 `JAVA_HOME` may be stale. The wrapper resolves a JDK 21+ in this order:
 
-1. `$AETHER_JAVA_HOME`
+1. `$STREAMWALA_JAVA_HOME`
 2. `$JAVA_HOME` (only if it exists and reports ≥ 21)
 3. `~/.java/jdk`
 4. `~/Android/android-studio/jbr`
@@ -43,7 +43,7 @@ It also resolves `ANDROID_HOME` (`$ANDROID_HOME` → `$ANDROID_SDK_ROOT` →
 ```bash
 bash scripts/android-gradle.sh assembleTvRelease   # one-off gradle task
 bash scripts/android-gradle.sh --version           # what JDK/SDK it picked
-AETHER_JAVA_HOME=/opt/jdk-21 npm run android:release
+STREAMWALA_JAVA_HOME=/opt/jdk-21 npm run android:release
 ```
 
 If a bare `./gradlew` aborts with `ERROR: JAVA_HOME is set to an invalid
@@ -65,10 +65,10 @@ npm run android:assets    # regenerate icons / banner / splash from brand colors
 Outputs:
 
 ```
-android/app/build/outputs/apk/mobile/debug/aether-iptv-mobile-debug.apk
-android/app/build/outputs/apk/tv/debug/aether-iptv-tv-debug.apk
-android/app/build/outputs/apk/mobile/release/aether-iptv-mobile-release.apk
-android/app/build/outputs/apk/tv/release/aether-iptv-tv-release.apk
+android/app/build/outputs/apk/mobile/debug/streamwala-mobile-debug.apk
+android/app/build/outputs/apk/tv/debug/streamwala-tv-debug.apk
+android/app/build/outputs/apk/mobile/release/streamwala-mobile-release.apk
+android/app/build/outputs/apk/tv/release/streamwala-tv-release.apk
 ```
 
 Raw Gradle equivalents:
@@ -82,7 +82,7 @@ bash scripts/android-gradle.sh installTvDebug   # adb install onto a connected T
 
 ```bash
 adb connect <tv-ip>:5555          # Android TV: enable network debugging
-adb install -r android/app/build/outputs/apk/tv/debug/aether-iptv-tv-debug.apk
+adb install -r android/app/build/outputs/apk/tv/debug/streamwala-tv-debug.apk
 adb shell input keyevent 19       # DPAD_UP smoke test
 adb shell input keyevent 4        # BACK
 ```
@@ -101,6 +101,10 @@ keyAlias=aether
 keyPassword=…
 ```
 
+> The keystore filename and alias intentionally keep the pre-rename `aether`
+> string: they are the app's signing identity and cannot change without a new
+> keystore. See `DECISIONS.md` (ADR 019).
+
 `android/app/build.gradle` skips the release signing config when the file is
 absent, so debug builds keep working on a clean checkout. **Back the keystore up
 off-machine**: losing it means you can never update the app under the same
@@ -108,13 +112,13 @@ identity.
 
 ## 5. What the shell does (and does not do)
 
-`android/app/src/main/java/tv/aether/iptv/MainActivity.java`:
+`android/app/src/main/java/tv/streamwala/iptv/MainActivity.java`:
 
 - immersive fullscreen with transient system bars on focus regain
 - `FLAG_KEEP_SCREEN_ON` while the app is foregrounded
 - `mediaPlaybackRequiresUserGesture = false` so hls.js / mpegts.js can autoplay
 - focusable WebView so D-pad key events reach the DOM; the `mobile` flavor
-  additionally enables touch-mode focus (`aether_touch_device` boolean
+  additionally enables touch-mode focus (`streamwala_touch_device` boolean
   resource) so tapping a text input raises the soft keyboard, and the activity
   declares `android:windowSoftInputMode="adjustResize"` (BUG-018). The `tv`
   flavor keeps touch-mode focus off so D-pad focus stays deterministic.
@@ -139,7 +143,7 @@ Per-flavor manifest differences live in `manifestPlaceholders`
 ```bash
 # Manifest correctness
 ANDROID_HOME/build-tools/35.0.0/aapt2 dump badging \
-  android/app/build/outputs/apk/tv/release/aether-iptv-tv-release.apk | grep -E "package|launchable|leanback|uses-feature"
+  android/app/build/outputs/apk/tv/release/streamwala-tv-release.apk | grep -E "package|launchable|leanback|uses-feature"
 
 # Signature
 ANDROID_HOME/build-tools/35.0.0/apksigner verify --print-certs <apk>
@@ -168,7 +172,7 @@ bash scripts/android-gradle.sh connectedTvDebugAndroidTest
 ```
 
 `MainActivityImeTest` launches the activity and asserts the WebView's
-touch-mode focus matches the flavor's `aether_touch_device` value, and that the
+touch-mode focus matches the flavor's `streamwala_touch_device` value, and that the
 window uses `SOFT_INPUT_ADJUST_RESIZE`. On a device you can also confirm by hand:
 tap the Search field on the `mobile` APK and watch the IME appear.
 
@@ -178,13 +182,13 @@ Both release APKs were installed and driven with `adb shell input keyevent`:
 
 | Check | Command | Result |
 | --- | --- | --- |
-| TV APK installs on leanback image | `adb install -r aether-iptv-tv-release.apk` | ok |
-| Boots immersive, no system bars | `adb shell am start -n tv.aether.iptv.tv/tv.aether.iptv.MainActivity` | welcome screen, focus ring visible |
+| TV APK installs on leanback image | `adb install -r streamwala-tv-release.apk` | ok |
+| Boots immersive, no system bars | `adb shell am start -n tv.streamwala.iptv.tv/tv.streamwala.iptv.MainActivity` | welcome screen, focus ring visible |
 | D-pad moves focus | `input keyevent 22` (RIGHT) | focus moved Get Started → Settings |
 | OK activates | `input keyevent 23` (DPAD_CENTER) | onboarding advanced |
 | D-pad traversal + import | `22`, `20`, `23` | demo playlist imported, Home screen rendered from IndexedDB |
 | BACK exits when nothing owns it | `input keyevent 4` | app exited to TV launcher |
-| Mobile APK boots independently | `adb install -r aether-iptv-mobile-release.apk` | ok (separate package/data) |
+| Mobile APK boots independently | `adb install -r streamwala-mobile-release.apk` | ok (separate package/data) |
 
 ## 7. Known ceilings / follow-ups
 

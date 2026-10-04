@@ -13,8 +13,8 @@ import type { CapacitorConfig } from '@capacitor/cli';
  * Gradle product flavors; see `android/app/build.gradle`.
  */
 const config: CapacitorConfig = {
-  appId: 'tv.aether.iptv',
-  appName: 'Aether IPTV',
+  appId: 'tv.streamwala.iptv',
+  appName: 'Streamwala',
   webDir: 'dist',
   backgroundColor: '#0b0c13',
   android: {

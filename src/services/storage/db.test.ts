@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import Dexie from 'dexie';
 import { indexedDB, IDBKeyRange } from 'fake-indexeddb';
-import { createAetherDatabase, deletePlaylist, getProgramsForChannel, toUserStorageMessage, type AetherDatabase } from './db.ts';
+import { createStreamwalaDatabase, deletePlaylist, getProgramsForChannel, toUserStorageMessage, type StreamwalaDatabase } from './db.ts';
 import type { Playlist, Channel, Group, Program, HistoryEntry, EpgSource, EpgChannel, EpgMapping } from '../../domain/types.ts';
 
 let counter = 0;
 
-function freshDatabase(): AetherDatabase {
+function freshDatabase(): StreamwalaDatabase {
   counter += 1;
-  return createAetherDatabase(`AetherTest_${Date.now()}_${counter}`, { indexedDB, IDBKeyRange });
+  return createStreamwalaDatabase(`StreamwalaTest_${Date.now()}_${counter}`, { indexedDB, IDBKeyRange });
 }
 
 function makePlaylist(id: string, name: string): Playlist {
@@ -141,9 +141,9 @@ describe('storage cascade + schema (BUG-004 proof)', () => {
   });
 
   it('reopening the current schema preserves data and queries work', async () => {
-    const name = `AetherReopen_${Date.now()}_${(counter += 1)}`;
+    const name = `StreamwalaReopen_${Date.now()}_${(counter += 1)}`;
 
-    const first = createAetherDatabase(name, { indexedDB, IDBKeyRange });
+    const first = createStreamwalaDatabase(name, { indexedDB, IDBKeyRange });
     const playlist = makePlaylist('pl_reopen', 'Reopen');
     const channel = makeChannel('ch_reopen', playlist.id);
     const program = makeProgram('prog_reopen', channel.id);
@@ -161,7 +161,7 @@ describe('storage cascade + schema (BUG-004 proof)', () => {
 
     // Schema v2 exists today; this guards against a future in-place store
     // mutation or a broken upgrade path wiping existing data.
-    const second = createAetherDatabase(name, { indexedDB, IDBKeyRange });
+    const second = createStreamwalaDatabase(name, { indexedDB, IDBKeyRange });
     expect(await second.playlists.get(playlist.id)).toEqual(playlist);
     expect(await second.channels.where({ playlistId: playlist.id }).count()).toBe(1);
     expect(await getProgramsForChannel(channel.id, -1, 2000, second)).toHaveLength(1);
@@ -173,7 +173,7 @@ describe('storage cascade + schema (BUG-004 proof)', () => {
   });
 
   it('migrates a v1 database to v2 without losing rows', async () => {
-    const name = `AetherMigrate_${Date.now()}_${(counter += 1)}`;
+    const name = `StreamwalaMigrate_${Date.now()}_${(counter += 1)}`;
 
     // Build a genuine v1 database on disk, then open it with the v2 class.
     const legacy = new Dexie(name, { indexedDB, IDBKeyRange });
@@ -190,7 +190,7 @@ describe('storage cascade + schema (BUG-004 proof)', () => {
     await legacy.table('programs').put(makeProgram('prog_mig', 'ch_mig'));
     legacy.close();
 
-    const upgraded = createAetherDatabase(name, { indexedDB, IDBKeyRange });
+    const upgraded = createStreamwalaDatabase(name, { indexedDB, IDBKeyRange });
     expect(await upgraded.playlists.get('pl_mig')).toBeDefined();
     expect(await upgraded.channels.get('ch_mig')).toBeDefined();
     expect(await upgraded.programs.get('prog_mig')).toBeDefined();

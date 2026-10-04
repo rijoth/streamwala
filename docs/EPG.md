@@ -1,6 +1,6 @@
 # EPG Pipeline (`docs/EPG.md`)
 
-Aether IPTV ingests XMLTV entirely client-side. This document describes the data
+Streamwala ingests XMLTV entirely client-side. This document describes the data
 flow, the matching rules, the storage schema, the performance limits and how to
 troubleshoot CORS/gzip. For the reasoning see [`DECISIONS.md`](./DECISIONS.md)
 (ADR 018).

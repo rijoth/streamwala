@@ -12,8 +12,8 @@
  * not satisfy the type.
  */
 
-const ALLOW = Symbol('aether.focus.ALLOW_DEFAULT_NAVIGATION');
-const BLOCK = Symbol('aether.focus.BLOCK_NAVIGATION');
+const ALLOW = Symbol('streamwala.focus.ALLOW_DEFAULT_NAVIGATION');
+const BLOCK = Symbol('streamwala.focus.BLOCK_NAVIGATION');
 
 export type FocusDecision = typeof ALLOW | typeof BLOCK;
 

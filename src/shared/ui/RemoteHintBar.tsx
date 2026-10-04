@@ -12,10 +12,10 @@ interface RemoteHint {
  * themselves are handled by the app-level input layer.
  */
 const REMOTE_HINTS: RemoteHint[] = [
-  { id: 'red', label: 'Favs', color: 'var(--aether-color-key-red)' },
-  { id: 'green', label: 'Guide', color: 'var(--aether-color-key-green)' },
-  { id: 'yellow', label: 'Search', color: 'var(--aether-color-key-yellow)' },
-  { id: 'blue', label: 'Settings', color: 'var(--aether-color-key-blue)' },
+  { id: 'red', label: 'Favs', color: 'var(--streamwala-color-key-red)' },
+  { id: 'green', label: 'Guide', color: 'var(--streamwala-color-key-green)' },
+  { id: 'yellow', label: 'Search', color: 'var(--streamwala-color-key-yellow)' },
+  { id: 'blue', label: 'Settings', color: 'var(--streamwala-color-key-blue)' },
 ];
 
 export const RemoteHintBar: React.FC = () => (

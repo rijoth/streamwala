@@ -1,5 +1,5 @@
 /**
- * Pure domain entities and models for Aether IPTV.
+ * Pure domain entities and models for Streamwala.
  * Strictly NO React, NO I/O, NO external side effects.
  */
 

@@ -1,5 +1,5 @@
 import { Playlist, Channel, Group, Program } from '../../domain/types.ts';
-import { db, type AetherDatabase } from '../storage/db.ts';
+import { db, type StreamwalaDatabase } from '../storage/db.ts';
 
 export const DEMO_PLAYLIST_ID = 'demo_playlist_standard';
 
@@ -126,10 +126,10 @@ export const VERIFIED_DEMO_CHANNELS: Channel[] = [
   },
 ];
 
-export async function installDemoPlaylist(database: AetherDatabase = db): Promise<Playlist> {
+export async function installDemoPlaylist(database: StreamwalaDatabase = db): Promise<Playlist> {
   const playlist: Playlist = {
     id: DEMO_PLAYLIST_ID,
-    name: 'Aether Public Demo (Legal Streams)',
+    name: 'Streamwala Public Demo (Legal Streams)',
     type: 'demo',
     url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
     createdAt: Date.now(),
@@ -210,7 +210,7 @@ export async function installDemoPlaylist(database: AetherDatabase = db): Promis
  * Automatically migrate outdated demo channels (e.g. broken 403 Akamai URLs)
  * stored in the user's IndexedDB to the verified 100% working streams.
  */
-export async function syncDemoPlaylistIfOutdated(database: AetherDatabase = db): Promise<boolean> {
+export async function syncDemoPlaylistIfOutdated(database: StreamwalaDatabase = db): Promise<boolean> {
   try {
     const demo = await database.playlists.get(DEMO_PLAYLIST_ID);
     if (!demo) return false;

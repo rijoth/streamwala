@@ -1,15 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { indexedDB, IDBKeyRange } from 'fake-indexeddb';
 import type { EpgChannel, EpgMapping, EpgSource, Program } from '../../domain/types.ts';
-import { createAetherDatabase, type AetherDatabase } from '../storage/db.ts';
+import { createStreamwalaDatabase, type StreamwalaDatabase } from '../storage/db.ts';
 import { createDexieEpgRepository } from './repository.ts';
 import { createFakeEpgRepository } from './fakeRepository.ts';
 
 let counter = 0;
 
-function freshDatabase(): AetherDatabase {
+function freshDatabase(): StreamwalaDatabase {
   counter += 1;
-  return createAetherDatabase(`EpgRepo_${Date.now()}_${counter}`, { indexedDB, IDBKeyRange });
+  return createStreamwalaDatabase(`EpgRepo_${Date.now()}_${counter}`, { indexedDB, IDBKeyRange });
 }
 
 function program(

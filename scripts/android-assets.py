@@ -107,20 +107,35 @@ def write_icons() -> None:
 
 
 def write_banner() -> None:
-    """Android TV home-screen banner: required 320x180 safe area."""
+    """Android TV home-screen banner: required 320x180 safe area.
+
+    Brand mark only — a letter "S" tile drawn in the M3 tokens (ACCENT_DIM
+    plate, ACCENT glyph). No wordmark: the app name lives in the launcher
+    label, matching the icon-only navigation rail.
+    """
     path = RES / "drawable-nodpi"
     path.mkdir(parents=True, exist_ok=True)
     width, height = 320, 180
     banner = Image.new("RGB", (width, height), BACKGROUND[:3])
     draw = ImageDraw.Draw(banner)
 
-    draw.rounded_rectangle([16, 46, 104, 134], radius=18, fill=ACCENT_DIM)
-    draw.polygon([(48, 68), (48, 112), (84, 90)], fill=ACCENT)
+    side = 96
+    left = (width - side) / 2
+    top = (height - side) / 2
+    draw.rounded_rectangle(
+        [left, top, left + side, top + side], radius=side * 0.24, fill=ACCENT_DIM
+    )
 
-    font = load_font(34)
-    draw.text((120, 74), "Aether", font=font, fill=ACCENT)
-    font_small = load_font(18)
-    draw.text((121, 112), "IPTV", font=font_small, fill=(226, 226, 236))
+    font = load_font(56)
+    bbox = draw.textbbox((0, 0), "S", font=font)
+    text_w = bbox[2] - bbox[0]
+    text_h = bbox[3] - bbox[1]
+    draw.text(
+        (left + (side - text_w) / 2 - bbox[0], top + (side - text_h) / 2 - bbox[1]),
+        "S",
+        font=font,
+        fill=ACCENT,
+    )
 
     banner.save(path / "tv_banner.png")
 

@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { indexedDB, IDBKeyRange } from 'fake-indexeddb';
-import { createAetherDatabase, toggleChannelFavorite, addWatchHistory, getRecentWatchHistory } from '../storage/db.ts';
+import { createStreamwalaDatabase, toggleChannelFavorite, addWatchHistory, getRecentWatchHistory } from '../storage/db.ts';
 import { installDemoPlaylist } from './demoPlaylist.ts';
 
 describe('demo playlist re-sync (BUG-017)', () => {
   it('preserves user favorite/hidden flags and history across a re-sync', async () => {
-    const database = createAetherDatabase(`AetherDemoResync_${Date.now()}`, {
+    const database = createStreamwalaDatabase(`StreamwalaDemoResync_${Date.now()}`, {
       indexedDB,
       IDBKeyRange,
     });

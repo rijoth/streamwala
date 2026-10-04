@@ -4,6 +4,7 @@ import { FocusZone, useFocusable } from '../../shared/focus/index.ts';
 import { Button, Card, TextField } from '../../shared/ui/index.ts';
 import { Icon } from '../../shared/icons/index.ts';
 import { Playlist, PROXY_PRESETS } from '../../domain/types.ts';
+import { PRODUCT_NAME, PRODUCT_VERSION } from '../../shared/product.ts';
 import { db, savePlaylist } from '../../services/storage/db.ts';
 import { EpgFirstRunBanner } from './epg/EpgFirstRunBanner.tsx';
 
@@ -429,15 +430,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <Icon name="live_tv" size={28} />
               </div>
               <div>
-                <h3 className="font-bold text-xl">Aether IPTV Leanback Player</h3>
-                <p className="text-xs text-[var(--md-sys-color-outline)]">Version 1.0.0 • Client-Side Progressive Web App</p>
+                <h3 className="font-bold text-xl">{PRODUCT_NAME} TV Player</h3>
+                <p className="text-xs text-[var(--md-sys-color-outline)]">Version {PRODUCT_VERSION} • Client-Side Progressive Web App</p>
               </div>
             </div>
 
             <div className="p-4 rounded-2xl bg-[var(--md-sys-color-surface-container-high)] border border-[var(--md-sys-color-outline-variant)] text-xs text-[var(--md-sys-color-on-surface-variant)] space-y-2">
               <h4 className="font-bold text-[var(--md-sys-color-on-surface)] text-sm">Legal Notice & Disclaimer</h4>
               <p>
-                Aether IPTV is purely a client-side media player software application. It does not provide, host, bundle, or distribute any copyrighted media streams or TV channels.
+                {PRODUCT_NAME} is purely a client-side media player software application. It does not provide, host, bundle, or distribute any copyrighted media streams or TV channels.
               </p>
               <p>
                 Users are solely responsible for providing their own legally obtained M3U playlists and Xtream credentials. The included demo playlist consists exclusively of public domain, open-source Blender Foundation movies, and authorized public test feeds.

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FocusZone } from '../../shared/focus/index.ts';
 import { Button, Card, TextField, LinearProgress, CircularProgress } from '../../shared/ui/index.ts';
 import { Icon } from '../../shared/icons/index.ts';
+import { PRODUCT_NAME } from '../../shared/product.ts';
 import { parseAndSaveM3U, ParseProgress } from '../../services/playlist/m3uParser.ts';
 import { installDemoPlaylist } from '../../services/playlist/demoPlaylist.ts';
 import { importXtreamPlaylist, testXtreamLogin } from '../../services/playlist/xtreamClient.ts';
@@ -240,10 +241,10 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
 
           <div>
             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-3">
-              Aether IPTV
+              {PRODUCT_NAME}
             </h1>
             <p className="text-lg md:text-xl text-[var(--md-sys-color-on-surface-variant)] leading-relaxed">
-              The premier 100% client-side leanback IPTV player designed for your Android TV remote and high-resolution screens.
+              The premier 100% client-side IPTV player designed for your Android TV remote and high-resolution screens.
             </p>
           </div>
 

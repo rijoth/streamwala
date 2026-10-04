@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- M3 dark surface used by index.html / src/index.css. -->
-    <color name="aether_background">#0B0C13</color>
-    <color name="aether_primary">#A0CAFF</color>
+    <color name="streamwala_background">#0B0C13</color>
+    <color name="streamwala_primary">#A0CAFF</color>
 </resources>

@@ -46,7 +46,7 @@ These are used only by the footer hint bar (`RemoteHintBar.tsx`):
 
 | Token | Value |
 |---|---|
-| `--aether-color-key-red` | `#ef4444` |
-| `--aether-color-key-green` | `#22c55e` |
-| `--aether-color-key-yellow` | `#eab308` |
-| `--aether-color-key-blue` | `#3b82f6` |
+| `--streamwala-color-key-red` | `#ef4444` |
+| `--streamwala-color-key-green` | `#22c55e` |
+| `--streamwala-color-key-yellow` | `#eab308` |
+| `--streamwala-color-key-blue` | `#3b82f6` |

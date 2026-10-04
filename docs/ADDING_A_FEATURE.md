@@ -1,6 +1,6 @@
 # Adding a New Feature (docs/ADDING_A_FEATURE.md)
 
-Follow this checklist when adding or expanding a feature in Aether IPTV. See
+Follow this checklist when adding or expanding a feature in Streamwala. See
 [`GUARDRAILS.md`](./GUARDRAILS.md) and [`../AGENTS.md`](../AGENTS.md) for the
 rules each step protects.
 

@@ -1,7 +1,7 @@
 import Dexie from 'dexie';
 import type { EpgChannel, EpgMapping, EpgSource, ProgrammeImport, Program } from '../../domain/types.ts';
 import { EpgChannelSchema, EpgMappingSchema, EpgSourceSchema } from '../../domain/schemas.ts';
-import { db, type AetherDatabase } from '../storage/db.ts';
+import { db, type StreamwalaDatabase } from '../storage/db.ts';
 
 export type { ProgrammeImport } from '../../domain/types.ts';
 
@@ -43,7 +43,7 @@ const BATCH_SIZE = 1000;
  * Dexie-backed repository. Every write runs inside a short transaction and
  * never awaits a non-Dexie promise inside one.
  */
-export function createDexieEpgRepository(database: AetherDatabase = db): EpgRepository {
+export function createDexieEpgRepository(database: StreamwalaDatabase = db): EpgRepository {
   return {
     async listSources(playlistId) {
       const sources = await database.epgSources.where({ playlistId }).toArray();

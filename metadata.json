@@ -1,5 +1,5 @@
 {
-  "name": "Aether IPTV - 10-Foot Leanback Player",
+  "name": "Streamwala - 10-Foot TV Player",
   "description": "Production-grade, 100% client-side IPTV web player designed for 10-foot TV remotes, Android TV, Google TV, desktop, and tablet with Material Design 3.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
