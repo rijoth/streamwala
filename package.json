@@ -10,8 +10,10 @@
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
     "lint:eslint": "eslint src",
-    "test": "tsx --test",
-    "check": "npm run lint && npm run lint:eslint && npm run test"
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "e2e": "playwright test",
+    "check": "npm run lint && npm run lint:eslint && npm run test:coverage"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -36,6 +38,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
+    "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",

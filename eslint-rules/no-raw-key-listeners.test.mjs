@@ -1,4 +1,4 @@
-import { describe, it } from 'node:test';
+import { describe, it } from 'vitest';
 import { RuleTester } from 'eslint';
 import rule from './no-raw-key-listeners.mjs';
 
