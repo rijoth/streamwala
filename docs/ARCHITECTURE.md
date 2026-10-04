@@ -44,15 +44,18 @@ feature's `index.ts` barrel.
 
 ## Data and storage
 
-- **Persistent data** is Dexie/IndexedDB (`services/storage/db.ts`), schema v1:
-  `playlists`, `channels`, `groups`, `programs`, `history`. Paths are always
-  derived (EPG/history cascade from channels). Repository functions accept an
+- **Persistent data** is Dexie/IndexedDB (`services/storage/db.ts`), schema v2:
+  `playlists`, `channels`, `groups`, `programs`, `history`, plus the EPG tables
+  `epgSources`, `epgChannels`, `epgMappings`. Paths are always derived (EPG/
+  history cascade from channels/sources). Repository functions accept an
   optional database handle so tests run isolated databases; the app uses the
   singleton `db`.
 - **Settings** are small and live in `localStorage` via the Zustand store in
   `app/settingsStore.ts`.
-- **Playlists** are parsed in `services/playlist` (M3U, Xtream, demo) and EPG in
-  `services/epg/xmltvParser.ts`. Import writes are transactional.
+- **Playlists** are parsed in `services/playlist` (M3U, Xtream, demo). The EPG
+  pipeline lives in `services/epg` (streaming fetcher, worker tokenizer/parser,
+  repository, scheduler) with the pure core in `domain/epg`; see
+  [`EPG.md`](./EPG.md). Import writes are transactional.
 
 ## Playback
 

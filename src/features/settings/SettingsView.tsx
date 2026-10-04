@@ -1,11 +1,17 @@
-import React, { useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import { useSettingsStore } from '../../app/settingsStore.ts';
 import { FocusZone, useFocusable } from '../../shared/focus/index.ts';
 import { Button, Card, TextField } from '../../shared/ui/index.ts';
 import { Icon } from '../../shared/icons/index.ts';
 import { Playlist, PROXY_PRESETS } from '../../domain/types.ts';
 import { db, savePlaylist } from '../../services/storage/db.ts';
-import { PlaylistEpgPanel, EpgFirstRunBanner } from './epg/index.ts';
+import { EpgFirstRunBanner } from './epg/EpgFirstRunBanner.tsx';
+
+// Lazy so the EPG panel (and its worker/refresh code) stays out of the initial
+// bundle; it is only needed on the playlist edit screen.
+const PlaylistEpgPanel = React.lazy(() =>
+  import('./epg/PlaylistEpgPanel.tsx').then((module) => ({ default: module.PlaylistEpgPanel }))
+);
 
 export interface SettingsViewProps {
   playlists: Playlist[];
@@ -257,11 +263,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         {activeTab === 'playlists' && (
           editingPlaylist ? (
             <FocusZone focusKey="SETTINGS_SECTION_EPG" ownsChildren className="h-full min-h-0">
-              <PlaylistEpgPanel
-                playlist={editingPlaylist}
-                onClose={() => setEditingPlaylist(null)}
-                onChanged={onRefreshData}
-              />
+              <Suspense fallback={<p className="text-sm text-[var(--md-sys-color-outline)]">Loading EPG settings…</p>}>
+                <PlaylistEpgPanel
+                  playlist={editingPlaylist}
+                  onClose={() => setEditingPlaylist(null)}
+                  onChanged={onRefreshData}
+                />
+              </Suspense>
             </FocusZone>
           ) : (
             <FocusZone focusKey="SETTINGS_SECTION_PLAYLISTS" ownsChildren className="flex flex-col gap-4">

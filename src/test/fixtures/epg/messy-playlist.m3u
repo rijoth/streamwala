@@ -1,0 +1,7 @@
+#EXTM3U url-tvg="https://epg.example.invalid/demo.xml" x-tvg-url="https://epg.example.invalid/backup.xml"
+#EXTINF:-1 tvg-id="demo.news" tvg-name="Demo News HD" tvg-logo="https://logo.example.invalid/news.png" group-title="News",Demo News (720p)
+https://stream.example.invalid/news.m3u8
+#EXTINF:-1 tvg-name="Demo Sports" group-title="Sports",Demo Sports HD
+https://stream.example.invalid/sports.m3u8
+#EXTINF:-1 tvg-id="demo.music" tvg-shift="+1" group-title="Music",Demo Music 4K
+https://stream.example.invalid/music.m3u8

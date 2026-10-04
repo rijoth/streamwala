@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { Suspense, useEffect, useRef, useState, useCallback } from 'react';
 import {
   initFocusEngine,
   getCurrentFocusKey,
@@ -21,7 +21,12 @@ import { OnboardingFlow } from './features/onboarding/index.ts';
 import { PlayerView } from './features/player/index.ts';
 import { HomeView } from './features/home/index.ts';
 import { ChannelBrowser } from './features/live-tv/index.ts';
-import { EpgGuideView } from './features/guide/index.ts';
+
+// Lazy: the guide (2-axis virtualization) is only loaded when its rail
+// destination is opened, keeping it out of the initial bundle.
+const EpgGuideView = React.lazy(() =>
+  import('./features/guide/EpgGuideView.tsx').then((module) => ({ default: module.EpgGuideView }))
+);
 import { FavoritesView } from './features/favorites/index.ts';
 import { SearchView } from './features/search/index.ts';
 import { SettingsView } from './features/settings/index.ts';
@@ -273,12 +278,20 @@ export default function App() {
           )}
 
           {activeNavId === 'guide' && (
-            <EpgGuideView
-              channels={channels}
-              onSelectChannel={setPlayingChannel}
-              onToggleFavorite={handleToggleFavorite}
-              onOpenSettings={() => setActiveNavId('settings')}
-            />
+            <Suspense
+              fallback={
+                <div className="flex-1 flex items-center justify-center text-sm text-[var(--md-sys-color-outline)]">
+                  Loading guide…
+                </div>
+              }
+            >
+              <EpgGuideView
+                channels={channels}
+                onSelectChannel={setPlayingChannel}
+                onToggleFavorite={handleToggleFavorite}
+                onOpenSettings={() => setActiveNavId('settings')}
+              />
+            </Suspense>
           )}
 
           {activeNavId === 'favorites' && (

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tv generator-info-name="aether-test" source-info-url="https://example.invalid/">
+  <channel id="demo.news">
+    <display-name>Demo News</display-name>
+    <display-name>Demo News</display-name>
+    <icon src="https://logo.example.invalid/news.png"/>
+  </channel>
+  <channel id="demo.sports">
+    <display-name>Demo Sports HD</display-name>
+  </channel>
+  <channel>
+    <display-name>No id channel</display-name>
+  </channel>
+
+  <!-- UTC -->
+  <programme start="20260104120000 +0000" stop="20260104130000 +0000" channel="demo.news">
+    <title lang="en">Midday Report</title>
+    <desc>Headlines and analysis.</desc>
+    <category>News</category>
+    <episode-num system="xmltv_ns">1.0.0/1</episode-num>
+    <language>en</language>
+    <rating system="MPAA">TV-PG</rating>
+  </programme>
+
+  <!-- +0530 (India) -->
+  <programme start="20260104180000 +0530" stop="20260104190000 +0530" channel="demo.news">
+    <title>Evening Bulletin</title>
+    <sub-title>Late edition</sub-title>
+  </programme>
+
+  <!-- -0800 (US Pacific), overlapping the previous programme -->
+  <programme start="20260104043000 -0800" stop="20260104060000 -0800" channel="demo.sports">
+    <title>Match of the Day</title>
+  </programme>
+
+  <!-- Missing stop: ends when the next programme starts -->
+  <programme start="20260104130000 +0000" channel="demo.news">
+    <title>Open Ended</title>
+  </programme>
+
+  <!-- Malformed date must be skipped and counted -->
+  <programme start="not-a-date" stop="20260104140000 +0000" channel="demo.news">
+    <title>Bad Date</title>
+  </programme>
+
+  <!-- Unmatched channel id -->
+  <programme start="20260104120000 +0000" stop="20260104130000 +0000" channel="demo.unknown">
+    <title>Orphan</title>
+  </programme>
+
+  <!-- Unclosed programme: recovered at the next element -->
+  <programme start="20260104140000 +0000" channel="demo.sports">
+    <title>Recovered</title>
+  <channel id="demo.music">
+    <display-name>Demo Music 4K</display-name>
+  </channel>
+</tv>
