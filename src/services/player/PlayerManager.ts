@@ -33,6 +33,12 @@ export class PlayerManager {
   private maxRetries = 2;
   private retryTimeout: NodeJS.Timeout | null = null;
   private statsInterval: NodeJS.Timeout | null = null;
+  /**
+   * Incremented whenever a new stream/engine session starts. Async engine
+   * callbacks capture this value and no-op if the session has changed, so a
+   * slow init from a previous channel cannot update state for the new one.
+   */
+  private generation = 0;
 
   public state: PlayerManagerState = {
     status: 'idle',
@@ -58,6 +64,7 @@ export class PlayerManager {
 
   async loadStream(videoEl: HTMLVideoElement, streamUrl: string) {
     this.destroy();
+    this.generation += 1;
     this.videoEl = videoEl;
     this.rawStreamUrl = streamUrl.trim();
     this.retryCount = 0;
@@ -87,6 +94,7 @@ export class PlayerManager {
     }
 
     this.currentEngineIndex = index;
+    const gen = this.generation;
     const engineType = this.engineOrder[index];
     const resolvedUrl = this.resolveUrl(this.rawStreamUrl);
 
@@ -111,6 +119,7 @@ export class PlayerManager {
         this.engine.destroy();
         this.engine = null;
       }
+      this.stopStatsLoop();
 
       this.engine = this.createEngine(engineType);
 
@@ -119,17 +128,21 @@ export class PlayerManager {
         resolvedUrl,
         {
           onError: (errMsg, isFatal) => {
+            if (gen !== this.generation) return;
             if (isFatal) {
-              this.handleEngineFailure(errMsg, engineType);
+              this.handleEngineFailure(errMsg, engineType, gen);
             }
           },
           onLoading: (isLoading) => {
+            if (gen !== this.generation) return;
             this.updateState({ isBuffering: isLoading });
           },
           onStatsUpdate: (stats) => {
+            if (gen !== this.generation) return;
             this.updateState({ stats });
           },
           onSuccess: () => {
+            if (gen !== this.generation) return;
             this.isPlaybackStarted = true;
             this.updateState({ status: 'playing', isBuffering: false, error: null });
             this.startStatsLoop();
@@ -138,14 +151,21 @@ export class PlayerManager {
         this.options.proxyUrlTemplate
       );
 
+      if (gen !== this.generation) return;
       this.startStatsLoop();
     } catch (err: unknown) {
+      if (gen !== this.generation) return;
       console.warn(`Engine ${engineType} init failed:`, err);
-      this.handleEngineFailure(err instanceof Error ? err.message : String(err), engineType);
+      this.handleEngineFailure(err instanceof Error ? err.message : String(err), engineType, gen);
     }
   }
 
-  private handleEngineFailure(errorMessage: string, failedEngine: 'hls' | 'mpegts' | 'native') {
+  private handleEngineFailure(
+    errorMessage: string,
+    failedEngine: 'hls' | 'mpegts' | 'native',
+    gen: number
+  ) {
+    if (gen !== this.generation) return;
     console.warn(`Engine ${failedEngine} reported fatal error: ${errorMessage}`);
 
     // If playback hasn't started yet and there are remaining engines in the order, fallback
@@ -203,6 +223,7 @@ export class PlayerManager {
   }
 
   public async forceEngine(engineType: 'hls' | 'mpegts' | 'native') {
+    this.generation += 1;
     this.engineOrder = [engineType];
     this.currentEngineIndex = 0;
     this.isPlaybackStarted = false;
@@ -211,6 +232,7 @@ export class PlayerManager {
   }
 
   public async retryWithProxy(proxyTemplate: string) {
+    this.generation += 1;
     this.options.proxyUrlTemplate = proxyTemplate;
     this.isPlaybackStarted = false;
     this.retryCount = 0;

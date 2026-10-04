@@ -1,6 +1,9 @@
 import Hls from 'hls.js';
 import mpegts from 'mpegts.js';
 
+/** Max in-place media-error recoveries before HlsPlayerEngine reports fatal. */
+const MAX_MEDIA_RECOVERY_ATTEMPTS = 2;
+
 export interface PlayerStats {
   engine: 'hls' | 'mpegts' | 'native';
   bitrate?: number;
@@ -46,6 +49,7 @@ export class HlsPlayerEngine implements PlayerEngine {
   private videoEl: HTMLVideoElement | null = null;
   private listener: PlayerEngineListener | null = null;
   private onPlayingHandler: (() => void) | null = null;
+  private mediaRecoveryAttempts = 0;
 
   async init(
     videoEl: HTMLVideoElement,
@@ -91,6 +95,7 @@ export class HlsPlayerEngine implements PlayerEngine {
     }
 
     this.hls = new Hls(config as never);
+    this.mediaRecoveryAttempts = 0;
     this.hls.attachMedia(videoEl);
 
     this.onPlayingHandler = () => {
@@ -112,32 +117,47 @@ export class HlsPlayerEngine implements PlayerEngine {
     });
 
     this.hls.on(Hls.Events.ERROR, (_, data) => {
-      if (data.fatal) {
-        const httpStatus = data.response?.code;
-        const details = data.details || '';
-        let message = `HLS Fatal error: ${details}`;
+      if (!data.fatal) return;
 
-        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-          if (httpStatus === 403) {
-            message = 'HTTP 403 Forbidden: Stream link expired or unauthorized by provider';
-          } else if (httpStatus === 404) {
-            message = 'HTTP 404 Not Found: Stream segment or manifest missing';
-          } else if (details.includes('manifestLoadError')) {
-            message = `Failed to load HLS manifest (${httpStatus ? `HTTP ${httpStatus}` : 'CORS / Network restriction'})`;
+      const httpStatus = data.response?.code;
+      const details = data.details || '';
+
+      if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+        // hls.js can usually recover media decode errors in place. Attempt
+        // bounded recovery before declaring the engine fatal to PlayerManager.
+        this.mediaRecoveryAttempts += 1;
+        if (this.mediaRecoveryAttempts <= MAX_MEDIA_RECOVERY_ATTEMPTS) {
+          if (this.mediaRecoveryAttempts === 1) {
+            this.hls?.recoverMediaError();
           } else {
-            message = `Network error loading stream segments (${details}${httpStatus ? ` HTTP ${httpStatus}` : ''})`;
+            this.hls?.swapAudioCodec();
+            this.hls?.recoverMediaError();
           }
-          this.listener?.onError(message, true);
-          this.hls?.startLoad();
-          return;
-        } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-          this.listener?.onError(`Media decode error (${details})`, true);
-          this.hls?.recoverMediaError();
           return;
         }
-        this.listener?.onError(message, true);
-        this.destroy();
+        this.listener?.onError(`Media decode error (${details})`, true);
+        return;
       }
+
+      let message = `HLS Fatal error: ${details}`;
+      if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+        if (httpStatus === 403) {
+          message = 'HTTP 403 Forbidden: Stream link expired or unauthorized by provider';
+        } else if (httpStatus === 404) {
+          message = 'HTTP 404 Not Found: Stream segment or manifest missing';
+        } else if (details.includes('manifestLoadError')) {
+          message = `Failed to load HLS manifest (${httpStatus ? `HTTP ${httpStatus}` : 'CORS / Network restriction'})`;
+        } else {
+          message = `Network error loading stream segments (${details}${httpStatus ? ` HTTP ${httpStatus}` : ''})`;
+        }
+        // PlayerManager owns fallback/retry. Do not also call startLoad() here:
+        // the two layers would race to recover the same stream.
+        this.listener?.onError(message, true);
+        return;
+      }
+
+      this.listener?.onError(message, true);
+      this.destroy();
     });
   }
 
