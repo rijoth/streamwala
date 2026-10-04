@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Channel, Program } from '../../domain/types.ts';
+import { Channel } from '../../domain/types.ts';
 import { PlayerManager, PlayerManagerState } from '../../services/player/PlayerManager.ts';
-import { getProgramsForChannel, addWatchHistory, toggleChannelFavorite } from '../../services/storage/db.ts';
+import { addWatchHistory, toggleChannelFavorite } from '../../services/storage/db.ts';
 import { useSettingsStore } from '../../app/settingsStore.ts';
+import { useNowNext } from '../../app/epgRuntime.tsx';
 import { useTvInput, pushBackHandler } from '../../shared/input/index.ts';
 import { NowNextBanner } from './NowNextBanner.tsx';
 import { PlayerControlsOverlay } from './PlayerControlsOverlay.tsx';
@@ -54,8 +55,6 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
   });
 
   const [aspectRatio, setAspectRatio] = useState<'fit' | 'fill' | '16:9' | '4:3' | 'zoom'>('fit');
-  const [currentProgram, setCurrentProgram] = useState<Program | undefined>();
-  const [nextProgram, setNextProgram] = useState<Program | undefined>();
 
   // Overlays visibility states
   const [showControls, setShowControls] = useState(false);
@@ -64,6 +63,9 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
   const [showNerdStats, setShowNerdStats] = useState(settings.showNerdStats);
   const [showCorsModal, setShowCorsModal] = useState(false);
   const [isFavorite, setIsFavorite] = useState(!!channel.isFavorite);
+
+  // Now/Next comes from the shared EPG selector (one query + minute ticker).
+  const { current: currentProgram, next: nextProgram } = useNowNext(channel.id);
 
   // Number Zap state
   const [zapDigits, setZapDigits] = useState('');
@@ -88,33 +90,17 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
     }, 4500);
   }, []);
 
-  // Fetch current & next EPG program for channel
+  // Record watch history and show the Now/Next banner on channel change.
   useEffect(() => {
-    let isMounted = true;
-    const loadEpg = async () => {
-      const now = Date.now();
-      const programs = await getProgramsForChannel(channel.id, now - 3600000, now + 14400000);
-      if (!isMounted) return;
-
-      const curr = programs.find(p => p.start <= now && p.stop >= now);
-      const next = programs.find(p => p.start > now);
-      setCurrentProgram(curr);
-      setNextProgram(next);
-    };
-
-    loadEpg();
     setIsFavorite(!!channel.isFavorite);
     triggerNowNextBanner();
 
-    // Record watch history
     addWatchHistory({
       channelId: channel.id,
       name: channel.name,
       logo: channel.logo,
       streamUrl: channel.streamUrl,
     });
-
-    return () => { isMounted = false; };
   }, [channel, triggerNowNextBanner]);
 
   // Initialize and load stream

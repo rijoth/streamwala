@@ -8,3 +8,5 @@ export * from './workerClient.ts';
 export * from './detect.ts';
 export * from './refresh.ts';
 export * from './matchReport.ts';
+export * from './scheduler.ts';
+export * from './nowNextService.ts';

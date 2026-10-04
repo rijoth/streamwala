@@ -2,6 +2,7 @@ import React from 'react';
 import { Channel, Group } from '../../domain/types.ts';
 import { useFocusable } from '../../shared/focus/index.ts';
 import { Icon } from '../../shared/icons/index.ts';
+import { useNowNext } from '../../app/epgRuntime.tsx';
 
 export const HOME_CARD_SIZE = 208;
 export const HOME_CARD_GAP = 16;
@@ -16,6 +17,7 @@ export interface ChannelTileProps {
 /** Focusable channel card used inside a Home carousel. */
 export const ChannelTile: React.FC<ChannelTileProps> = ({ channel, focusKey, index, onSelect }) => {
   const { ref, focused } = useFocusable({ focusKey, onEnterPress: onSelect });
+  const { current, progress } = useNowNext(channel.id);
 
   return (
     <div
@@ -52,6 +54,17 @@ export const ChannelTile: React.FC<ChannelTileProps> = ({ channel, focusKey, ind
       <p className="text-[11px] text-[var(--md-sys-color-outline)] truncate w-full mt-0.5">
         {channel.groupName}
       </p>
+      <div className="w-full mt-1">
+        <p className="text-[11px] truncate text-[var(--md-sys-color-on-surface-variant)]">
+          {current?.title ?? 'No program information'}
+        </p>
+        <div className="h-1 mt-1 w-full rounded-full bg-[var(--md-sys-color-surface-container-highest)] overflow-hidden">
+          <div
+            className="h-full bg-[var(--md-sys-color-primary)]"
+            style={{ width: `${current ? Math.round(progress * 100) : 0}%` }}
+          />
+        </div>
+      </div>
     </div>
   );
 };

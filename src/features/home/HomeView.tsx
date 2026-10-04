@@ -7,6 +7,7 @@ import { Icon } from '../../shared/icons/index.ts';
 import { CarouselRow } from './CarouselRow.tsx';
 import { CategoryTile } from './ChannelTile.tsx';
 import { HeroSection } from './HeroSection.tsx';
+import { useLiveNowChannels } from './useLiveNowChannels.ts';
 
 export interface HomeViewProps {
   channels: Channel[];
@@ -31,6 +32,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
   const favorites = channels.filter((c) => c.isFavorite);
   const featuredChannel = favorites[0] || channels[0];
+  const liveNowChannels = useLiveNowChannels(channels);
   const historyChannels = history
     .map((hist) => channels.find((c) => c.id === hist.channelId))
     .filter((c): c is Channel => Boolean(c));
@@ -85,6 +87,23 @@ export const HomeView: React.FC<HomeViewProps> = ({
         items={favorites}
         onSelect={onSelectChannel}
         action={{ label: 'View All', onClick: onGoToLive }}
+      />
+    );
+  }
+
+  if (liveNowChannels.length > 0) {
+    rows.push(
+      <CarouselRow
+        key="live-now"
+        rowIndex={rowIndex++}
+        memoryKey="home:live-now"
+        focusKey="ROW_LIVE_NOW"
+        title="Live now"
+        icon="sensors"
+        iconClass="text-rose-400"
+        items={liveNowChannels}
+        onSelect={onSelectChannel}
+        action={{ label: 'Open Guide', onClick: onGoToGuide }}
       />
     );
   }

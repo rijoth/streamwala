@@ -2,6 +2,7 @@ import React from 'react';
 import { Channel } from '../../domain/types.ts';
 import { useFocusable } from '../../shared/focus/index.ts';
 import { Icon } from '../../shared/icons/index.ts';
+import { useNowNext } from '../../app/epgRuntime.tsx';
 
 /**
  * Card heights are authored in rem so the 10-foot typography scales with the
@@ -97,6 +98,7 @@ export const ChannelListItem: React.FC<ChannelItemProps> = ({
   onToggleFavorite,
 }) => {
   const { ref, focused } = useFocusable({ focusKey, onEnterPress: onSelect });
+  const { current, progress } = useNowNext(channel.id);
 
   return (
     <div
@@ -138,6 +140,17 @@ export const ChannelListItem: React.FC<ChannelItemProps> = ({
         <p className="text-xs text-[var(--md-sys-color-on-surface-variant)] truncate">
           {channel.groupName}
         </p>
+        <div className="mt-1">
+          <p className="text-[11px] truncate text-[var(--md-sys-color-on-surface-variant)]">
+            {current?.title ?? 'No program information'}
+          </p>
+          <div className="h-1 mt-1 w-32 rounded-full bg-[var(--md-sys-color-surface-container-highest)] overflow-hidden">
+            <div
+              className="h-full bg-[var(--md-sys-color-primary)]"
+              style={{ width: `${current ? Math.round(progress * 100) : 0}%` }}
+            />
+          </div>
+        </div>
       </div>
 
       <button

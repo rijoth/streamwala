@@ -12,6 +12,7 @@ import {
 import { useTvInput, useIdleCursor } from './shared/input/index.ts';
 import { NavigationRail, NavDestination, RemoteHintBar } from './shared/ui/index.ts';
 import { useSettingsStore, applyTheme } from './app/settingsStore.ts';
+import { EpgProvider } from './app/epgRuntime.tsx';
 import { getActivePlaylist, getAllPlaylists, getChannelsByGroup, getGroupsForPlaylist, toggleChannelFavorite } from './services/storage/db.ts';
 import { syncDemoPlaylistIfOutdated } from './services/playlist/demoPlaylist.ts';
 import { Playlist, Channel, Group } from './domain/types.ts';
@@ -225,6 +226,13 @@ export default function App() {
   }
 
   return (
+    <EpgProvider
+      playlist={activePlaylist}
+      channels={channels}
+      proxyTemplate={settings.proxyUrlTemplate}
+      ttlHours={settings.epgTtlHours}
+      onChanged={refreshData}
+    >
     <div className="relative w-screen h-screen overflow-hidden bg-[var(--md-sys-color-surface-dim)] text-[var(--md-sys-color-on-surface)] flex">
       {/* Permanent icon-only navigation rail (hidden during fullscreen playback). */}
       {!playingChannel && (
@@ -325,5 +333,6 @@ export default function App() {
         />
       )}
     </div>
+    </EpgProvider>
   );
 }
