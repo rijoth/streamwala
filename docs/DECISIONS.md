@@ -47,3 +47,8 @@
   4. **Async player callbacks are generation-gated.** `PlayerManager` increments a session token per load; stale `init`/error/success callbacks are dropped to protect rapid channel zapping.
   5. **Missing XMLTV `stop` defaults** to `start + 30 minutes` and timezone offsets accept both spaced and compact forms (`+0530`, `+05`).
 - **Consequence:** Deterministic remote behaviour (one layer per BACK, one channel action per arrow), no player recovery races, and tolerant EPG ingestion. EPG timeline virtualization (BUG-008) is explicitly deferred: it needs a dedicated windowing + 2-D focus design and is tracked in `docs/BUGS.md`.
+
+### ADR 009: Single lockfile policy (npm)
+- **Context:** The repository currently ships two lockfiles — `package-lock.json` (npm, matches the installed `node_modules`) and a stale `bun.lock`. New guardrail tooling (Vitest, Playwright, ESLint) was installed with npm to avoid a third lockfile.
+- **Decision:** npm is the single package manager. `package-lock.json` is authoritative. `bun.lock` is stale and should be removed, but is left in place for a separate, explicit cleanup.
+- **Consequence:** CI uses `npm ci`. Copies of the older prompts that say `pnpm` should be read as `npm run` / `npx`. The architecture and guardrail docs are [`ARCHITECTURE.md`](./ARCHITECTURE.md) and [`GUARDRAILS.md`](./GUARDRAILS.md).
