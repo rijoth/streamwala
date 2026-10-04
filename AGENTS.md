@@ -13,6 +13,7 @@ This makes sure you find the real problem so your fix will actually solve it.
 If something clearly looks off, even if it is not directly related to what you are doing, try to get it fixed along the way.
 - Apply that same high standard to engineering excellence: lint, test failures, and test flakiness.
 If you see one, even if it is not caused by what you are working on right now, still get it fixed.
+- Every commit must be signed off. Agents must commit with `git commit -s` exactly as human contributors do; the `Signed-off-by` trailer is required by `CONTRIBUTING.md` and enforced by the DCO workflow. Never strip or fake it.
 
 ## 3. Standard Development Commands
 - `npm run dev`: Starts the Vite development server on port 3000.
