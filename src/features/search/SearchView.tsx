@@ -61,11 +61,10 @@ export const SearchView: React.FC<SearchViewProps> = ({
             focusKey="SEARCH_RESULTS"
             className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 p-1 pb-6"
           >
-            {filtered.map((channel, idx) => (
+            {filtered.map((channel) => (
               <SearchChannelCard
                 key={channel.id}
                 channel={channel}
-                autoFocus={idx === 0}
                 onSelect={() => onSelectChannel(channel)}
                 onToggleFavorite={() => onToggleFavorite(channel.id)}
               />
@@ -79,19 +78,16 @@ export const SearchView: React.FC<SearchViewProps> = ({
 
 interface SearchChannelCardProps {
   channel: Channel;
-  autoFocus?: boolean;
   onSelect: () => void;
   onToggleFavorite: () => void;
 }
 
 const SearchChannelCard: React.FC<SearchChannelCardProps> = ({
   channel,
-  autoFocus,
   onSelect,
   onToggleFavorite,
 }) => {
   const { ref, focused } = useFocusable({
-    autoFocus,
     onEnterPress: onSelect,
   });
 
