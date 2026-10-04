@@ -115,13 +115,6 @@ const NavRailItem: React.FC<NavRailItemProps> = ({
   const { ref, focused } = useFocusable({
     focusKey: `NAV_${destination.id}`,
     onEnterPress: onSelect,
-    onArrowPress: (direction) => {
-      // If pressing Right on the nav rail, leave the rail and enter the main content area
-      if (direction === 'right') {
-        return false;
-      }
-      return true;
-    },
   });
 
   React.useEffect(() => {
