@@ -101,6 +101,8 @@ export interface AppSettings {
   bufferLengthSeconds: number;
   lowPowerMode: boolean;
   showNerdStats: boolean;
+  /** Show the remote color-key legend in the content footer. */
+  showRemoteHints: boolean;
 }
 
 export interface ProxyPreset {
@@ -149,5 +151,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   bufferLengthSeconds: 15,
   lowPowerMode: false,
   showNerdStats: false,
+  showRemoteHints: true,
 };
 

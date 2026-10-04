@@ -1,7 +1,16 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { initFocusEngine } from './shared/focus/index.ts';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import {
+  initFocusEngine,
+  getCurrentFocusKey,
+  setFocus,
+  focusKeyExists,
+  rememberContentFocus,
+  recallContentFocus,
+  clearContentFocusMemory,
+  isRailFocusKey,
+} from './shared/focus/index.ts';
 import { useTvInput, useIdleCursor } from './shared/input/index.ts';
-import { NavigationRail, NavDestination } from './shared/ui/index.ts';
+import { NavigationRail, NavDestination, RemoteHintBar } from './shared/ui/index.ts';
 import { useSettingsStore, applyTheme } from './app/settingsStore.ts';
 import { getActivePlaylist, getAllPlaylists, getChannelsByGroup, getGroupsForPlaylist, toggleChannelFavorite } from './services/storage/db.ts';
 import { syncDemoPlaylistIfOutdated } from './services/playlist/demoPlaylist.ts';
@@ -26,6 +35,31 @@ const NAV_DESTINATIONS: NavDestination[] = [
   { id: 'settings', label: 'Settings', icon: 'settings', path: '/settings' },
   { id: 'gallery', label: 'Dev Gallery', icon: 'widgets', path: '/dev/gallery' },
 ];
+
+/**
+ * Primary D-pad target for each destination, tried in order. Used when a
+ * destination is activated from the rail so focus lands in the new content
+ * rather than staying on the rail.
+ */
+const PRIMARY_FOCUS_TARGETS: Record<string, string[]> = {
+  home: ['HERO_ACTIONS', 'ROW_LIVE', 'ROW_CATEGORIES'],
+  live: ['CHANNEL_CATEGORIES', 'CHANNEL_GRID', 'CHANNEL_LIST'],
+  guide: ['EPG_GRID'],
+  favorites: ['FAVORITES_GRID'],
+  search: ['SEARCH_FIELD'],
+  settings: ['SETTINGS_TABS'],
+};
+
+/** Focus the first mounted primary target for a destination, if any. */
+function focusPrimaryTarget(destinationId: string): void {
+  clearContentFocusMemory();
+  for (const key of PRIMARY_FOCUS_TARGETS[destinationId] ?? []) {
+    if (focusKeyExists(key)) {
+      setFocus(key);
+      return;
+    }
+  }
+}
 
 export default function App() {
   const { settings } = useSettingsStore();
@@ -91,6 +125,12 @@ export default function App() {
   useTvInput((event) => {
     if (playingChannel) return; // Player has its own handlers
 
+    // Remember where focus was in content so the rail can restore it later.
+    const currentFocusKey = getCurrentFocusKey();
+    if (!isRailFocusKey(currentFocusKey)) {
+      rememberContentFocus(currentFocusKey);
+    }
+
     if (event.action === 'COLOR_RED') {
       setActiveNavId('favorites');
       return true;
@@ -108,6 +148,36 @@ export default function App() {
       return true;
     }
   }, [playingChannel]);
+
+  // Navigate from the rail. Activating the already-active destination is a
+  // no-op that instead moves focus into the current screen's content.
+  const handleNavigate = useCallback(
+    (dest: NavDestination) => {
+      if (dest.id === activeNavId) {
+        const remembered = recallContentFocus();
+        if (remembered) {
+          setFocus(remembered);
+        } else {
+          focusPrimaryTarget(dest.id);
+        }
+        return;
+      }
+      clearContentFocusMemory();
+      setActiveNavId(dest.id);
+    },
+    [activeNavId]
+  );
+
+  // Changing destinations must land focus on the new screen's primary target.
+  const didMountRef = useRef(false);
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+    const handle = window.setTimeout(() => focusPrimaryTarget(activeNavId), 0);
+    return () => window.clearTimeout(handle);
+  }, [activeNavId]);
 
   const handleToggleFavorite = async (channelId: string) => {
     const isFav = await toggleChannelFavorite(channelId);
@@ -134,19 +204,20 @@ export default function App() {
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-[var(--md-sys-color-surface-dim)] text-[var(--md-sys-color-on-surface)] flex">
-      {/* 10-Foot Collapsible Navigation Rail (hidden during fullscreen playback) */}
+      {/* Permanent icon-only navigation rail (hidden during fullscreen playback). */}
       {!playingChannel && (
         <NavigationRail
-          destinations={NAV_DESTINATIONS}
+          items={NAV_DESTINATIONS}
           activeId={activeNavId}
-          onSelect={(dest) => setActiveNavId(dest.id)}
+          onNavigate={handleNavigate}
         />
       )}
 
-      {/* Main Content Workspace (padded to account for collapsed rail width 80px) */}
+      {/* Main content workspace: flows to the right of the rail (never under it). */}
       {!playingChannel && (
-        <main className="flex-1 ml-20 h-full flex flex-col overflow-hidden tv-safe-container">
-          {activeNavId === 'home' && (
+        <main className="flex-1 min-w-0 h-full flex flex-col overflow-hidden tv-safe-container">
+          <div className="flex-1 min-h-0 overflow-hidden">
+            {activeNavId === 'home' && (
             <HomeView
               channels={channels}
               groups={groups}
@@ -202,6 +273,10 @@ export default function App() {
           {activeNavId === 'gallery' && (
             <GalleryView />
           )}
+          </div>
+
+          {/* Remote color-key legend lives in the content footer, not the rail. */}
+          {settings.showRemoteHints && <RemoteHintBar />}
         </main>
       )}
 

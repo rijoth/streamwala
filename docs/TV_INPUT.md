@@ -7,7 +7,7 @@ The `src/shared/input` module intercepts raw keyboard and remote events and conv
 |---|---|---|
 | `NAV_UP` | ArrowUp (38) | Navigate focus upward |
 | `NAV_DOWN` | ArrowDown (40) | Navigate focus downward |
-| `NAV_LEFT` | ArrowLeft (37) | Navigate focus left / expand rail |
+| `NAV_LEFT` | ArrowLeft (37) | Move focus left; from the leftmost content element, enters the navigation rail |
 | `NAV_RIGHT` | ArrowRight (39) | Navigate focus right |
 | `SELECT` | Enter (13), NumpadEnter, DPAD_CENTER, Space (non-input) | Activate focused item |
 | `BACK` | Escape (27), Backspace (outside input), Android Back (4), Tizen (10009), webOS (461) | Close overlay / back navigation |
@@ -29,6 +29,31 @@ The `src/shared/input` module intercepts raw keyboard and remote events and conv
 - Visible from 3 meters distance on 1080p and 4K displays.
 - Long press on OK (holding > 600ms) triggers channel context actions (Favorite / Hide / Details).
 - Overscan safe zones: `padding: 32px 48px`.
+
+## Navigation Rail Focus Rules
+The rail (`src/shared/ui/NavigationRail.tsx`) is a permanent, icon-only Material
+3 rail in normal layout flow. It owns the focus zone `NAV_RAIL` and its items own
+`NAV_<destinationId>` keys.
+
+- **LEFT** from the leftmost content element enters the rail on the **active**
+  destination (the zone sets `preferredChildFocusKey` to the active item and
+  `saveLastFocusedChild: false`), never on the last visited item.
+- **RIGHT** exits the rail back to the last-focused content element, remembered
+  by `src/shared/focus/contentFocusMemory.ts` (the shell records the current key
+  on every remote press while focus is in content). If nothing is remembered the
+  engine falls back to the nearest/primary content target.
+- **UP / DOWN** move between rail items and stop at the ends: no wrap and no
+  leaking into content. The rail is a focus boundary for `left`/`up`/`down`, and
+  items additionally return `BLOCK_NAVIGATION` at the first/last item.
+- **OK** navigates on `onEnterPress` only (never on focus). OK on the already
+  active destination is a no-op that moves focus into the screen content.
+- **BACK** first closes any dialog/sheet/menu (they stack above the rail's
+  handler). With no overlay open and focus in content it focuses the rail;
+  while the rail is focused it defers to the existing exit behaviour.
+- Changing destinations lands focus on the new screen's primary target, not on
+  the rail.
+- The rail renders no text labels: each item is announced through `aria-label`
+  and the active item carries `aria-current="page"`.
 
 ## Arrow-Press Decisions (type-safe)
 The underlying spatial-navigation library uses **inverted boolean polarity** for

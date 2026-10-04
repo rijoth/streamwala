@@ -7,5 +7,6 @@ export * from './SideSheet.tsx';
 export * from './TextField.tsx';
 export * from './VirtualKeyboard.tsx';
 export * from './NavigationRail.tsx';
+export * from './RemoteHintBar.tsx';
 export * from './Progress.tsx';
 export * from './Toast.tsx';

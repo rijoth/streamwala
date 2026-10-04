@@ -18,10 +18,12 @@ test.afterAll(async () => {
 });
 
 function focusInRail(p: Page): Promise<boolean> {
-  return p.evaluate(() => {
-    const el = document.activeElement;
-    return !!(el && el.closest('aside'));
-  });
+  // Content cards are non-focusable divs, so `document.activeElement` can stay
+  // on the last `<button>` (the rail) after logical focus moved into content.
+  // The engine marks the real focus cursor with `data-focused="true"`.
+  return p.evaluate(
+    () => !!document.querySelector('[data-focused="true"]')?.closest('aside')
+  );
 }
 
 async function activeElementState(p: Page) {

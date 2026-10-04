@@ -124,6 +124,22 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </Card>
 
             <Card variant="filled" isInteractive={false} className="p-6 flex flex-col gap-4">
+              <h3 className="font-bold text-lg">Remote Hint Bar</h3>
+              <p className="text-xs text-[var(--md-sys-color-outline)]">
+                Shows the color-key legend (Favs / Guide / Search / Settings) in the content footer on browse screens.
+              </p>
+              <div className="flex items-center gap-3">
+                <Button
+                  variant={settings.showRemoteHints ? 'filled' : 'tonal'}
+                  icon={settings.showRemoteHints ? 'check_box' : 'check_box_outline_blank'}
+                  onClick={() => updateSettings({ showRemoteHints: !settings.showRemoteHints })}
+                >
+                  {settings.showRemoteHints ? 'Remote Hints Shown' : 'Remote Hints Hidden'}
+                </Button>
+              </div>
+            </Card>
+
+            <Card variant="filled" isInteractive={false} className="p-6 flex flex-col gap-4">
               <h3 className="font-bold text-lg">TV UI Scale Factor</h3>
               <div className="flex items-center gap-4">
                 {[0.9, 1.0, 1.1, 1.25].map((scale) => (

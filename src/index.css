@@ -45,6 +45,17 @@
   /* UI Scaling Factor */
   --ui-scale: 1;
 
+  /* Permanent navigation rail geometry (scales with the UI-scale setting) */
+  --rail-width: calc(96px * var(--ui-scale));
+  --rail-item-size: calc(64px * var(--ui-scale));
+  --rail-icon-size: calc(32px * var(--ui-scale));
+
+  /* Remote color-key dots (physical remote button colours, theme-independent) */
+  --aether-color-key-red: #ef4444;
+  --aether-color-key-green: #22c55e;
+  --aether-color-key-yellow: #eab308;
+  --aether-color-key-blue: #3b82f6;
+
   /* Shape tokens */
   --md-shape-xs: 4px;
   --md-shape-sm: 8px;

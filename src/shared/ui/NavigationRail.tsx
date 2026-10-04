@@ -1,9 +1,19 @@
-import React, { useState } from 'react';
-import { FocusZone, useFocusable } from '../focus/index.ts';
+import React, { useEffect } from 'react';
+import {
+  useFocusable,
+  FocusScope,
+  setFocus,
+  recallContentFocus,
+  ALLOW_DEFAULT_NAVIGATION,
+  BLOCK_NAVIGATION,
+  type ArrowHandler,
+} from '../focus/index.ts';
+import { pushBackHandler } from '../input/index.ts';
 import { Icon } from '../icons/index.ts';
 
 export interface NavDestination {
   id: string;
+  /** Accessible (aria) label only — never rendered as visible text. */
   label: string;
   icon: string;
   path: string;
@@ -11,145 +21,161 @@ export interface NavDestination {
 }
 
 export interface NavigationRailProps {
-  destinations: NavDestination[];
+  items: NavDestination[];
   activeId: string;
-  onSelect: (dest: NavDestination) => void;
+  onNavigate: (dest: NavDestination) => void;
 }
 
+const RAIL_FOCUS_KEY = 'NAV_RAIL';
+const ITEM_FOCUS_KEY = (id: string) => `NAV_${id}`;
+
+/**
+ * Permanent, icon-only Material 3 navigation rail.
+ *
+ * In normal layout flow (never `position: fixed`), never expands and renders no
+ * text labels: destinations are announced through `aria-label` only. Active
+ * state is the M3 active-indicator pill + filled icon; focus is the D-pad ring.
+ */
 export const NavigationRail: React.FC<NavigationRailProps> = ({
-  destinations,
+  items,
   activeId,
-  onSelect,
+  onNavigate,
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const { ref, hasFocusedChild } = useFocusable({
+    focusKey: RAIL_FOCUS_KEY,
+    // LEFT must always land on the *active* destination, never the last visited
+    // one, so the zone ignores its own focus memory and uses this preference.
+    saveLastFocusedChild: false,
+    preferredChildFocusKey: ITEM_FOCUS_KEY(activeId),
+    // Keep D-pad movement inside the rail for these directions; RIGHT is the
+    // only exit (handled per item with focus memory).
+    isFocusBoundary: true,
+    focusBoundaryDirections: ['left', 'up', 'down'],
+  });
+
+  // BACK from content focuses the rail first. On the rail itself we leave BACK
+  // to the existing dialog/exit handling (overlays are stacked above this).
+  useEffect(() => {
+    if (hasFocusedChild) return;
+    return pushBackHandler(() => {
+      setFocus(ITEM_FOCUS_KEY(activeId));
+      return true;
+    });
+  }, [hasFocusedChild, activeId]);
+
+  const settings = items.find((item) => item.id === 'settings');
+  const destinations = items.filter((item) => item.id !== 'settings');
+
+  const renderItem = (item: NavDestination, index: number) => (
+    <NavRailItem
+      key={item.id}
+      item={item}
+      isActive={item.id === activeId}
+      isFirst={index === 0}
+      isLast={false}
+      onActivate={() => onNavigate(item)}
+    />
+  );
 
   return (
     <aside
-      onMouseEnter={() => setIsExpanded(true)}
-      onMouseLeave={() => setIsExpanded(false)}
-      className={`
-        fixed left-0 top-0 bottom-0 z-40 transition-all duration-300 ease-out flex flex-col justify-between py-6 px-3
-        bg-[var(--md-sys-color-surface-container-low)] border-r border-[var(--md-sys-color-outline-variant)] shadow-2xl
-        ${isExpanded ? 'w-64' : 'w-20'}
-      `}
+      ref={ref as React.Ref<HTMLElement>}
+      role="navigation"
+      aria-label="Primary"
+      data-testid="navigation-rail"
+      className="relative shrink-0 h-full w-[var(--rail-width)] flex flex-col items-center justify-between py-6
+        bg-[var(--md-sys-color-surface-container)] border-r border-[var(--md-sys-color-outline-variant)]"
     >
-      {/* Brand logo header */}
-      <div className="flex items-center gap-3 px-2 mb-6">
-        <div className="w-10 h-10 rounded-2xl bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)] flex items-center justify-center font-bold text-lg shrink-0 shadow-md">
-          <Icon name="live_tv" size={24} />
-        </div>
-        {isExpanded && (
-          <div className="overflow-hidden whitespace-nowrap transition-opacity duration-200">
-            <h1 className="font-bold text-lg tracking-tight text-[var(--md-sys-color-on-surface)] leading-tight">
-              Aether IPTV
-            </h1>
-            <p className="text-xs text-[var(--md-sys-color-on-surface-variant)]">Leanback Edition</p>
-          </div>
-        )}
-      </div>
-
-      {/* Nav destinations list */}
-      <FocusZone
-        focusKey="NAV_RAIL"
-        className="flex-1 flex flex-col gap-2 overflow-y-auto overflow-x-hidden py-2"
+      {/* Brand mark only — decorative and non-focusable. */}
+      <div
+        aria-hidden="true"
+        className="w-12 h-12 rounded-2xl bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)] flex items-center justify-center shrink-0"
       >
-        {destinations.map((dest) => (
-          <NavRailItem
-            key={dest.id}
-            destination={dest}
-            isActive={dest.id === activeId}
-            isExpanded={isExpanded}
-            onSelect={() => onSelect(dest)}
-            onFocusChange={(focused) => {
-              if (focused) setIsExpanded(true);
-            }}
-          />
-        ))}
-      </FocusZone>
-
-      {/* Bottom Hint Legend */}
-      <div className="mt-4 px-2 text-xs text-[var(--md-sys-color-outline)]">
-        {isExpanded ? (
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" />
-              <span>Favs</span>
-              <span className="w-2.5 h-2.5 rounded-full bg-green-500 inline-block ml-1" />
-              <span>Guide</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-yellow-500 inline-block" />
-              <span>Search</span>
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block ml-1" />
-              <span>Settings</span>
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-1.5 opacity-60">
-            <div className="w-2 h-2 rounded-full bg-red-500" />
-            <div className="w-2 h-2 rounded-full bg-green-500" />
-            <div className="w-2 h-2 rounded-full bg-yellow-500" />
-            <div className="w-2 h-2 rounded-full bg-blue-500" />
-          </div>
-        )}
+        <Icon name="live_tv" size={26} />
       </div>
+
+      {/* Destination group, vertically centred. FocusScope makes the items
+          children of NAV_RAIL so the zone's focus rules apply. */}
+      <FocusScope focusKey={RAIL_FOCUS_KEY}>
+        <div className="flex flex-col items-center gap-3">
+          {destinations.map((item, index) => renderItem(item, index))}
+        </div>
+
+        {/* Settings pinned to the bottom of the rail. */}
+        {settings && (
+          <NavRailItem
+            item={settings}
+            isActive={settings.id === activeId}
+            isFirst={false}
+            isLast
+            onActivate={() => onNavigate(settings)}
+          />
+        )}
+      </FocusScope>
     </aside>
   );
 };
 
 interface NavRailItemProps {
-  destination: NavDestination;
+  item: NavDestination;
   isActive: boolean;
-  isExpanded: boolean;
-  onSelect: () => void;
-  onFocusChange: (focused: boolean) => void;
+  isFirst: boolean;
+  isLast: boolean;
+  onActivate: () => void;
 }
 
 const NavRailItem: React.FC<NavRailItemProps> = ({
-  destination,
+  item,
   isActive,
-  isExpanded,
-  onSelect,
-  onFocusChange,
+  isFirst,
+  isLast,
+  onActivate,
 }) => {
-  const { ref, focused } = useFocusable({
-    focusKey: `NAV_${destination.id}`,
-    onEnterPress: onSelect,
-  });
+  const arrowHandler: ArrowHandler = (direction) => {
+    if (direction === 'right') {
+      const target = recallContentFocus();
+      if (target) {
+        setFocus(target);
+        return BLOCK_NAVIGATION; // rail exits to the remembered content element
+      }
+      return ALLOW_DEFAULT_NAVIGATION;
+    }
+    if (direction === 'left') {
+      return BLOCK_NAVIGATION; // rail is the leftmost column; focus must not leak
+    }
+    if (direction === 'up' && isFirst) {
+      return BLOCK_NAVIGATION; // no wrap past the first destination
+    }
+    if (direction === 'down' && isLast) {
+      return BLOCK_NAVIGATION; // no wrap past the last destination
+    }
+    return ALLOW_DEFAULT_NAVIGATION;
+  };
 
-  React.useEffect(() => {
-    onFocusChange(focused);
-  }, [focused, onFocusChange]);
+  const { ref, focused } = useFocusable({
+    focusKey: ITEM_FOCUS_KEY(item.id),
+    onEnterPress: onActivate,
+    onArrowPress: arrowHandler,
+  });
 
   return (
     <button
       ref={ref as React.Ref<HTMLButtonElement>}
       type="button"
-      onClick={onSelect}
+      aria-label={item.label}
+      aria-current={isActive ? 'page' : undefined}
+      onClick={onActivate}
       className={`
-        tv-focus-target w-full flex items-center gap-4 px-3.5 py-3 rounded-2xl cursor-pointer outline-none
-        transition-all duration-150 select-none text-left shrink-0
-        ${
-          isActive
-            ? 'bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)] font-semibold shadow-sm'
-            : 'text-[var(--md-sys-color-on-surface-variant)] hover:bg-[var(--md-sys-color-surface-container)] hover:text-[var(--md-sys-color-on-surface)]'
-        }
-        ${focused ? 'tv-focused ring-3 ring-[var(--md-sys-color-focus-ring)] !bg-[var(--md-sys-color-primary)] !text-[var(--md-sys-color-on-primary)] scale-105' : ''}
+        tv-focus-target tv-rail-item relative shrink-0 flex items-center justify-center rounded-full outline-none
+        w-[var(--rail-item-size)] h-[var(--rail-item-size)]
+        transition-transform duration-150 ease-out motion-reduce:transition-none
+        ${isActive
+          ? 'bg-[var(--md-sys-color-secondary-container)] text-[var(--md-sys-color-on-secondary-container)]'
+          : 'text-[var(--md-sys-color-on-surface-variant)] hover:bg-[var(--md-sys-color-surface-container-high)]'}
+        ${focused ? 'scale-[1.06] ring-[3px] ring-[var(--md-sys-color-primary)] z-20 motion-reduce:scale-100' : ''}
       `}
     >
-      <div className="shrink-0 flex items-center justify-center">
-        <Icon name={destination.icon} size={24} filled={isActive || focused} />
-      </div>
-      {isExpanded && (
-        <span className="text-base whitespace-nowrap overflow-hidden text-ellipsis flex-1">
-          {destination.label}
-        </span>
-      )}
-      {isExpanded && destination.badge !== undefined && (
-        <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--md-sys-color-surface-container-highest)] text-[var(--md-sys-color-on-surface)]">
-          {destination.badge}
-        </span>
-      )}
+      <Icon name={item.icon} size="var(--rail-icon-size)" filled={isActive} />
     </button>
   );
 };

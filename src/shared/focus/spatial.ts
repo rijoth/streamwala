@@ -1,4 +1,9 @@
-import { init, setFocus as noriginSetFocus, getCurrentFocusKey as noriginGetCurrentFocusKey } from '@noriginmedia/norigin-spatial-navigation';
+import {
+  init,
+  setFocus as noriginSetFocus,
+  getCurrentFocusKey as noriginGetCurrentFocusKey,
+  doesFocusableExist as noriginDoesFocusableExist,
+} from '@noriginmedia/norigin-spatial-navigation';
 
 let isInitialized = false;
 
@@ -34,4 +39,13 @@ export function setFocus(focusKey: string) {
 
 export function getCurrentFocusKey() {
   return noriginGetCurrentFocusKey();
+}
+
+/** True when a focusable with `focusKey` is currently registered with the engine. */
+export function focusKeyExists(focusKey: string): boolean {
+  try {
+    return noriginDoesFocusableExist(focusKey);
+  } catch {
+    return false;
+  }
 }
