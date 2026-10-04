@@ -1,7 +1,98 @@
 import { useEffect, useRef } from 'react';
 import { normalizeKeyEvent, SemanticKeyAction, NormalizedKeyEvent } from './keyCodes.ts';
+import { DEFAULT_SCROLL_CONFIG, ScrollConfig } from '../scroll/config.ts';
+import { repeatStep, shouldBlockRepeat } from '../scroll/math.ts';
 
 type KeyActionHandler = (event: NormalizedKeyEvent) => boolean | void;
+
+const NAV_ACTIONS: SemanticKeyAction[] = ['NAV_UP', 'NAV_DOWN', 'NAV_LEFT', 'NAV_RIGHT'];
+
+export type NavAction = (typeof NAV_ACTIONS)[number];
+
+export function isNavAction(action: SemanticKeyAction): action is NavAction {
+  return (NAV_ACTIONS as SemanticKeyAction[]).includes(action);
+}
+
+interface NavRepeatState {
+  action: NavAction;
+  pressedAt: number;
+  lastAcceptedAt: number;
+}
+
+let navRepeatState: NavRepeatState | null = null;
+let navRepeatConfig: ScrollConfig = DEFAULT_SCROLL_CONFIG;
+const accelerateListeners = new Set<(action: NavAction, step: number, heldMs: number) => void>();
+
+/** Overrides the repeat throttle/acceleration config (used by scroll config). */
+export function setNavRepeatConfig(config: ScrollConfig): void {
+  navRepeatConfig = config;
+}
+
+/**
+ * Subscribes to held-key acceleration. The spatial engine owns single-step
+ * moves; screens use this to jump multiple rows while a key is held.
+ */
+export function onNavAccelerate(
+  listener: (action: NavAction, step: number, heldMs: number) => void
+): () => void {
+  accelerateListeners.add(listener);
+  return () => {
+    accelerateListeners.delete(listener);
+  };
+}
+
+let navRepeatListenerInstalled = false;
+
+/**
+ * Single owner of the held-key repeat gate. Runs in the capture phase and
+ * blocks throttled repeats before the spatial-navigation engine's bubble-phase
+ * listener sees them, so a held key produces one move per `repeatThrottleMs`
+ * and later repeats accelerate instead of stacking.
+ */
+function ensureNavRepeatListener() {
+  if (navRepeatListenerInstalled || typeof window === 'undefined') return;
+  navRepeatListenerInstalled = true;
+
+  window.addEventListener(
+    'keydown',
+    (e: KeyboardEvent) => {
+      const normalized = normalizeKeyEvent(e);
+      if (!normalized || !isNavAction(normalized.action)) return;
+      const now = Date.now();
+      const action = normalized.action;
+
+      if (!navRepeatState || navRepeatState.action !== action) {
+        navRepeatState = { action, pressedAt: now, lastAcceptedAt: now };
+        return;
+      }
+      // Browser auto-repeat: throttle. A fresh press (`!e.repeat`) is always
+      // accepted, so quick intentional taps are never swallowed.
+      if (e.repeat && shouldBlockRepeat(navRepeatState.lastAcceptedAt, now, navRepeatConfig)) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      navRepeatState.lastAcceptedAt = now;
+      const heldMs = now - navRepeatState.pressedAt;
+      const step = repeatStep(heldMs, navRepeatConfig);
+      if (step > 1) {
+        accelerateListeners.forEach((listener) => listener(action, step, heldMs));
+      }
+    },
+    { capture: true }
+  );
+
+  window.addEventListener(
+    'keyup',
+    (e: KeyboardEvent) => {
+      const normalized = normalizeKeyEvent(e);
+      if (normalized && isNavAction(normalized.action)) {
+        navRepeatState = null;
+      }
+    },
+    { capture: true }
+  );
+}
 
 // Global stack for modal / overlay back actions
 const backHandlerStack: (() => boolean | void)[] = [];
@@ -87,6 +178,7 @@ export function useTvInput(onAction?: KeyActionHandler, deps: unknown[] = []) {
 
   useEffect(() => {
     ensureBackListener();
+    ensureNavRepeatListener();
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const isInput = isEditableElement(document.activeElement);

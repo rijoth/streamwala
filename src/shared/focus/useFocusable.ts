@@ -11,6 +11,10 @@ export interface AppFocusableConfig extends Omit<UseFocusableConfig, 'onEnterPre
    * library's boolean polarity is inverted and error-prone (BUG-001).
    */
   onArrowPress?: ArrowHandler;
+  /**
+   * @deprecated Scrolling is now focus-driven and owned by `src/shared/scroll`.
+   * Kept for API compatibility; this hook never scrolls an element itself.
+   */
   autoScroll?: boolean;
   autoFocus?: boolean;
 }
@@ -23,6 +27,7 @@ export function useFocusable(config: AppFocusableConfig = {}) {
 
   const { autoScroll = true, autoFocus = false, onArrowPress, ...rest } = config;
   const elementRef = useRef<HTMLElement | null>(null);
+  void autoScroll;
 
   const {
     ref: noriginRef,
@@ -53,25 +58,6 @@ export function useFocusable(config: AppFocusableConfig = {}) {
       focusSelf();
     }
   }, [autoFocus, focusSelf]);
-
-  // Center or smoothly bring the element into viewport when focused on 10-foot screen
-  useEffect(() => {
-    if (focused && autoScroll && elementRef.current) {
-      const el = elementRef.current;
-      // Some webviews (and jsdom) do not implement scrollIntoView; focusing must
-      // never throw because of it.
-      if (typeof el.scrollIntoView !== 'function') return;
-      try {
-        el.scrollIntoView({
-          behavior: 'smooth',
-          block: 'nearest',
-          inline: 'center',
-        });
-      } catch {
-        el.scrollIntoView();
-      }
-    }
-  }, [focused, autoScroll]);
 
   return {
     ref: handleRef,
