@@ -93,14 +93,16 @@ export async function parseAndSaveM3U(
     });
   }
 
-  // Save groups first
-  await database.groups.bulkPut(Array.from(groupsMap.values()));
+  // Persist groups and channels in one transaction so a mid-import failure
+  // cannot leave partial/corrupt rows behind.
+  await database.transaction('rw', [database.groups, database.channels], async () => {
+    await database.groups.bulkPut(Array.from(groupsMap.values()));
 
-  // Save channels in chunks
-  for (let j = 0; j < channels.length; j += batchSize) {
-    const chunk = channels.slice(j, j + batchSize);
-    await database.channels.bulkPut(chunk);
-  }
+    for (let j = 0; j < channels.length; j += batchSize) {
+      const chunk = channels.slice(j, j + batchSize);
+      await database.channels.bulkPut(chunk);
+    }
+  });
 
   if (onProgress) {
     onProgress({
