@@ -44,10 +44,19 @@ export async function savePlaylist(playlist: Playlist): Promise<void> {
 }
 
 export async function deletePlaylist(playlistId: string): Promise<void> {
-  await db.transaction('rw', [db.playlists, db.channels, db.groups, db.programs], async () => {
+  await db.transaction('rw', [db.playlists, db.channels, db.groups, db.programs, db.history], async () => {
+    const channelIds = await db.channels.where({ playlistId }).primaryKeys();
+
     await db.playlists.delete(playlistId);
     await db.channels.where({ playlistId }).delete();
     await db.groups.where({ playlistId }).delete();
+
+    // Programs and watch history are keyed by channelId, so they must be
+    // cascaded explicitly or they leak as orphans after a playlist delete.
+    if (channelIds.length > 0) {
+      await db.programs.where('channelId').anyOf(channelIds).delete();
+      await db.history.where('channelId').anyOf(channelIds).delete();
+    }
   });
 }
 
