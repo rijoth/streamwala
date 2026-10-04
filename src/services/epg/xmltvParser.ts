@@ -1,33 +1,11 @@
 import { Program } from '../../domain/types.ts';
+import { parseXmltvDate } from '../../domain/epg/time.ts';
 import { db } from '../storage/db.ts';
 
-export function parseXmltvDate(dateStr: string): number {
-  // Format: YYYYMMDDHHMMSS with an optional numeric timezone: "+0530", "-0800",
-  // "+05" or the same values attached without a separating space.
-  if (!dateStr) return Date.now();
-
-  const match = /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(?:\s*([+-])(\d{2})(\d{2})?)?/.exec(
-    dateStr.trim()
-  );
-  if (!match) return Date.now();
-
-  const [, year, month, day, hour, minute, second, sign, tzHours, tzMins] = match;
-  const offsetMinutes = sign
-    ? (sign === '-' ? -1 : 1) *
-      (parseInt(tzHours, 10) * 60 + (tzMins ? parseInt(tzMins, 10) : 0))
-    : 0;
-
-  // Construct UTC timestamp
-  const utc = Date.UTC(
-    parseInt(year, 10),
-    parseInt(month, 10) - 1,
-    parseInt(day, 10),
-    parseInt(hour, 10),
-    parseInt(minute, 10),
-    parseInt(second, 10)
-  );
-  return utc - offsetMinutes * 60 * 1000;
-}
+// The canonical parser now lives in the pure domain layer. Re-exported here for
+// existing callers; `parseAndSaveXmltv` is replaced by the streaming worker
+// parser in a follow-up commit.
+export { parseXmltvDate } from '../../domain/epg/time.ts';
 
 export async function parseAndSaveXmltv(
   xmlContent: string,
@@ -61,6 +39,8 @@ export async function parseAndSaveXmltv(
     const startAttr = node.getAttribute('start') || '';
     const stopAttr = node.getAttribute('stop') || '';
     const start = parseXmltvDate(startAttr);
+    // Bad dates are skipped (and counted by the streaming parser later).
+    if (!Number.isFinite(start)) continue;
     let stop = stopAttr ? parseXmltvDate(stopAttr) : NaN;
     // Programmes may omit `stop`; never let stop land before start.
     if (!Number.isFinite(stop) || stop <= start) {
