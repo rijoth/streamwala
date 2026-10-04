@@ -2,27 +2,30 @@ import { Program } from '../../domain/types.ts';
 import { db } from '../storage/db.ts';
 
 export function parseXmltvDate(dateStr: string): number {
-  // Format: 20261004030000 +0000 or 20261004030000
-  if (!dateStr || dateStr.length < 14) return Date.now();
+  // Format: YYYYMMDDHHMMSS with an optional numeric timezone: "+0530", "-0800",
+  // "+05" or the same values attached without a separating space.
+  if (!dateStr) return Date.now();
 
-  const year = parseInt(dateStr.substring(0, 4), 10);
-  const month = parseInt(dateStr.substring(4, 6), 10) - 1;
-  const day = parseInt(dateStr.substring(6, 8), 10);
-  const hour = parseInt(dateStr.substring(8, 10), 10);
-  const min = parseInt(dateStr.substring(10, 12), 10);
-  const sec = parseInt(dateStr.substring(12, 14), 10);
+  const match = /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(?:\s*([+-])(\d{2})(\d{2})?)?/.exec(
+    dateStr.trim()
+  );
+  if (!match) return Date.now();
 
-  // Parse timezone offset if present
-  let offsetMinutes = 0;
-  if (dateStr.length >= 19) {
-    const tzSign = dateStr[15] === '-' ? -1 : 1;
-    const tzHours = parseInt(dateStr.substring(16, 18), 10);
-    const tzMins = parseInt(dateStr.substring(18, 20), 10);
-    offsetMinutes = tzSign * (tzHours * 60 + tzMins);
-  }
+  const [, year, month, day, hour, minute, second, sign, tzHours, tzMins] = match;
+  const offsetMinutes = sign
+    ? (sign === '-' ? -1 : 1) *
+      (parseInt(tzHours, 10) * 60 + (tzMins ? parseInt(tzMins, 10) : 0))
+    : 0;
 
   // Construct UTC timestamp
-  const utc = Date.UTC(year, month, day, hour, min, sec);
+  const utc = Date.UTC(
+    parseInt(year, 10),
+    parseInt(month, 10) - 1,
+    parseInt(day, 10),
+    parseInt(hour, 10),
+    parseInt(minute, 10),
+    parseInt(second, 10)
+  );
   return utc - offsetMinutes * 60 * 1000;
 }
 
@@ -58,7 +61,11 @@ export async function parseAndSaveXmltv(
     const startAttr = node.getAttribute('start') || '';
     const stopAttr = node.getAttribute('stop') || '';
     const start = parseXmltvDate(startAttr);
-    const stop = parseXmltvDate(stopAttr);
+    let stop = stopAttr ? parseXmltvDate(stopAttr) : NaN;
+    // Programmes may omit `stop`; never let stop land before start.
+    if (!Number.isFinite(stop) || stop <= start) {
+      stop = start + 30 * 60 * 1000;
+    }
 
     const titleEl = node.getElementsByTagName('title')[0];
     const descEl = node.getElementsByTagName('desc')[0];
