@@ -97,6 +97,10 @@ deleting a source cascades its channels, mappings and programmes.
   the `.gz` extension are only consulted when the first bytes are unavailable,
   so an already-decoded body is never decompressed twice. If the device lacks
   `DecompressionStream`, use an uncompressed XMLTV URL.
+- **Stuck on "Downloading… 0 B"** — the download has an idle timeout (30 s,
+  re-armed on every chunk) and the worker has a 90 s no-message watchdog, so a
+  stalled host fails with a retryable message instead of hanging. A large but
+  steady download is not killed.
 - **No data / unmatched channels** — open Settings → Playlists → **Edit EPG**,
   check the match report and map channels manually.
 - **Credentials** — Xtream XMLTV URLs embed `username`/`password`; the UI masks

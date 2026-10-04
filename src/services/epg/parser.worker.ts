@@ -20,13 +20,18 @@ ctx.onmessage = async (event: MessageEvent<EpgParseRequest>) => {
   try {
     let latest: EpgParseProgress = {
       bytes: 0,
+      totalBytes: undefined,
       channels: 0,
       programmesKept: 0,
       programmesSkipped: 0,
     };
     let downloaded = 0;
+    let totalBytes: number | undefined;
     const report = () => {
-      post({ type: 'progress', progress: { ...latest, bytes: Math.max(latest.bytes, downloaded) } });
+      post({
+        type: 'progress',
+        progress: { ...latest, bytes: Math.max(latest.bytes, downloaded), totalBytes },
+      });
     };
 
     const parser = createXmltvParser({
@@ -53,6 +58,7 @@ ctx.onmessage = async (event: MessageEvent<EpgParseRequest>) => {
         timeoutMs: request.timeoutMs,
         onProgress: (progress) => {
           downloaded = progress.bytesReceived;
+          totalBytes = progress.totalBytes ?? totalBytes;
           report();
         },
       });

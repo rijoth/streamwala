@@ -165,15 +165,49 @@ function concatBytes(a: Uint8Array, b: Uint8Array): Uint8Array {
   return out;
 }
 
+function abortError(): Error {
+  const error = new Error('Aborted');
+  error.name = 'AbortError';
+  return error;
+}
+
+/**
+ * Reads from a stream while racing the abort signal. Fetch usually rejects a
+ * pending body read when the request is aborted, but that is not guaranteed
+ * once headers have arrived; without this race an idle timeout would leave the
+ * worker stuck on "Downloading… 0 B" forever.
+ */
+function readWithAbort(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  signal?: AbortSignal
+): Promise<ReadableStreamReadResult<Uint8Array>> {
+  if (signal?.aborted) return Promise.reject(abortError());
+  return new Promise((resolve, reject) => {
+    const onAbort = () => reject(abortError());
+    signal?.addEventListener('abort', onAbort, { once: true });
+    reader.read().then(
+      (result) => {
+        signal?.removeEventListener('abort', onAbort);
+        resolve(result);
+      },
+      (error) => {
+        signal?.removeEventListener('abort', onAbort);
+        reject(error);
+      }
+    );
+  });
+}
+
 /** Reads the first `n` bytes, then re-emits them followed by the rest. */
 async function peekStream(
   source: ReadableStream<Uint8Array>,
-  n: number
+  n: number,
+  signal?: AbortSignal
 ): Promise<{ stream: ReadableStream<Uint8Array>; head: Uint8Array }> {
   const reader = source.getReader();
   let head: Uint8Array = new Uint8Array(0);
   while (head.length < n) {
-    const { done, value } = await reader.read();
+    const { done, value } = await readWithAbort(reader, signal);
     if (done) break;
     head = concatBytes(head, value);
   }
@@ -182,7 +216,7 @@ async function peekStream(
       if (head.length > 0) controller.enqueue(head);
     },
     async pull(controller) {
-      const { done, value } = await reader.read();
+      const { done, value } = await readWithAbort(reader, signal);
       if (done) controller.close();
       else controller.enqueue(value);
     },
@@ -193,27 +227,46 @@ async function peekStream(
   return { stream, head };
 }
 
+interface CountBytesOptions {
+  signal?: AbortSignal;
+  onProgress?: (progress: EpgDownloadProgress) => void;
+  /** Called on every chunk so the caller can reset its idle timeout. */
+  onChunk?: () => void;
+  /** Called when the stream closes, errors or is cancelled. */
+  onSettled?: () => void;
+  /** Maps a read/abort error into a user-facing error. */
+  mapError?: (error: unknown) => EpgFetchError;
+}
+
 function countBytes(
   source: ReadableStream<Uint8Array>,
   totalBytes: number | undefined,
-  onProgress?: (progress: EpgDownloadProgress) => void
+  options: CountBytesOptions
 ): ReadableStream<Uint8Array> {
-  if (!onProgress) return source;
+  const { signal, onProgress, onChunk, onSettled, mapError } = options;
   const reader = source.getReader();
   let received = 0;
   return new ReadableStream<Uint8Array>({
     async pull(controller) {
-      const { done, value } = await reader.read();
-      if (done) {
-        controller.close();
-        return;
+      try {
+        const { done, value } = await readWithAbort(reader, signal);
+        if (done) {
+          controller.close();
+          onSettled?.();
+          return;
+        }
+        received += value.byteLength;
+        onChunk?.();
+        onProgress?.({ bytesReceived: received, totalBytes });
+        controller.enqueue(value);
+      } catch (error) {
+        onSettled?.();
+        controller.error(mapError ? mapError(error) : error);
       }
-      received += value.byteLength;
-      onProgress({ bytesReceived: received, totalBytes });
-      controller.enqueue(value);
     },
     cancel(reason) {
       void reader.cancel(reason);
+      onSettled?.();
     },
   });
 }
@@ -244,20 +297,28 @@ export async function fetchEpgStream(options: FetchEpgStreamOptions): Promise<Ep
 
   const controller = new AbortController();
   let timedOut = false;
-  const timer = setTimeout(() => {
-    timedOut = true;
-    controller.abort();
-  }, timeoutMs);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  // Idle timeout: re-armed on every chunk so a large but steady download is
+  // never killed, while a stalled connection fails after `timeoutMs`.
+  const armTimer = () => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, timeoutMs);
+  };
+  armTimer();
   const onExternalAbort = () => controller.abort();
   if (signal) {
     if (signal.aborted) {
-      clearTimeout(timer);
+      if (timer) clearTimeout(timer);
       throw new EpgFetchError('aborted', 'EPG download was cancelled.');
     }
     signal.addEventListener('abort', onExternalAbort, { once: true });
   }
   const cleanup = () => {
-    clearTimeout(timer);
+    if (timer) clearTimeout(timer);
+    timer = undefined;
     signal?.removeEventListener('abort', onExternalAbort);
   };
 
@@ -305,12 +366,36 @@ export async function fetchEpgStream(options: FetchEpgStreamOptions): Promise<Ep
         controller.close();
       },
     });
-  const { stream: peeked, head } = await peekStream(body, 2);
-  const gzip = shouldDecompressGzip(head, response.headers.get('content-encoding'), url);
-  const decoded = gzip ? decompressGzip(peeked) : peeked;
+
+  let peeked: ReadableStream<Uint8Array>;
+  let head: Uint8Array;
+  try {
+    ({ stream: peeked, head } = await peekStream(body, 2, controller.signal));
+  } catch (error) {
+    cleanup();
+    throw classifyFetchError(error, { timedOut, proxyUsed: usedProxy, url });
+  }
+
+  let decoded: ReadableStream<Uint8Array>;
+  try {
+    decoded = shouldDecompressGzip(head, response.headers.get('content-encoding'), url)
+      ? decompressGzip(peeked)
+      : peeked;
+  } catch (error) {
+    cleanup();
+    throw error instanceof EpgFetchError
+      ? error
+      : classifyFetchError(error, { timedOut, proxyUsed: usedProxy, url });
+  }
 
   return {
-    stream: countBytes(decoded, totalBytes, onProgress),
+    stream: countBytes(decoded, totalBytes, {
+      signal: controller.signal,
+      onProgress,
+      onChunk: armTimer,
+      onSettled: cleanup,
+      mapError: (error) => classifyFetchError(error, { timedOut, proxyUsed: usedProxy, url }),
+    }),
     totalBytes,
     etag: response.headers.get('etag') ?? undefined,
     lastModified: response.headers.get('last-modified') ?? undefined,

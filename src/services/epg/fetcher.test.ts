@@ -96,6 +96,59 @@ describe('fetchEpgStream', () => {
     expect(await readStreamText(result.stream)).toBe(XML);
   });
 
+  it('times out when the body stalls after headers', async () => {
+    const stalled = new ReadableStream<Uint8Array>({ start() {} });
+    const fetchImpl = (async () => new Response(stalled, { status: 200 })) as unknown as typeof fetch;
+
+    const error = await fetchEpgStream({
+      url: 'https://example.invalid/epg.gz',
+      timeoutMs: 20,
+      fetchImpl,
+    }).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(EpgFetchError);
+    expect((error as EpgFetchError).kind).toBe('timeout');
+  });
+
+  it('does not kill a slow download that keeps making progress', async () => {
+    const chunks = ['<tv>', 'abc', 'def', 'ghi', '</tv>'];
+    let index = 0;
+    const slow = new ReadableStream<Uint8Array>({
+      async pull(controller) {
+        if (index >= chunks.length) {
+          controller.close();
+          return;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        controller.enqueue(bytes(chunks[index++]));
+      },
+    });
+    const fetchImpl = (async () => new Response(slow, { status: 200 })) as unknown as typeof fetch;
+
+    const result = await fetchEpgStream({
+      url: 'https://example.invalid/epg.xml',
+      timeoutMs: 25,
+      fetchImpl,
+    });
+
+    expect(await readStreamText(result.stream)).toBe('<tv>abcdefghi</tv>');
+  });
+
+  it('reports the total size when the server provides it', async () => {
+    const progress: Array<{ bytesReceived: number; totalBytes?: number }> = [];
+    const size = bytes(XML).byteLength;
+    const result = await fetchEpgStream({
+      url: 'https://example.invalid/epg.xml',
+      fetchImpl: fetchReturning(asBody(bytes(XML)), {
+        status: 200,
+        headers: { 'content-length': String(size) },
+      }),
+      onProgress: (p) => progress.push(p),
+    });
+    await readStreamText(result.stream);
+    expect(progress.at(-1)).toMatchObject({ bytesReceived: size, totalBytes: size });
+  });
+
   it('returns notModified on a 304 and sends the validators', async () => {
     let received: HeadersInit | undefined;
     const fetchImpl = (async (_url: string, init?: RequestInit) => {

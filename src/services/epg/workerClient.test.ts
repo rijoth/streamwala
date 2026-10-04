@@ -85,6 +85,56 @@ describe('startEpgParse', () => {
     expect(worker.terminate).toHaveBeenCalledTimes(1);
   });
 
+  it('rejects when the worker stalls without any message', async () => {
+    vi.useFakeTimers();
+    try {
+      const worker = new FakeWorker();
+      const handle = startEpgParse(REQUEST, {
+        createWorker: () => worker as unknown as Worker,
+        watchdogMs: 100,
+      });
+
+      vi.advanceTimersByTime(100);
+      const error = await handle.promise.catch((e: unknown) => e);
+      expect(error).toBeInstanceOf(EpgFetchError);
+      expect((error as EpgFetchError).kind).toBe('timeout');
+      expect(worker.terminate).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('re-arms the watchdog while progress keeps arriving', async () => {
+    vi.useFakeTimers();
+    try {
+      const worker = new FakeWorker();
+      const handle = startEpgParse(REQUEST, {
+        createWorker: () => worker as unknown as Worker,
+        watchdogMs: 100,
+      });
+
+      vi.advanceTimersByTime(80);
+      worker.emit({
+        type: 'progress',
+        progress: { bytes: 1, channels: 0, programmesKept: 0, programmesSkipped: 0 },
+      });
+      vi.advanceTimersByTime(80);
+
+      let settled = false;
+      void handle.promise.catch(() => {
+        settled = true;
+      });
+      await Promise.resolve();
+      expect(settled).toBe(false);
+
+      vi.advanceTimersByTime(30);
+      const error = await handle.promise.catch((e: unknown) => e);
+      expect((error as EpgFetchError).kind).toBe('timeout');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('rejects when the worker itself errors', async () => {
     const worker = new FakeWorker();
     const handle = startEpgParse(REQUEST, { createWorker: () => worker as unknown as Worker });

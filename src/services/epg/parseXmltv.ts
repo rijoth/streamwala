@@ -41,6 +41,7 @@ export interface EpgParseStats {
 
 export interface EpgParseProgress {
   bytes: number;
+  totalBytes?: number;
   channels: number;
   programmesKept: number;
   programmesSkipped: number;

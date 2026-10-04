@@ -32,7 +32,8 @@ export const EpgStatusLine: React.FC<EpgStatusLineProps> = ({ status, error, onR
 
   if (status.phase === 'downloading') {
     icon = 'download';
-    text = `Downloading… ${formatBytes(status.bytesReceived)}`;
+    const total = status.totalBytes ? ` / ${formatBytes(status.totalBytes)}` : '';
+    text = `Downloading… ${formatBytes(status.bytesReceived)}${total}`;
   } else if (status.phase === 'parsing') {
     icon = 'memory';
     text = `Parsing… ${status.programmesKept} programmes kept`;

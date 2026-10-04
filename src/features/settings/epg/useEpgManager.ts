@@ -147,6 +147,7 @@ export function useEpgManager(options: EpgManagerOptions) {
             setStatus({
               phase: progress.programmesKept > 0 ? 'parsing' : 'downloading',
               bytesReceived: progress.bytes,
+              totalBytes: progress.totalBytes,
               programmesKept: progress.programmesKept,
             });
           },
