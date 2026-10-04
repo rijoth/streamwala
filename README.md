@@ -97,4 +97,4 @@ Streamwala ships no channels and no playlists. You are responsible for the sourc
 
 Issues and pull requests are welcome. `AGENTS.md` lists the rules the codebase is held to, and `npm run check` has to pass before a change lands. If you fix a UI bug, please add a regression test with it.
 
-No license has been chosen yet. Until one is, all rights are reserved by the author.
+The code is licensed under the GNU General Public License, version 3 only. The full text is in `LICENSE`. The Streamwala name and logo are not covered by that license; see `NOTICE`.
