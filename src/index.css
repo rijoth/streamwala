@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
 :root {
+  /* Native form controls, scrollbars and default UA colors follow the scheme. */
+  color-scheme: dark;
+
   /* Material Design 3 Tokens - Dark Mode (Default) */
   --md-sys-color-primary: #a0caff;
   --md-sys-color-on-primary: #00315d;
@@ -42,6 +45,10 @@
   --tv-safe-x: 48px;
   --tv-safe-y: 32px;
 
+  /* Leading/trailing padding that stops the 3px focus ring + 1.04 scale from
+     being clipped by an overflow container. */
+  --focus-ring-pad: 10px;
+
   /* UI Scaling Factor */
   --ui-scale: 1;
 
@@ -63,6 +70,52 @@
   --md-shape-lg: 16px;
   --md-shape-xl: 28px;
   --md-shape-full: 9999px;
+}
+
+/* Light theme variant. Same token names, light M3 tonal values. */
+html.theme-light {
+  color-scheme: light;
+
+  --md-sys-color-primary: #1e5b96;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #d2e4ff;
+  --md-sys-color-on-primary-container: #001c38;
+
+  --md-sys-color-secondary: #45566b;
+  --md-sys-color-on-secondary: #ffffff;
+  --md-sys-color-secondary-container: #d6e3f7;
+  --md-sys-color-on-secondary-container: #0a1c2e;
+
+  --md-sys-color-tertiary: #6b5680;
+  --md-sys-color-on-tertiary: #ffffff;
+  --md-sys-color-tertiary-container: #f0dbff;
+  --md-sys-color-on-tertiary-container: #26153a;
+
+  --md-sys-color-surface: #fdfbff;
+  --md-sys-color-surface-dim: #dcdfe6;
+  --md-sys-color-surface-bright: #fdfbff;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #f3f3fa;
+  --md-sys-color-surface-container: #ededf4;
+  --md-sys-color-surface-container-high: #e7e8ee;
+  --md-sys-color-surface-container-highest: #e1e2e8;
+
+  --md-sys-color-on-surface: #1a1b21;
+  --md-sys-color-on-surface-variant: #43474e;
+  --md-sys-color-outline: #74777f;
+  --md-sys-color-outline-variant: #c3c6cf;
+
+  --md-sys-color-error: #ba1a1a;
+  --md-sys-color-on-error: #ffffff;
+  --md-sys-color-error-container: #ffdad6;
+  --md-sys-color-on-error-container: #410002;
+
+  --md-sys-color-focus-ring: #1e5b96;
+}
+
+/* Softer drop shadow so the focus ring stays readable on light surfaces. */
+html.theme-light .tv-focused {
+  box-shadow: 0 0 0 3px var(--md-sys-color-focus-ring), 0 8px 24px rgba(0, 0, 0, 0.25);
 }
 
 /* AMOLED Black theme variant */
@@ -87,6 +140,19 @@ body {
   padding: 0;
   overflow: hidden;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/*
+ * The 10-foot shell disables text selection globally, but editable controls
+ * must keep it: Android/iOS WebViews refuse to place a caret (and some builds
+ * refuse to focus) in an input that cannot select text. Without this the soft
+ * keyboard never opens on tap. Regression: BUG-018.
+ */
+input,
+textarea,
+[contenteditable='true'] {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 /* Material Symbols Rounded font formatting */
