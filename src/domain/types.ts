@@ -36,6 +36,8 @@ export interface Channel {
   streamUrl: string;
   tvgId?: string;
   tvgName?: string;
+  /** XMLTV clock shift in hours (can be fractional, e.g. 0.5). */
+  tvgShift?: number;
   number?: number;
   catchup?: string;
   isRadio?: boolean;
@@ -68,6 +70,12 @@ export interface Program {
   rating?: string;
   episodeNumber?: string;
   language?: string;
+}
+
+/** A channel's freshly parsed programme set, ready for an atomic swap. */
+export interface ProgrammeImport {
+  channelId: string;
+  programs: Program[];
 }
 
 export type EpgSourceKind = 'remote' | 'file' | 'xtream';

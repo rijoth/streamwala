@@ -1,2 +1,7 @@
 export * from './repository.ts';
 export * from './fakeRepository.ts';
+export * from './fetcher.ts';
+export * from './xmltvTokenizer.ts';
+export * from './parseXmltv.ts';
+export * from './workerProtocol.ts';
+export * from './workerClient.ts';

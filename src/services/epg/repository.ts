@@ -1,13 +1,9 @@
 import Dexie from 'dexie';
-import type { EpgChannel, EpgMapping, EpgSource, Program } from '../../domain/types.ts';
+import type { EpgChannel, EpgMapping, EpgSource, ProgrammeImport, Program } from '../../domain/types.ts';
 import { EpgChannelSchema, EpgMappingSchema, EpgSourceSchema } from '../../domain/schemas.ts';
 import { db, type AetherDatabase } from '../storage/db.ts';
 
-/** One channel's freshly parsed programme set, ready for an atomic swap. */
-export interface ProgrammeImport {
-  channelId: string;
-  programs: Program[];
-}
+export type { ProgrammeImport } from '../../domain/types.ts';
 
 /**
  * All EPG persistence behind one interface so screens never touch Dexie and
