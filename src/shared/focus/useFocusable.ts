@@ -1,10 +1,16 @@
 import { useEffect, useRef } from 'react';
 import { useFocusable as noriginUseFocusable, UseFocusableConfig } from '@noriginmedia/norigin-spatial-navigation';
 import { initFocusEngine } from './spatial.ts';
+import { ArrowHandler, resolveArrowNavigation } from './decision.ts';
 
 export interface AppFocusableConfig extends Omit<UseFocusableConfig, 'onEnterPress' | 'onArrowPress'> {
   onEnterPress?: (details?: unknown) => void;
-  onArrowPress?: (direction: string, details?: unknown) => boolean;
+  /**
+   * Return a branded FocusDecision (ALLOW_DEFAULT_NAVIGATION or
+   * BLOCK_NAVIGATION). Raw booleans are rejected at compile time because the
+   * library's boolean polarity is inverted and error-prone (BUG-001).
+   */
+  onArrowPress?: ArrowHandler;
   autoScroll?: boolean;
   autoFocus?: boolean;
 }
@@ -25,12 +31,11 @@ export function useFocusable(config: AppFocusableConfig = {}) {
     focusKey,
     focusSelf,
     ...otherProps
-  } = noriginUseFocusable({
+  } = noriginUseFocusable<object, HTMLElement>({
     ...rest,
-    onArrowPress: onArrowPress ? (direction: string, details: any) => {
-      const res = onArrowPress(direction, details);
-      return typeof res === 'boolean' ? res : true;
-    } : undefined,
+    onArrowPress: onArrowPress
+      ? (direction: string, details: unknown) => resolveArrowNavigation(onArrowPress, direction, details)
+      : undefined,
   });
 
   // Combine refs

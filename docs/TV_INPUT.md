@@ -29,3 +29,33 @@ The `src/shared/input` module intercepts raw keyboard and remote events and conv
 - Visible from 3 meters distance on 1080p and 4K displays.
 - Long press on OK (holding > 600ms) triggers channel context actions (Favorite / Hide / Details).
 - Overscan safe zones: `padding: 32px 48px`.
+
+## Arrow-Press Decisions (type-safe)
+The underlying spatial-navigation library uses **inverted boolean polarity** for
+`onArrowPress`: returning `false` *blocks* the default focus move, while `true`
+(or omitting the handler) allows it. Returning raw booleans is therefore banned.
+
+Use the branded sentinels from `src/shared/focus` instead:
+
+```ts
+import { useFocusable, ALLOW_DEFAULT_NAVIGATION, BLOCK_NAVIGATION } from '@/shared/focus';
+
+useFocusable({
+  onArrowPress: (direction) => {
+    if (direction === 'left' && sheetIsOpen) {
+      return BLOCK_NAVIGATION; // keep focus inside the sheet
+    }
+    return ALLOW_DEFAULT_NAVIGATION;
+  },
+});
+```
+
+Rules:
+- A missing handler allows navigation (the default).
+- Only return `BLOCK_NAVIGATION` when you have a concrete reason and add a
+  one-line comment explaining why.
+- A handler that throws is treated as "allow" so focus can never wedge.
+- `Raw boolean` returns fail typechecking; `npm run check` enforces it.
+
+Regression coverage: `src/shared/focus/decision.test.ts` (including
+`@ts-expect-error` compile-time guards against boolean returns).
