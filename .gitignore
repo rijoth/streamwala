@@ -6,3 +6,8 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# guardrails: test + coverage artifacts
+coverage/
+playwright-report/
+test-results/

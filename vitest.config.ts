@@ -20,6 +20,14 @@ export default defineConfig({
       reporter: ['text', 'json-summary'],
       include: ['src/shared/focus/**', 'src/shared/input/**', 'src/features/**'],
       exclude: ['**/*.test.*', '**/index.ts', '**/README.md'],
+      thresholds: {
+        // Ratchet-only floor measured when the component tests were added.
+        // Raise these as coverage improves; never lower them.
+        lines: 13,
+        functions: 9,
+        branches: 17,
+        statements: 13,
+      },
     },
   },
 });

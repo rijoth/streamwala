@@ -13,6 +13,7 @@ import { CorsDiagnosticModal } from '../onboarding/CorsDiagnosticModal.tsx';
 import { Button, CircularProgress } from '../../shared/ui/index.ts';
 import { Icon } from '../../shared/icons/index.ts';
 import { Group } from '../../domain/types.ts';
+import { shouldYieldDpadToOverlay } from './dpadOverlayPolicy.ts';
 
 export interface PlayerViewProps {
   channel: Channel;
@@ -182,7 +183,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
     // spatial-navigation engine move focus. Otherwise arrow keys both moved
     // control focus AND zapped channels on every press.
     if (
-      (showControls || playerState.status === 'error') &&
+      shouldYieldDpadToOverlay(showControls, playerState.status) &&
       (event.action === 'NAV_UP' ||
         event.action === 'NAV_DOWN' ||
         event.action === 'NAV_LEFT' ||

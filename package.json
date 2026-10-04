@@ -13,7 +13,7 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "e2e": "playwright test",
-    "check": "npm run lint && npm run lint:eslint && npm run test:coverage"
+    "check": "npm run lint && npm run lint:eslint && npm run test:coverage && npm run e2e"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
