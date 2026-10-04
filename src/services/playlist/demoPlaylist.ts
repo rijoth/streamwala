@@ -181,12 +181,23 @@ export async function installDemoPlaylist(database: AetherDatabase = db): Promis
 
   // Store in database
   await database.transaction('rw', [database.playlists, database.groups, database.channels, database.programs], async () => {
+    // Preserve the user's per-channel state (favorite/hidden/locked) across a
+    // re-sync instead of resetting it to the shipped demo defaults.
+    const existing = await database.channels.where({ playlistId: DEMO_PLAYLIST_ID }).toArray();
+    const overrides = new Map(
+      existing.map((c) => [c.id, { isFavorite: c.isFavorite, isHidden: c.isHidden, isLocked: c.isLocked }])
+    );
+    const mergedChannels = VERIFIED_DEMO_CHANNELS.map((c) => {
+      const override = overrides.get(c.id);
+      return override ? { ...c, ...override } : c;
+    });
+
     await database.playlists.toCollection().modify({ isActive: false });
     await database.playlists.put(playlist);
     await database.groups.where({ playlistId: DEMO_PLAYLIST_ID }).delete();
     await database.groups.bulkPut(groups);
     await database.channels.where({ playlistId: DEMO_PLAYLIST_ID }).delete();
-    await database.channels.bulkPut(VERIFIED_DEMO_CHANNELS);
+    await database.channels.bulkPut(mergedChannels);
     await database.programs.where({ channelId: 'ch_sintel_animation' }).delete();
     await database.programs.where({ channelId: 'ch_red_bull_action' }).delete();
     await database.programs.bulkPut(programs);
