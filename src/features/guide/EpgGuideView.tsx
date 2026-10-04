@@ -1,341 +1,315 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { Channel, Program } from '../../domain/types.ts';
-import { getProgramsForChannel } from '../../services/storage/db.ts';
-import { FocusZone, useFocusable } from '../../shared/focus/index.ts';
-import { SideSheet, Button } from '../../shared/ui/index.ts';
+import React, { useCallback, useMemo, useState } from 'react';
+import type { Channel, Program } from '../../domain/types.ts';
+import { useEpgRuntime } from '../../app/epgRuntime.tsx';
+import { useSettingsStore } from '../../app/settingsStore.ts';
+import { FocusZone } from '../../shared/focus/index.ts';
+import { Button, Chip, LinearProgress } from '../../shared/ui/index.ts';
 import { Icon } from '../../shared/icons/index.ts';
 import {
-  DEFAULT_SCROLL_CONFIG,
+  VirtualGrid,
   clamp,
   maxOffset,
-  rowSnapOffset,
   useFocusedItemIndex,
+  useGridScroller,
   useScrollAxis,
-  type FocusedItemInfo,
+  useVirtualWindow,
 } from '../../shared/scroll/index.ts';
 import { EpgMirror } from './EpgMirror.tsx';
+import { ProgramDetailsSheet } from './ProgramDetailsSheet.tsx';
+import { GuideRow } from './GuideRow.tsx';
+import { useGuidePrograms } from './useGuidePrograms.ts';
+import {
+  GUIDE_COLUMNS,
+  GUIDE_COLUMN_MS,
+  guideDayEnd,
+  guideDayStart,
+  layoutPrograms,
+  timeToX,
+} from './guideLayout.ts';
+
+const CHANNEL_COL_WIDTH = 208;
+const ROW_HEIGHT = 72;
+const COLUMN_WIDTH = 96;
+const DAY_CHOICES = [-1, 0, 1, 2, 3];
 
 export interface EpgGuideViewProps {
   channels: Channel[];
   onSelectChannel: (channel: Channel) => void;
+  onToggleFavorite?: (channelId: string) => void;
+  onOpenSettings?: () => void;
 }
 
-const ROW_HEIGHT = 64;
-const CHANNEL_COL_WIDTH = 192;
-const SLOT_WIDTH = 192;
-const SLOT_MS = 1_800_000;
-const VISIBLE_CHANNEL_LIMIT = 30;
+function dayLabel(offset: number): string {
+  if (offset === 0) return 'Today';
+  if (offset === -1) return 'Yesterday';
+  if (offset === 1) return 'Tomorrow';
+  const date = new Date();
+  date.setDate(date.getDate() + offset);
+  return date.toLocaleDateString([], { weekday: 'short', day: 'numeric' });
+}
 
-export const EpgGuideView: React.FC<EpgGuideViewProps> = ({ channels, onSelectChannel }) => {
-  const [selectedProgram, setSelectedProgram] = useState<{ program: Program; channel: Channel } | null>(null);
-  const [channelPrograms, setChannelPrograms] = useState<Map<string, Program[]>>(new Map());
+const formatTime = (ts: number) =>
+  new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+export const EpgGuideView: React.FC<EpgGuideViewProps> = ({
+  channels,
+  onSelectChannel,
+  onToggleFavorite,
+  onOpenSettings,
+}) => {
+  const runtime = useEpgRuntime();
+  const { settings } = useSettingsStore();
+  const [dayOffset, setDayOffset] = useState(0);
+  const [selected, setSelected] = useState<{ program: Program; channel: Channel } | null>(null);
+  const [reminders, setReminders] = useState<Set<string>>(new Set());
+  const [favoriteOverrides, setFavoriteOverrides] = useState<Record<string, boolean>>({});
 
   const now = Date.now();
-  const startTime = Math.floor(now / SLOT_MS) * SLOT_MS - SLOT_MS;
-  const endTime = startTime + 5 * 3_600_000;
-  const timeSlots: number[] = [];
-  for (let t = startTime; t < endTime; t += SLOT_MS) timeSlots.push(t);
+  const dayStart = guideDayStart(now, dayOffset);
+  const dayEnd = guideDayEnd(dayStart);
+  const { programs, loading } = useGuidePrograms(channels, dayStart, dayEnd);
 
-  const visibleChannels = channels.slice(0, VISIBLE_CHANNEL_LIMIT);
-  const timelineWidth = timeSlots.length * SLOT_WIDTH;
-
-  useEffect(() => {
-    let isMounted = true;
-    const fetchAll = async () => {
-      const map = new Map<string, Program[]>();
-      for (const ch of visibleChannels) {
-        const progs = await getProgramsForChannel(ch.id, startTime, endTime);
-        map.set(ch.id, progs);
-      }
-      if (isMounted) setChannelPrograms(map);
-    };
-    fetchAll();
-    return () => {
-      isMounted = false;
-    };
-  }, [channels, startTime]);
-
-  const vAxis = useScrollAxis({ orientation: 'vertical' });
+  const vScroller = useGridScroller({
+    screenKey: 'guide',
+    count: channels.length,
+    rowSize: ROW_HEIGHT,
+    minItemWidth: 1000,
+    gap: 0,
+    columns: 1,
+    measureItemHeight: true,
+  });
   const hAxis = useScrollAxis({ orientation: 'horizontal' });
+  const timelineWidth = GUIDE_COLUMNS * COLUMN_WIDTH;
+  const verticalWindow = useVirtualWindow(vScroller.axis, vScroller.rowSize, channels.length, 2);
 
-  const handleVerticalFocus = useCallback(
-    (info: FocusedItemInfo) => {
-      const target = rowSnapOffset(
-        info.row * ROW_HEIGHT,
-        vAxis.getViewportSize(),
-        vAxis.getContentSize(),
-        DEFAULT_SCROLL_CONFIG
+  useFocusedItemIndex(hAxis.viewportRef, (info) => {
+    const target = clamp(
+      info.x - hAxis.getViewportSize() / 3,
+      0,
+      maxOffset(hAxis.getContentSize(), hAxis.getViewportSize())
+    );
+    hAxis.scrollToOffset(target, { animate: true });
+  });
+
+  const layoutsByChannel = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof layoutPrograms>>();
+    for (const channel of channels) {
+      map.set(channel.id, layoutPrograms(programs.get(channel.id) ?? [], dayStart, dayEnd, COLUMN_WIDTH));
+    }
+    return map;
+  }, [channels, programs, dayStart, dayEnd]);
+
+  const jumpToNow = useCallback(() => {
+    setDayOffset(0);
+    requestAnimationFrame(() => {
+      const start = guideDayStart(Date.now(), 0);
+      const x = timeToX(Date.now(), start, guideDayEnd(start), COLUMN_WIDTH);
+      hAxis.scrollToOffset(
+        clamp(x - hAxis.getViewportSize() / 3, 0, maxOffset(hAxis.getContentSize(), hAxis.getViewportSize())),
+        { animate: true }
       );
-      vAxis.scrollToOffset(target, { animate: true });
-    },
-    [vAxis]
-  );
+    });
+  }, [hAxis]);
 
-  const handleHorizontalFocus = useCallback(
-    (info: FocusedItemInfo) => {
-      const target = clamp(
-        info.x - SLOT_WIDTH / 2,
-        0,
-        maxOffset(hAxis.getContentSize(), hAxis.getViewportSize())
-      );
-      hAxis.scrollToOffset(target, { animate: true });
-    },
-    [hAxis]
-  );
-
-  useFocusedItemIndex(vAxis.viewportRef, handleVerticalFocus);
-  useFocusedItemIndex(hAxis.viewportRef, handleHorizontalFocus);
-
-  const formatTime = (ts: number) =>
-    new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-  const nowX = clamp(Math.round(((now - startTime) / SLOT_MS) * SLOT_WIDTH), 0, timelineWidth);
+  const nowX = dayOffset === 0 ? timeToX(now, dayStart, dayEnd, COLUMN_WIDTH) : null;
+  const statusValues = Object.values(runtime?.statuses ?? {});
+  const anyRunning = statusValues.some((s) => s.phase === 'running');
+  const anyFailed = statusValues.some((s) => s.phase === 'failed');
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden text-[var(--md-sys-color-on-surface)] p-6">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between gap-4 mb-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Electronic Program Guide (EPG)</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Program Guide</h2>
           <p className="text-xs text-[var(--md-sys-color-outline)]">
-            Navigate timeline with remote D-pad. Press OK to view details or watch.
+            D-pad to move. OK opens program details; BACK closes it first.
           </p>
         </div>
-        <div className="flex items-center gap-2 text-xs font-mono text-[var(--md-sys-color-primary)]">
-          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-          <span>CURRENT TIME: {formatTime(now)}</span>
+        <div className="flex items-center gap-3">
+          {runtime && runtime.sourceCount > 0 && (
+            <div className="flex items-center gap-2 text-xs font-medium" aria-live="polite" data-testid="guide-status">
+              <Icon
+                name={anyFailed ? 'error' : anyRunning ? 'sync' : 'check_circle'}
+                size={16}
+                className={anyFailed ? 'text-[var(--md-sys-color-error)]' : 'text-emerald-400'}
+              />
+              <span>{anyFailed ? 'Guide refresh failed' : anyRunning ? 'Refreshing…' : 'Guide ready'}</span>
+              <Button variant="text" className="!px-2 !py-1 text-xs" onClick={() => void runtime.refresh()}>
+                Refresh
+              </Button>
+            </div>
+          )}
+          <Button variant="tonal" icon="update" onClick={jumpToNow} className="!px-3 !py-1.5 text-xs">
+            Jump to now
+          </Button>
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 flex flex-col rounded-2xl border border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container)] overflow-hidden">
-        {/* Time header, pinned vertically and mirrored horizontally. */}
-        <div className="flex shrink-0 border-b border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container-high)]">
-          <div
-            className="shrink-0 p-3 font-bold text-xs uppercase tracking-wider text-[var(--md-sys-color-outline)] border-r border-[var(--md-sys-color-outline-variant)]"
-            style={{ width: CHANNEL_COL_WIDTH }}
-          >
-            Channel
-          </div>
-          <div className="flex-1 relative overflow-hidden">
-            <EpgMirror axis={hAxis} orientation="x" className="flex" >
-              {timeSlots.map((slot) => (
-                <div
-                  key={slot}
-                  className="shrink-0 p-3 text-xs font-mono font-semibold border-r border-[var(--md-sys-color-outline-variant)]"
-                  style={{ width: SLOT_WIDTH }}
-                >
-                  {formatTime(slot)}
-                </div>
-              ))}
-            </EpgMirror>
-          </div>
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        {DAY_CHOICES.map((offset) => (
+          <Chip
+            key={offset}
+            label={dayLabel(offset)}
+            selected={dayOffset === offset}
+            focusKey={`GUIDE_DAY_${offset}`}
+            onClick={() => setDayOffset(offset)}
+          />
+        ))}
+      </div>
+
+      {runtime && runtime.sourceCount === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center text-center gap-3">
+          <Icon name="calendar_month" size={40} className="text-[var(--md-sys-color-outline)]" />
+          <h3 className="font-semibold text-lg">No program guide attached</h3>
+          <p className="text-sm text-[var(--md-sys-color-outline)] max-w-md">
+            Add an XMLTV source to this playlist to see the timeline, Now/Next and program details.
+          </p>
+          {onOpenSettings && (
+            <Button variant="filled" icon="settings" onClick={onOpenSettings}>
+              Open Settings
+            </Button>
+          )}
         </div>
-
-        {/* Body: pinned channel column + two-axis program grid. */}
-        <div className="flex-1 min-h-0 flex">
-          <div
-            className="shrink-0 relative overflow-hidden border-r border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container-high)]"
-            style={{ width: CHANNEL_COL_WIDTH }}
-          >
-            <EpgMirror axis={vAxis} orientation="y">
-              {visibleChannels.map((channel) => (
-                <div
-                  key={channel.id}
-                  className="flex items-center gap-3 p-3 border-b border-[var(--md-sys-color-outline-variant)]"
-                  style={{ height: ROW_HEIGHT }}
-                >
-                  {channel.logo ? (
-                    <img
-                      src={channel.logo}
-                      alt={channel.name}
-                      className="w-7 h-7 object-contain rounded shrink-0"
-                      onError={(e) => {
-                        (e.target as HTMLElement).style.display = 'none';
-                      }}
-                    />
-                  ) : (
-                    <div className="w-7 h-7 rounded bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)] flex items-center justify-center text-xs font-bold shrink-0">
-                      {channel.name.slice(0, 2)}
-                    </div>
-                  )}
-                  <div className="truncate">
-                    <div className="text-xs font-bold truncate">{channel.name}</div>
-                    <div className="text-[10px] text-[var(--md-sys-color-outline)] font-mono">
-                      CH {typeof channel.number === 'number' && !Number.isNaN(channel.number) ? channel.number : '•'}
-                    </div>
+      ) : loading || anyRunning ? (
+        <div className="flex-1 flex flex-col items-center justify-center gap-3">
+          <LinearProgress className="max-w-sm" />
+          <p className="text-sm text-[var(--md-sys-color-outline)]">Loading the guide…</p>
+        </div>
+      ) : (
+        <div className="flex-1 min-h-0 flex flex-col rounded-2xl border border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container)] overflow-hidden">
+          <div className="flex shrink-0 border-b border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container-high)]">
+            <div
+              className="shrink-0 p-3 font-bold text-xs uppercase tracking-wider text-[var(--md-sys-color-outline)] border-r border-[var(--md-sys-color-outline-variant)]"
+              style={{ width: CHANNEL_COL_WIDTH }}
+            >
+              Channel
+            </div>
+            <div className="flex-1 relative overflow-hidden">
+              <EpgMirror axis={hAxis} orientation="x" className="flex">
+                {Array.from({ length: GUIDE_COLUMNS }, (_, i) => (
+                  <div
+                    key={i}
+                    className="shrink-0 p-2 text-xs font-mono font-semibold border-r border-[var(--md-sys-color-outline-variant)]"
+                    style={{ width: COLUMN_WIDTH }}
+                  >
+                    {formatTime(dayStart + i * GUIDE_COLUMN_MS)}
                   </div>
-                </div>
-              ))}
-            </EpgMirror>
+                ))}
+              </EpgMirror>
+            </div>
           </div>
 
-          <div ref={vAxis.viewportRef} data-scroll-axis="vertical" className="flex-1 relative overflow-hidden">
+          <div className="flex-1 min-h-0 flex">
             <div
-              ref={vAxis.contentRef}
-              className="will-change-transform"
-              style={{ height: visibleChannels.length * ROW_HEIGHT }}
+              className="shrink-0 relative overflow-hidden border-r border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container-high)]"
+              style={{ width: CHANNEL_COL_WIDTH }}
             >
-              <div ref={hAxis.viewportRef} data-scroll-axis="horizontal" className="h-full relative overflow-hidden">
+              <EpgMirror axis={vScroller.axis} orientation="y">
+                <div className="relative" style={{ height: channels.length * vScroller.rowSize }}>
+                  {channels.slice(verticalWindow.start, verticalWindow.end).map((channel, i) => {
+                    const row = verticalWindow.start + i;
+                    return (
+                      <div
+                        key={channel.id}
+                        className="absolute left-0 flex items-center gap-3 px-3 border-b border-[var(--md-sys-color-outline-variant)]"
+                        style={{ top: row * vScroller.rowSize, height: vScroller.itemHeight, width: '100%' }}
+                      >
+                        {channel.logo ? (
+                          <img
+                            src={channel.logo}
+                            alt={channel.name}
+                            className="w-7 h-7 object-contain rounded shrink-0"
+                          />
+                        ) : (
+                          <div className="w-7 h-7 rounded bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)] flex items-center justify-center text-xs font-bold shrink-0">
+                            {channel.name.slice(0, 2)}
+                          </div>
+                        )}
+                        <div className="truncate">
+                          <div className="text-xs font-bold truncate">{channel.name}</div>
+                          <div className="text-[10px] text-[var(--md-sys-color-outline)] font-mono">
+                            CH {typeof channel.number === 'number' && !Number.isNaN(channel.number) ? channel.number : '•'}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </EpgMirror>
+            </div>
+
+            <FocusZone focusKey="EPG_GRID" ownsChildren className="flex-1 min-w-0">
+              <div ref={hAxis.viewportRef} data-scroll-axis="horizontal" className="relative h-full overflow-hidden">
                 <div
                   ref={hAxis.contentRef}
-                  className="will-change-transform relative"
+                  className="relative h-full will-change-transform"
                   style={{ width: timelineWidth }}
                 >
-                  <FocusZone focusKey="EPG_GRID" className="relative">
-                    {visibleChannels.map((channel, rowIndex) => {
-                      const progs = channelPrograms.get(channel.id) || [];
-                      return (
-                        <div
-                          key={channel.id}
-                          data-scroll-row={rowIndex}
-                          className="flex border-b border-[var(--md-sys-color-outline-variant)]"
-                          style={{ height: ROW_HEIGHT }}
-                        >
-                          {progs.length > 0 ? (
-                            progs.map((program, colIndex) => {
-                              const start =
-                                typeof program.start === 'number' && !Number.isNaN(program.start)
-                                  ? program.start
-                                  : startTime;
-                              const stop =
-                                typeof program.stop === 'number' && !Number.isNaN(program.stop)
-                                  ? program.stop
-                                  : start + SLOT_MS;
-                              const durationMinutes = Math.max(15, Math.round((stop - start) / 60000));
-                              const widthPx = Math.max(
-                                SLOT_WIDTH,
-                                Math.round((durationMinutes / 30) * SLOT_WIDTH)
-                              );
-                              const x = Math.max(0, Math.round(((start - startTime) / SLOT_MS) * SLOT_WIDTH));
-                              return (
-                                <EpgProgramCell
-                                  key={program.id}
-                                  program={program}
-                                  widthPx={widthPx}
-                                  x={x}
-                                  colIndex={colIndex}
-                                  onSelect={() => setSelectedProgram({ program, channel })}
-                                />
-                              );
-                            })
-                          ) : (
-                            <EpgProgramCell
-                              program={{
-                                id: `empty_${channel.id}`,
-                                channelId: channel.id,
-                                title: 'Live Stream Broadcast',
-                                start: startTime,
-                                stop: endTime,
-                                description: 'Real-time transmission.',
-                              }}
-                              widthPx={timelineWidth}
-                              x={0}
-                              colIndex={0}
-                              onSelect={() => onSelectChannel(channel)}
-                            />
-                          )}
-                        </div>
-                      );
-                    })}
-                    {/* "Now" indicator scrolls horizontally with the timeline. */}
+                  <div ref={vScroller.axis.viewportRef} data-scroll-axis="vertical" className="h-full overflow-hidden">
+                    <VirtualGrid<Channel>
+                      axis={vScroller.axis}
+                      items={channels}
+                      columns={1}
+                      itemHeight={vScroller.itemHeight}
+                      gap={0}
+                      className="relative"
+                      getKey={(channel) => channel.id}
+                      renderItem={(channel, index) => (
+                        <GuideRow
+                          channel={channel}
+                          index={index}
+                          columnWidth={COLUMN_WIDTH}
+                          layouts={layoutsByChannel.get(channel.id) ?? []}
+                          onSelectProgram={(program) => setSelected({ program, channel })}
+                          onSelectChannel={() => onSelectChannel(channel)}
+                        />
+                      )}
+                    />
+                  </div>
+                  {nowX !== null && nowX >= 0 && nowX <= timelineWidth && (
                     <div
                       aria-hidden="true"
                       className="pointer-events-none absolute top-0 bottom-0 w-0.5 bg-red-500 z-20"
                       style={{ left: nowX }}
                     />
-                  </FocusZone>
+                  )}
                 </div>
               </div>
-            </div>
+            </FocusZone>
           </div>
         </div>
-      </div>
-
-      <SideSheet
-        isOpen={!!selectedProgram}
-        onClose={() => setSelectedProgram(null)}
-        title={selectedProgram?.program.title || 'Program Information'}
-        icon="info"
-      >
-        {selectedProgram && (
-          <div className="flex flex-col gap-4 text-sm">
-            <div className="flex items-center gap-3 p-3 rounded-2xl bg-[var(--md-sys-color-surface-container-high)]">
-              {selectedProgram.channel.logo && (
-                <img
-                  src={selectedProgram.channel.logo}
-                  alt={selectedProgram.channel.name}
-                  className="w-10 h-10 object-contain rounded-lg"
-                />
-              )}
-              <div>
-                <h4 className="font-bold text-base">{selectedProgram.channel.name}</h4>
-                <p className="text-xs text-[var(--md-sys-color-outline)] font-mono">
-                  {formatTime(selectedProgram.program.start)} – {formatTime(selectedProgram.program.stop)}
-                </p>
-              </div>
-            </div>
-
-            {selectedProgram.program.category && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-[var(--md-sys-color-outline)] font-semibold">Category:</span>
-                <span className="text-xs font-medium text-[var(--md-sys-color-primary)]">
-                  {selectedProgram.program.category}
-                </span>
-              </div>
-            )}
-
-            <p className="text-sm leading-relaxed text-[var(--md-sys-color-on-surface-variant)]">
-              {selectedProgram.program.description || 'No detailed synopsis available for this program.'}
-            </p>
-
-            <div className="pt-4 mt-auto">
-              <Button
-                variant="filled"
-                icon="play_arrow"
-                autoFocus
-                onClick={() => {
-                  onSelectChannel(selectedProgram.channel);
-                  setSelectedProgram(null);
-                }}
-                className="w-full !py-3.5"
-              >
-                Watch Channel Now
-              </Button>
-            </div>
-          </div>
-        )}
-      </SideSheet>
-    </div>
-  );
-};
-
-interface EpgProgramCellProps {
-  program: Program;
-  widthPx: number;
-  x: number;
-  colIndex: number;
-  onSelect: () => void;
-}
-
-const EpgProgramCell: React.FC<EpgProgramCellProps> = ({ program, widthPx, x, colIndex, onSelect }) => {
-  const { ref, focused } = useFocusable({ onEnterPress: onSelect });
-
-  return (
-    <div
-      ref={ref as React.Ref<HTMLDivElement>}
-      data-scroll-col={colIndex}
-      data-scroll-x={x}
-      onClick={onSelect}
-      style={{ width: `${widthPx}px` }}
-      className={`
-        tv-focus-target shrink-0 p-3 h-16 border-r border-[var(--md-sys-color-outline-variant)]
-        cursor-pointer outline-none flex flex-col justify-center overflow-hidden
-        ${focused ? 'tv-focused ring-3 ring-[var(--md-sys-color-focus-ring)] !bg-[var(--md-sys-color-primary-container)] !text-[var(--md-sys-color-on-primary-container)] z-10' : ''}
-      `}
-    >
-      <div className="text-xs font-semibold truncate leading-tight">{program.title}</div>
-      {program.description && (
-        <div className="text-[10px] text-[var(--md-sys-color-outline)] truncate mt-0.5">{program.description}</div>
       )}
+
+      <ProgramDetailsSheet
+        isOpen={selected !== null}
+        program={selected?.program ?? null}
+        channel={selected?.channel ?? null}
+        isFavorite={
+          selected ? favoriteOverrides[selected.channel.id] ?? !!selected.channel.isFavorite : false
+        }
+        remindersEnabled={settings.epgRemindersEnabled}
+        reminderSet={selected ? reminders.has(selected.program.id) : false}
+        onClose={() => setSelected(null)}
+        onWatch={() => {
+          if (selected) onSelectChannel(selected.channel);
+          setSelected(null);
+        }}
+        onToggleFavorite={() => {
+          if (!selected) return;
+          const next = !(favoriteOverrides[selected.channel.id] ?? !!selected.channel.isFavorite);
+          setFavoriteOverrides((prev) => ({ ...prev, [selected.channel.id]: next }));
+          onToggleFavorite?.(selected.channel.id);
+        }}
+        onToggleReminder={() => {
+          if (!selected) return;
+          setReminders((prev) => {
+            const next = new Set(prev);
+            if (next.has(selected.program.id)) next.delete(selected.program.id);
+            else next.add(selected.program.id);
+            return next;
+          });
+        }}
+      />
     </div>
   );
 };

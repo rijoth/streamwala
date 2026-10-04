@@ -18,6 +18,8 @@ interface EpgRuntimeValue {
   repository: EpgRepository;
   nowNext: NowNextService;
   statuses: Record<string, EpgScheduleStatus>;
+  /** Number of EPG sources attached to the active playlist. */
+  sourceCount: number;
   /** Bumped after every successful refresh so Now/Next consumers re-query. */
   version: number;
   /** Minute-aligned ticker value for Now/Next progress. */
@@ -54,6 +56,7 @@ export const EpgProvider: React.FC<EpgProviderProps> = ({
   const repo = useMemo(() => repository ?? createDexieEpgRepository(), [repository]);
   const nowNext = useMemo(() => createNowNextService(repo), [repo]);
   const [statuses, setStatuses] = useState<Record<string, EpgScheduleStatus>>({});
+  const [sourceCount, setSourceCount] = useState(0);
   const [version, setVersion] = useState(0);
   const [minute, setMinute] = useState(() => Math.floor(Date.now() / 60_000));
 
@@ -118,6 +121,20 @@ export const EpgProvider: React.FC<EpgProviderProps> = ({
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    if (!playlistId) {
+      setSourceCount(0);
+      return;
+    }
+    let cancelled = false;
+    void repo.listSources(playlistId).then((list) => {
+      if (!cancelled) setSourceCount(list.length);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [repo, playlistId, version]);
+
   const refresh = useCallback(
     async (sourceId?: string) => {
       if (!playlistRef.current) return;
@@ -127,8 +144,8 @@ export const EpgProvider: React.FC<EpgProviderProps> = ({
   );
 
   const value = useMemo<EpgRuntimeValue>(
-    () => ({ repository: repo, nowNext, statuses, version, minute, refresh }),
-    [repo, nowNext, statuses, version, minute, refresh]
+    () => ({ repository: repo, nowNext, statuses, sourceCount, version, minute, refresh }),
+    [repo, nowNext, statuses, sourceCount, version, minute, refresh]
   );
 
   return <EpgRuntimeContext.Provider value={value}>{children}</EpgRuntimeContext.Provider>;

@@ -43,7 +43,7 @@ const NAV_DESTINATIONS: NavDestination[] = [
 const PRIMARY_FOCUS_TARGETS: Record<string, string[]> = {
   home: ['HERO_ACTIONS', 'ROW_LIVE', 'ROW_CATEGORIES'],
   live: ['CHANNEL_CATEGORIES', 'CHANNEL_GRID', 'CHANNEL_LIST'],
-  guide: ['EPG_GRID'],
+  guide: ['EPG_GRID', 'GUIDE_DAY_0'],
   favorites: ['FAVORITES_GRID'],
   search: ['SEARCH_FIELD'],
   // The settings screen has no single focusable container; the first D-pad
@@ -276,6 +276,8 @@ export default function App() {
             <EpgGuideView
               channels={channels}
               onSelectChannel={setPlayingChannel}
+              onToggleFavorite={handleToggleFavorite}
+              onOpenSettings={() => setActiveNavId('settings')}
             />
           )}
 
