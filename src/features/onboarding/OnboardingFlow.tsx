@@ -5,7 +5,7 @@ import { Icon } from '../../shared/icons/index.ts';
 import { parseAndSaveM3U, ParseProgress } from '../../services/playlist/m3uParser.ts';
 import { installDemoPlaylist } from '../../services/playlist/demoPlaylist.ts';
 import { importXtreamPlaylist, testXtreamLogin } from '../../services/playlist/xtreamClient.ts';
-import { savePlaylist } from '../../services/storage/db.ts';
+import { savePlaylist, toUserStorageMessage } from '../../services/storage/db.ts';
 import { useSettingsStore } from '../../app/settingsStore.ts';
 import { CorsDiagnosticModal } from './CorsDiagnosticModal.tsx';
 import { PlaylistSourceType } from '../../domain/types.ts';
@@ -213,7 +213,9 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      setErrorMessage(msg);
+      // Storage quota / private-mode failures get actionable copy instead of a
+      // raw DOMException string.
+      setErrorMessage(toUserStorageMessage(err) ?? msg);
       setStep('details');
       if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('CORS')) {
         setFailedUrl(m3uUrl || xtreamServer);

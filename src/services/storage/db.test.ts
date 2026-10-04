@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { indexedDB, IDBKeyRange } from 'fake-indexeddb';
-import { createAetherDatabase, deletePlaylist, getProgramsForChannel, type AetherDatabase } from './db.ts';
+import { createAetherDatabase, deletePlaylist, getProgramsForChannel, toUserStorageMessage, type AetherDatabase } from './db.ts';
 import type { Playlist, Channel, Group, Program, HistoryEntry } from '../../domain/types.ts';
 
 let counter = 0;
@@ -108,5 +108,30 @@ describe('storage cascade + schema (BUG-004 proof)', () => {
     expect(await getProgramsForChannel(channel.id, -1, 2000, second)).toHaveLength(1);
 
     await second.delete();
+  });
+});
+
+describe('toUserStorageMessage (BUG-016)', () => {
+  function namedError(name: string, message: string): Error {
+    const err = new Error(message);
+    err.name = name;
+    return err;
+  }
+
+  it('maps quota-exceeded failures to actionable copy', () => {
+    expect(toUserStorageMessage(namedError('QuotaExceededError', 'quota exceeded'))).toMatch(
+      /storage is full/i
+    );
+  });
+
+  it('maps blocked/private-mode storage failures to actionable copy', () => {
+    expect(toUserStorageMessage(namedError('SecurityError', 'access denied'))).toMatch(
+      /storage is unavailable/i
+    );
+  });
+
+  it('returns null for unknown errors so callers keep the raw message', () => {
+    expect(toUserStorageMessage(new Error('boom'))).toBeNull();
+    expect(toUserStorageMessage('not an error')).toBeNull();
   });
 });
