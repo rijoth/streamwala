@@ -32,6 +32,7 @@ docs/          # architectural records, decisions, input guides
 - **Rule 7:** Never return raw booleans from `onArrowPress` handlers. Use the branded `ALLOW_DEFAULT_NAVIGATION` / `BLOCK_NAVIGATION` sentinels from `src/shared/focus` (the library's boolean polarity is inverted and caused BUG-001). `npm run check` fails on boolean returns.
 - **Rule 8:** Never register raw `keydown`/`keyup`/`keypress` listeners on `window`, `document`, `document.body`, `globalThis`, or `self`, and never add JSX `onKeyDown`/`onKeyUp`/`onKeyPress` outside `src/shared/input/**` and the two allow-listed files `src/shared/input/useTvInput.ts` and `src/shared/ui/TextField.tsx`. Route keyboard input through `src/shared/input`. Enforced by `eslint-rules/no-raw-key-listeners` (BUG-002).
 - **Rule 9:** UI bug fixes require a component (Vitest + Testing Library) or e2e (Playwright) regression test. Geometry-dependent D-pad behaviour must be covered by a Playwright spec; jsdom is only for non-geometric behaviour. See `docs/GUARDRAILS.md`.
+- **Rule 10:** Any change to the Dexie schema requires a new `.version(n)` with an `.upgrade()` function and a migration test. Never mutate an existing version's stores in place, or reopen-preservation tests in `src/services/storage/db.test.ts` must be extended.
 
 ## 4. Definition of Done for Milestones
 1. Typecheck passes cleanly (`npm run lint`).

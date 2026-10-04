@@ -1,5 +1,5 @@
 import { Channel, Group } from '../../domain/types.ts';
-import { db } from '../storage/db.ts';
+import { db, type AetherDatabase } from '../storage/db.ts';
 
 export interface ParseProgress {
   channelsFound: number;
@@ -12,13 +12,14 @@ export interface ParseM3UOptions {
   playlistId: string;
   onProgress?: (progress: ParseProgress) => void;
   batchSize?: number;
+  database?: AetherDatabase;
 }
 
 export async function parseAndSaveM3U(
   content: string,
   options: ParseM3UOptions
 ): Promise<{ channelCount: number; groupCount: number }> {
-  const { playlistId, onProgress, batchSize = 1000 } = options;
+  const { playlistId, onProgress, batchSize = 1000, database = db } = options;
 
   const lines = content.split(/\r?\n/);
   const totalLines = lines.length;
@@ -93,12 +94,12 @@ export async function parseAndSaveM3U(
   }
 
   // Save groups first
-  await db.groups.bulkPut(Array.from(groupsMap.values()));
+  await database.groups.bulkPut(Array.from(groupsMap.values()));
 
   // Save channels in chunks
   for (let j = 0; j < channels.length; j += batchSize) {
     const chunk = channels.slice(j, j + batchSize);
-    await db.channels.bulkPut(chunk);
+    await database.channels.bulkPut(chunk);
   }
 
   if (onProgress) {

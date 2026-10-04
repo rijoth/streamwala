@@ -1,5 +1,5 @@
 import { Playlist, Channel, Group, Program } from '../../domain/types.ts';
-import { db } from '../storage/db.ts';
+import { db, type AetherDatabase } from '../storage/db.ts';
 
 export const DEMO_PLAYLIST_ID = 'demo_playlist_standard';
 
@@ -126,7 +126,7 @@ export const VERIFIED_DEMO_CHANNELS: Channel[] = [
   },
 ];
 
-export async function installDemoPlaylist(): Promise<Playlist> {
+export async function installDemoPlaylist(database: AetherDatabase = db): Promise<Playlist> {
   const playlist: Playlist = {
     id: DEMO_PLAYLIST_ID,
     name: 'Aether Public Demo (Legal Streams)',
@@ -180,16 +180,16 @@ export async function installDemoPlaylist(): Promise<Playlist> {
   });
 
   // Store in database
-  await db.transaction('rw', [db.playlists, db.groups, db.channels, db.programs], async () => {
-    await db.playlists.toCollection().modify({ isActive: false });
-    await db.playlists.put(playlist);
-    await db.groups.where({ playlistId: DEMO_PLAYLIST_ID }).delete();
-    await db.groups.bulkPut(groups);
-    await db.channels.where({ playlistId: DEMO_PLAYLIST_ID }).delete();
-    await db.channels.bulkPut(VERIFIED_DEMO_CHANNELS);
-    await db.programs.where({ channelId: 'ch_sintel_animation' }).delete();
-    await db.programs.where({ channelId: 'ch_red_bull_action' }).delete();
-    await db.programs.bulkPut(programs);
+  await database.transaction('rw', [database.playlists, database.groups, database.channels, database.programs], async () => {
+    await database.playlists.toCollection().modify({ isActive: false });
+    await database.playlists.put(playlist);
+    await database.groups.where({ playlistId: DEMO_PLAYLIST_ID }).delete();
+    await database.groups.bulkPut(groups);
+    await database.channels.where({ playlistId: DEMO_PLAYLIST_ID }).delete();
+    await database.channels.bulkPut(VERIFIED_DEMO_CHANNELS);
+    await database.programs.where({ channelId: 'ch_sintel_animation' }).delete();
+    await database.programs.where({ channelId: 'ch_red_bull_action' }).delete();
+    await database.programs.bulkPut(programs);
   });
 
   return playlist;
@@ -199,19 +199,19 @@ export async function installDemoPlaylist(): Promise<Playlist> {
  * Automatically migrate outdated demo channels (e.g. broken 403 Akamai URLs)
  * stored in the user's IndexedDB to the verified 100% working streams.
  */
-export async function syncDemoPlaylistIfOutdated(): Promise<boolean> {
+export async function syncDemoPlaylistIfOutdated(database: AetherDatabase = db): Promise<boolean> {
   try {
-    const demo = await db.playlists.get(DEMO_PLAYLIST_ID);
+    const demo = await database.playlists.get(DEMO_PLAYLIST_ID);
     if (!demo) return false;
 
-    const channels = await db.channels.where({ playlistId: DEMO_PLAYLIST_ID }).toArray();
+    const channels = await database.channels.where({ playlistId: DEMO_PLAYLIST_ID }).toArray();
     const hasOutdatedUrls = channels.some(
       c => c.streamUrl.includes('bitdash-a.akamaihd.net') || c.id === 'ch_sintel_animation'
     );
 
     if (hasOutdatedUrls || channels.length < VERIFIED_DEMO_CHANNELS.length) {
       console.info('Outdated demo channels detected in IndexedDB. Refreshing to verified streams...');
-      await installDemoPlaylist();
+      await installDemoPlaylist(database);
       return true;
     }
   } catch (err) {
