@@ -59,3 +59,23 @@ Rules:
 
 Regression coverage: `src/shared/focus/decision.test.ts` (including
 `@ts-expect-error` compile-time guards against boolean returns).
+
+## Single Owner of Key Events
+All keyboard input is owned by `src/shared/input`. Registering raw listeners
+elsewhere caused the BACK double-dispatch bug (BUG-002), so it is banned:
+
+- `aether/no-raw-key-listeners` (custom ESLint rule) rejects
+  `addEventListener('keydown' | 'keyup' | 'keypress', ...)` on `window`,
+  `document`, `document.body`, `globalThis`, `self`, and bare global calls.
+  It also rejects non-literal event names (variables/templates) because they
+  cannot be proven safe. There is no autofix.
+- `no-restricted-syntax` rejects JSX `onKeyDown` / `onKeyUp` / `onKeyPress`.
+- Exactly two files are allow-listed: `src/shared/input/useTvInput.ts` (owns
+  the window listener) and `src/shared/ui/TextField.tsx` (needs the native
+  input's `onKeyDown` for Enter-to-submit). No wildcard overrides.
+- Listeners on ordinary elements (e.g. the `<video>` element in
+  `PlayerEngine.ts`) are intentionally out of scope.
+
+Import: these rules only apply to `src/**`. `npm run check` runs ESLint after
+`tsc`, so a violation fails CI. Rule unit tests live in
+`eslint-rules/no-raw-key-listeners.test.mjs`.

@@ -30,6 +30,7 @@ docs/          # architectural records, decisions, input guides
 - **Rule 5:** Never hardcode colors or magic rems; use M3 CSS variables (`var(--md-sys-color-*)`).
 - **Rule 6:** TV remote is the 1st-class citizen. Every interactive control must be focusable via D-pad and triggerable with Select/OK.
 - **Rule 7:** Never return raw booleans from `onArrowPress` handlers. Use the branded `ALLOW_DEFAULT_NAVIGATION` / `BLOCK_NAVIGATION` sentinels from `src/shared/focus` (the library's boolean polarity is inverted and caused BUG-001). `npm run check` fails on boolean returns.
+- **Rule 8:** Never register raw `keydown`/`keyup`/`keypress` listeners on `window`, `document`, `document.body`, `globalThis`, or `self`, and never add JSX `onKeyDown`/`onKeyUp`/`onKeyPress` outside `src/shared/input/**` and the two allow-listed files `src/shared/input/useTvInput.ts` and `src/shared/ui/TextField.tsx`. Route keyboard input through `src/shared/input`. Enforced by `eslint-rules/no-raw-key-listeners` (BUG-002).
 
 ## 4. Definition of Done for Milestones
 1. Typecheck passes cleanly (`npm run lint`).

@@ -9,8 +9,9 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
+    "lint:eslint": "eslint src",
     "test": "tsx --test",
-    "check": "tsc --noEmit && tsx --test"
+    "check": "npm run lint && npm run lint:eslint && npm run test"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -34,14 +35,25 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
+    "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "@vitest/coverage-v8": "^5.0.3",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.28.0",
+    "eslint": "^10.12.0",
+    "fake-indexeddb": "^6.2.5",
+    "jsdom": "^29.1.1",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.21.0",
-    "typescript": "^7.0.2",
-    "@types/express": "^4.17.21"
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "typescript-eslint": "^8.71.0",
+    "vitest": "^5.0.3"
   }
 }
