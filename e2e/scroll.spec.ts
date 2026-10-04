@@ -189,6 +189,13 @@ test('Home scrolls vertically with D-pad and mouse wheel', async () => {
   await expectFocusedFullyVisible(page, 'home categories row');
   expect(await homeOffset(), 'D-pad row snap should have scrolled').toBeGreaterThan(0);
 
+  // Walk down every row of the Categories grid (24 groups -> 5 columns): the
+  // focused tile must stay fully visible, including the last grid row.
+  for (let i = 0; i < 12; i += 1) {
+    await page.keyboard.press('ArrowDown');
+    await expectFocusedFullyVisible(page, `home categories tile ${i}`);
+  }
+
   await page.setViewportSize({ width: 1920, height: 1080 });
 });
 

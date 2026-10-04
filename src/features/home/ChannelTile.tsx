@@ -60,16 +60,19 @@ export interface CategoryTileProps {
   group: Group;
   focusKey: string;
   index: number;
+  /** Vertical snap row index for the page scroller. */
+  rowIndex: number;
   onClick: () => void;
 }
 
-export const CategoryTile: React.FC<CategoryTileProps> = ({ group, focusKey, index, onClick }) => {
+export const CategoryTile: React.FC<CategoryTileProps> = ({ group, focusKey, index, rowIndex, onClick }) => {
   const { ref, focused } = useFocusable({ focusKey, onEnterPress: onClick });
 
   return (
     <div
       ref={ref as React.Ref<HTMLDivElement>}
       data-scroll-index={index}
+      data-scroll-row={rowIndex}
       onClick={onClick}
       className={`
         tv-focus-target p-4 rounded-2xl bg-[var(--md-sys-color-surface-container)] border border-[var(--md-sys-color-outline-variant)]

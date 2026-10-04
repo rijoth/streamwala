@@ -103,7 +103,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
   if (groups.length > 0) {
     rows.push(
-      <section key="categories" data-scroll-row={rowIndex} className="space-y-3 pb-8">
+      <section key="categories" className="space-y-3 pb-8">
         <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
           <Icon name="category" size={22} className="text-purple-400" />
           <span>Categories</span>
@@ -114,6 +114,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
               key={group.id}
               group={group}
               index={index}
+              rowIndex={rowIndex + index}
               focusKey={`HOME_CAT_${group.id}`}
               onClick={onGoToLive}
             />
@@ -121,7 +122,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
         </FocusZone>
       </section>
     );
-    rowIndex += 1;
+    // Each category tile is its own snap row: tiles in the same grid row share
+    // an offsetTop, so moving focus down the grid scrolls row by row instead of
+    // pinning the whole (tall) section to the focus line.
+    rowIndex += groups.length;
   }
 
   const { axis } = useRowSnapScroller({
