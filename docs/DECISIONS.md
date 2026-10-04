@@ -37,3 +37,13 @@
   4. Replace expired/403 test streams in the public demo playlist with verified, high-availability public feeds (Deutsche Welle HD, Apple BipBop, Mux adaptive test) and automatic IndexedDB migration.
 - **Consequence:** Zero remote-typing friction for TV users encountering CORS/mixed-content errors, seamless format fallback across Chromium/Safari/TV browsers, and 100% working verified demo playback.
 
+
+### ADR 008: Bug-hunt behavioural defaults
+- **Context:** The bug-fix pass (see `docs/BUGS.md`) surfaced several places where the existing code was ambiguous or conflicted with the spatial-navigation library. Each needed a safe default rather than a product decision.
+- **Decision:**
+  1. **BACK is single-dispatch.** The global back-handler stack is driven by exactly one module-level window listener (`dispatchBack()`). Components never pop the stack themselves. This guarantees one layer per key press regardless of how many `useTvInput` instances are mounted.
+  2. **Overlays own the D-pad.** When the player controls overlay or the stream-error overlay is visible, NAV_*/SELECT are yielded to the spatial-navigation engine; the player only keeps media/info/digit/color shortcuts. Auto-hide is paused while navigating.
+  3. **HLS media recovery is bounded.** `HlsPlayerEngine` attempts in-place recovery twice (`recoverMediaError`, then `swapAudioCodec` + `recoverMediaError`) before reporting fatal. Network errors are never recovered locally: `PlayerManager` alone owns fallback and exponential backoff.
+  4. **Async player callbacks are generation-gated.** `PlayerManager` increments a session token per load; stale `init`/error/success callbacks are dropped to protect rapid channel zapping.
+  5. **Missing XMLTV `stop` defaults** to `start + 30 minutes` and timezone offsets accept both spaced and compact forms (`+0530`, `+05`).
+- **Consequence:** Deterministic remote behaviour (one layer per BACK, one channel action per arrow), no player recovery races, and tolerant EPG ingestion. EPG timeline virtualization (BUG-008) is explicitly deferred: it needs a dedicated windowing + 2-D focus design and is tracked in `docs/BUGS.md`.
