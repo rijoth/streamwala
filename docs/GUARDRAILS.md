@@ -101,6 +101,27 @@ Each guardrail below prevents a bug class found in the audit (see
 - **Negative proof:** `el.scrollIntoView()` in a feature →
   `streamwala/no-adhoc-scroll` error. Verified via RuleTester.
 
+## F. Stream transport policy (proxy is a fallback)
+
+- **Prevents:** BUG-023 — a persisted CORS proxy applied to every stream URL,
+  so a proxy that was down, rate-limited or blocklisting the provider broke
+  every channel, including origins that already return
+  `Access-Control-Allow-Origin`.
+- **Enforcement:** `src/domain/transport.ts` owns the policy as a pure function
+  (`planTransports`, `applyProxyTemplate`, `isProxiableUrl`); `PlayerManager`
+  must not build a proxied URL itself. `src/domain/transport.test.ts` pins the
+  plan for every case (no proxy, proxy configured, mixed content, malformed
+  template, `data:`/`blob:` URL, remembered transport) and
+  `e2e/player-transport.spec.ts` drives the real player over routed streams:
+  with a dead proxy the origin is fetched directly and the proxy is never
+  touched; with an unreachable origin the direct attempt happens first and the
+  proxy takes over.
+- **Extend:** new transport decisions go into `planTransports` with a unit case;
+  a new proxy preset must not introduce a code path that bypasses the plan.
+- **Negative proof:** forcing `proxyUrlTemplate` in `resolveUrl` (the pre-fix
+  behaviour) fails both specs of `e2e/player-transport.spec.ts`
+  (`Expected: "direct" / Received: "proxied"`).
+
 ## Wiring into CI
 
 `npm run check` runs, in order: `tsc --noEmit` → `eslint src` → Vitest with

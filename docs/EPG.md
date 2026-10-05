@@ -91,6 +91,11 @@ deleting a source cascades its channels, mappings and programmes.
 - **CORS** — the EPG host blocks browser requests. Enable a CORS proxy in
   Settings → Network, or use **Import file** in the playlist EPG panel. The
   error dialog names the host only (credentials are never printed).
+  *Known gap (BUG-024):* unlike stream playback (ADR 023), the EPG download
+  still sends **every** request through the configured proxy with no direct
+  attempt, so a proxy that has gone down fails the refresh even for a
+  CORS-enabled XMLTV host. Clear the proxy in Settings → Network if the host
+  works without one.
 - **Mixed content** — a plain `http://` EPG URL on an HTTPS page. Use an HTTPS
   URL, a proxy, or a local file.
 - **gzip** — gzip is detected by magic bytes (`1f 8b`); `Content-Encoding` and

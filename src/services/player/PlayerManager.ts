@@ -1,4 +1,9 @@
 import { PlayerEngine, HlsPlayerEngine, MpegtsPlayerEngine, NativePlayerEngine, PlayerStats } from './PlayerEngine.ts';
+import {
+  applyProxyTemplate,
+  planTransports,
+  type PlaybackTransport,
+} from '../../domain/transport.ts';
 
 export type PreferredEngine = 'auto' | 'hls' | 'mpegts' | 'native';
 
@@ -11,6 +16,13 @@ export interface PlayerManagerOptions {
 export interface PlayerManagerState {
   status: 'idle' | 'loading' | 'playing' | 'paused' | 'error';
   currentEngine: 'hls' | 'mpegts' | 'native' | null;
+  /**
+   * Transport in use for the current attempt. `proxied` means the CORS proxy
+   * configured in Settings; `direct` means the stream origin itself. On a
+   * terminal error this is the last transport tried, which is what the error
+   * overlay uses to explain that the proxy was reached and also failed.
+   */
+  transport: PlaybackTransport;
   error: string | null;
   isBuffering: boolean;
   stats: PlayerStats | null;
@@ -27,8 +39,18 @@ export class PlayerManager {
   private rawStreamUrl: string = '';
   private options: PlayerManagerOptions;
   private engineOrder: ('hls' | 'mpegts' | 'native')[] = [];
+  /** Ordered transports for the current stream, e.g. `['direct', 'proxied']`. */
+  private transports: PlaybackTransport[] = ['direct'];
+  private transportIndex = 0;
   private currentEngineIndex = 0;
   private isPlaybackStarted = false;
+
+  /**
+   * Session-only memory of which transport worked for a stream host, so zapping
+   * between channels of one provider does not repeat a known-failed attempt.
+   * Deliberately in-memory: a dead proxy must never survive a restart (BUG-023).
+   */
+  private static readonly transportMemory = new Map<string, PlaybackTransport>();
   private retryCount = 0;
   private maxRetries = 2;
   private retryTimeout: NodeJS.Timeout | null = null;
@@ -43,6 +65,7 @@ export class PlayerManager {
   public state: PlayerManagerState = {
     status: 'idle',
     currentEngine: null,
+    transport: 'direct',
     error: null,
     isBuffering: false,
     stats: null,
@@ -71,18 +94,41 @@ export class PlayerManager {
     this.isPlaybackStarted = false;
 
     this.engineOrder = this.getEngineOrder(this.rawStreamUrl);
+    this.transports = planTransports({
+      streamUrl: this.rawStreamUrl,
+      proxyTemplate: this.options.proxyUrlTemplate,
+      pageProtocol: window.location.protocol,
+      remembered: PlayerManager.rememberedTransport(this.rawStreamUrl),
+    });
+    this.transportIndex = 0;
     this.currentEngineIndex = 0;
 
     await this.attemptEngineAtIndex(this.currentEngineIndex);
   }
 
-  private resolveUrl(rawUrl: string, proxyTemplate?: string): string {
-    let target = rawUrl.trim();
-    const template = proxyTemplate ?? this.options.proxyUrlTemplate;
-    if (template && !target.startsWith('data:') && !target.startsWith('blob:')) {
-      target = template.replace('{url}', encodeURIComponent(target));
+  private static streamHost(url: string): string | null {
+    try {
+      return new URL(url).host;
+    } catch {
+      return null;
     }
-    return target;
+  }
+
+  private static rememberedTransport(url: string): PlaybackTransport | undefined {
+    const host = PlayerManager.streamHost(url);
+    return host ? PlayerManager.transportMemory.get(host) : undefined;
+  }
+
+  private currentTransport(): PlaybackTransport {
+    return this.transports[this.transportIndex] ?? 'direct';
+  }
+
+  /** The URL the current transport must fetch: the origin, or it via the proxy. */
+  private transportUrl(transport: PlaybackTransport): string {
+    if (transport === 'proxied' && this.options.proxyUrlTemplate) {
+      return applyProxyTemplate(this.options.proxyUrlTemplate, this.rawStreamUrl) ?? this.rawStreamUrl;
+    }
+    return this.rawStreamUrl;
   }
 
   private async attemptEngineAtIndex(index: number) {
@@ -96,7 +142,11 @@ export class PlayerManager {
     this.currentEngineIndex = index;
     const gen = this.generation;
     const engineType = this.engineOrder[index];
-    const resolvedUrl = this.resolveUrl(this.rawStreamUrl);
+    const transport = this.currentTransport();
+    const resolvedUrl = this.transportUrl(transport);
+    // Sub-request proxying (fragments, keys, playlists) is only correct when
+    // this attempt actually goes through the proxy.
+    const engineProxyTemplate = transport === 'proxied' ? this.options.proxyUrlTemplate : undefined;
 
     const isMixedContent =
       window.location.protocol === 'https:' &&
@@ -107,9 +157,10 @@ export class PlayerManager {
       status: 'loading',
       isBuffering: true,
       currentEngine: engineType,
+      transport,
       error: null,
-      engineIndex: index + 1,
-      totalEngines: this.engineOrder.length,
+      engineIndex: this.transportIndex * this.engineOrder.length + index + 1,
+      totalEngines: this.transports.length * this.engineOrder.length,
       isMixedContent,
       isCorsRisk: false,
     });
@@ -145,10 +196,11 @@ export class PlayerManager {
             if (gen !== this.generation) return;
             this.isPlaybackStarted = true;
             this.updateState({ status: 'playing', isBuffering: false, error: null });
+            this.rememberCurrentTransport();
             this.startStatsLoop();
           },
         },
-        this.options.proxyUrlTemplate
+        engineProxyTemplate
       );
 
       if (gen !== this.generation) return;
@@ -166,10 +218,33 @@ export class PlayerManager {
     gen: number
   ) {
     if (gen !== this.generation) return;
-    console.warn(`Engine ${failedEngine} reported fatal error: ${errorMessage}`);
+    console.warn(
+      `Engine ${failedEngine} on ${this.currentTransport()} transport reported fatal error: ${errorMessage}`
+    );
 
-    // If playback hasn't started yet and there are remaining engines in the order, fallback
-    if (!this.isPlaybackStarted && this.currentEngineIndex + 1 < this.engineOrder.length) {
+    if (this.isPlaybackStarted) {
+      // Mid-stream glitch: reconnect on the same transport with bounded backoff
+      // before considering the other transport.
+      if (this.retryCount < this.maxRetries) {
+        this.retryCount++;
+        const delay = Math.pow(2, this.retryCount) * 1000;
+        this.updateState({
+          status: 'error',
+          error: `${errorMessage} (Reconnecting stream in ${delay / 1000}s, attempt ${this.retryCount}/${this.maxRetries})...`,
+          retryCount: this.retryCount,
+        });
+
+        this.retryTimeout = setTimeout(() => {
+          this.attemptEngineAtIndex(this.currentEngineIndex);
+        }, delay);
+        return;
+      }
+      this.attemptNextTransport();
+      return;
+    }
+
+    // Startup failure: try the next engine (format fallback) in this transport.
+    if (this.currentEngineIndex + 1 < this.engineOrder.length) {
       const nextIndex = this.currentEngineIndex + 1;
       const nextEngine = this.engineOrder[nextIndex];
       console.info(`Falling back from ${failedEngine} to ${nextEngine}...`);
@@ -177,24 +252,29 @@ export class PlayerManager {
       return;
     }
 
-    // If playback was already playing and glitched, try retry up to maxRetries
-    if (this.isPlaybackStarted && this.retryCount < this.maxRetries) {
-      this.retryCount++;
-      const delay = Math.pow(2, this.retryCount) * 1000;
-      this.updateState({
-        status: 'error',
-        error: `${errorMessage} (Reconnecting stream in ${delay / 1000}s, attempt ${this.retryCount}/${this.maxRetries})...`,
-        retryCount: this.retryCount,
-      });
+    this.attemptNextTransport();
+  }
 
-      this.retryTimeout = setTimeout(() => {
-        this.attemptEngineAtIndex(this.currentEngineIndex);
-      }, delay);
+  private rememberCurrentTransport() {
+    const host = PlayerManager.streamHost(this.rawStreamUrl);
+    if (host) PlayerManager.transportMemory.set(host, this.currentTransport());
+  }
+
+  /**
+   * Moves to the next planned transport (`direct` -> `proxied`) once every
+   * engine on the current one has failed. The plan is finite, so this either
+   * starts a working attempt or ends in `handleAllEnginesFailed`.
+   */
+  private attemptNextTransport() {
+    const nextIndex = this.transportIndex + 1;
+    if (nextIndex < this.transports.length) {
+      this.transportIndex = nextIndex;
+      console.info(`Retrying stream over the ${this.transports[nextIndex]} transport...`);
+      this.attemptEngineAtIndex(0);
       return;
     }
 
-    // All engines exhausted or unrecoverable error
-    this.handleAllEnginesFailed(errorMessage);
+    this.handleAllEnginesFailed('All player engines failed to play this stream.');
   }
 
   private handleAllEnginesFailed(errorMessage: string) {
@@ -237,6 +317,15 @@ export class PlayerManager {
     this.isPlaybackStarted = false;
     this.retryCount = 0;
     this.engineOrder = this.getEngineOrder(this.rawStreamUrl);
+    this.transports = planTransports({
+      streamUrl: this.rawStreamUrl,
+      proxyTemplate,
+      pageProtocol: window.location.protocol,
+    });
+    // The user explicitly asked for the proxy, so start there and keep the
+    // remaining transports as the fallback.
+    const proxiedIndex = this.transports.indexOf('proxied');
+    this.transportIndex = proxiedIndex >= 0 ? proxiedIndex : 0;
     this.currentEngineIndex = 0;
     await this.attemptEngineAtIndex(0);
   }
@@ -337,6 +426,8 @@ export class PlayerManager {
       this.engine = null;
     }
     this.videoEl = null;
-    this.updateState({ status: 'idle', isBuffering: false, error: null });
+    this.transports = ['direct'];
+    this.transportIndex = 0;
+    this.updateState({ status: 'idle', transport: 'direct', isBuffering: false, error: null });
   }
 }

@@ -44,6 +44,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
   const [playerState, setPlayerState] = useState<PlayerManagerState>({
     status: 'loading',
     currentEngine: null,
+    transport: 'direct',
     error: null,
     isBuffering: true,
     stats: null,
@@ -316,6 +317,12 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
               {playerState.isMixedContent && (
                 <p className="text-xs text-amber-300 mt-2">
                   Insecure HTTP stream blocked on secure HTTPS page. Using a CORS proxy solves this.
+                </p>
+              )}
+              {!playerState.isMixedContent && playerState.transport === 'proxied' && (
+                <p className="text-xs text-amber-300 mt-2">
+                  Direct playback failed and the CORS proxy configured in Settings did not respond
+                  either — it may be down or blocking this provider. Check Settings → Network.
                 </p>
               )}
             </div>
