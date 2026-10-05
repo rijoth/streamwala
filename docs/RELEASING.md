@@ -106,9 +106,15 @@ Publishing uses the workflow's own `GITHUB_TOKEN` (`contents: write` on the
 
 ## 4. Re-running, editing, undoing
 
-**Re-run a failed build.** `gh run rerun <run-id>` replays the whole workflow.
-The `release` job is idempotent: if the release already exists it edits the
-title/notes and re-uploads assets with `--clobber`.
+**Re-run a failed build.** The *Re-run failed jobs* button replays the run using
+the workflow file **from the commit the run was triggered on** — for a tag push
+that is the tagged commit, so a workflow fix that was only pushed to `main` is
+*not* picked up. When the failure was in the pipeline itself, use *Run workflow*
+(`workflow_dispatch`) on `main` with the tag as input instead: the workflow comes
+from `main`, the code is checked out from the tag.
+
+The `release` job is idempotent either way: if the release already exists it
+edits the title/notes and re-uploads assets with `--clobber`.
 
 **Re-release an existing tag.** Actions → Release → *Run workflow*, pass the tag
 (`v1.2.3`). Use this after fixing a build-only problem, e.g. a rotated keystore

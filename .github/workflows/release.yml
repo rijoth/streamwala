@@ -364,6 +364,10 @@ jobs:
     permissions:
       contents: write
     env:
+      # No checkout in this job, so gh cannot infer the repository from
+      # `git remote -v`; without GH_REPO every gh call dies with
+      # "failed to run git: fatal: not a git repository".
+      GH_REPO: ${{ github.repository }}
       GH_TOKEN: ${{ github.token }}
       TAG: ${{ needs.version.outputs.tag }}
       VERSION: ${{ needs.version.outputs.version }}
