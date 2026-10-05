@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { waitForAppReady } from './helpers.ts';
 
 /**
  * D-pad-only EPG guide traversal with a seeded 20k-programme playlist. The
@@ -117,6 +118,10 @@ test.beforeAll(async ({ browser }) => {
   await seedGuide(100, 200); // 20,000 programmes
   await page.reload();
   await expect(page.getByText('Featured Live')).toBeVisible({ timeout: 15_000 });
+  // Warm reload: the guide fixtures are already seeded, so Home is painted while
+  // the boot splash still ignores input (ADR 022) — wait it out before the
+  // specs start pressing D-pad keys.
+  await waitForAppReady(page);
 });
 
 test.afterAll(async () => {

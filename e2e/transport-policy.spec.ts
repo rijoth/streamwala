@@ -2,22 +2,24 @@ import { test, expect, type Page } from '@playwright/test';
 import { waitForAppReady } from './helpers.ts';
 
 /**
- * Stream transport policy — regression coverage for BUG-023.
+ * Stream transport policy — regression coverage for BUG-023 and BUG-024.
  *
  * A CORS proxy configured in Settings (or set by the error overlay's one-tap
- * "Try with CORS Proxy") was applied to every stream URL unconditionally. When
- * the proxy went down or blocklisted the provider, *every* channel failed with
- * "Stream Unavailable" — including channels whose origin already answered with
- * `Access-Control-Allow-Origin: *`. `PlayerManager` now plans transports,
- * attempting the origin directly and only falling back to the proxy when the
+ * "Try with CORS Proxy") was applied to every URL unconditionally. When the
+ * proxy went down or blocklisted the provider, *every* channel failed with
+ * "Stream Unavailable" and the playlist import failed outright — including
+ * origins that already answered with `Access-Control-Allow-Origin: *`.
+ * Playback (`PlayerManager`) and HTTP fetches (`fetchWithTransportFallback`)
+ * now attempt the origin directly and only fall back to the proxy when the
  * direct attempt fails (mixed content being the one exception, where the proxy
  * is the only viable transport).
  *
- * Both specs are fully routed: no real network, no third-party proxy.
+ * All specs are fully routed: no real network, no third-party proxy.
  */
 
 const PROXY_HOST = 'api.allorigins.win';
 const ORIGIN_HOST = 'probe.example.invalid';
+const PLAYLIST_HOST = 'playlist.example.invalid';
 const PROXY_TEMPLATE = `https://${PROXY_HOST}/raw?url={url}`;
 
 const MANIFEST = [
@@ -112,6 +114,46 @@ test('a dead CORS proxy no longer breaks a channel that streams directly', async
   // …and must never touch the dead proxy with a persisted (not opted-in) setting.
   expect(attempted).not.toContain('proxied');
   await expect(streamUnavailable(page)).toHaveCount(0);
+
+  await context.close();
+});
+
+test('a persisted proxy never blocks the playlist import', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
+  const page = await context.newPage();
+  const attempted: string[] = [];
+
+  // Seed the setting before the app boots (the reported state: a proxy chosen
+  // in an earlier session is already persisted), then import a playlist.
+  await page.addInitScript((template) => {
+    localStorage.setItem('aether_iptv_settings_v1', JSON.stringify({ proxyUrlTemplate: template }));
+  }, PROXY_TEMPLATE);
+
+  await page.route(`**/${PROXY_HOST}/**`, (route) => {
+    attempted.push('proxied');
+    return route.fulfill({ status: 522, contentType: 'text/plain', body: 'error code: 522' });
+  });
+
+  await page.route(`**/${PLAYLIST_HOST}/**`, (route) => {
+    attempted.push('direct');
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/vnd.apple.mpegurl',
+      body: PLAYLIST,
+    });
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: /Get Started/i }).click();
+  await page.getByText('M3U / M3U8 URL').click();
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type(`https://${PLAYLIST_HOST}/probe.m3u`);
+  await page.keyboard.press('Enter');
+
+  await expect(page.getByText('Featured Live')).toBeVisible({ timeout: 45_000 });
+  expect(attempted).toContain('direct');
+  expect(attempted).not.toContain('proxied');
 
   await context.close();
 });

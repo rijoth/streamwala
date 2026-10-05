@@ -5,6 +5,9 @@
  * CORS / mixed-content / timeout failures into human, credential-safe errors.
  */
 
+import { canProxyUrl } from '../../domain/transport.ts';
+import { fetchWithTransportFallback } from '../net/transportFetch.ts';
+
 export type EpgFetchErrorKind =
   | 'cors'
   | 'mixed-content'
@@ -86,11 +89,6 @@ export function redactEpgUrl(url: string): string {
   } catch {
     return url;
   }
-}
-
-export function buildProxiedUrl(url: string, proxyTemplate?: string): string {
-  if (!proxyTemplate) return url;
-  return proxyTemplate.replace('{url}', encodeURIComponent(url));
 }
 
 /**
@@ -288,10 +286,9 @@ export async function fetchEpgStream(options: FetchEpgStreamOptions): Promise<Ep
     onProgress,
   } = options;
   const fetchImpl = options.fetchImpl ?? fetch;
-  const usedProxy = Boolean(proxyTemplate);
-  const finalUrl = buildProxiedUrl(url, proxyTemplate);
+  const canProxy = canProxyUrl(proxyTemplate, url);
 
-  if (!usedProxy && isMixedContent(url)) {
+  if (!canProxy && isMixedContent(url)) {
     throw new EpgFetchError('mixed-content', mixedContentMessage(url));
   }
 
@@ -323,17 +320,35 @@ export async function fetchEpgStream(options: FetchEpgStreamOptions): Promise<Ep
   };
 
   let response: Response;
+  let usedProxy = false;
   try {
     const headers: Record<string, string> = {};
     if (etag) headers['If-None-Match'] = etag;
     if (lastModified) headers['If-Modified-Since'] = lastModified;
-    response = await fetchImpl(finalUrl, {
-      signal: controller.signal,
-      headers: Object.keys(headers).length > 0 ? headers : undefined,
+    // Direct first, proxy as fallback — a configured proxy must never make a
+    // CORS-enabled XMLTV host unreachable (BUG-024).
+    const attempt = await fetchWithTransportFallback(url, {
+      proxyTemplate,
+      fetchImpl,
+      init: {
+        signal: controller.signal,
+        headers: Object.keys(headers).length > 0 ? headers : undefined,
+      },
     });
+    if (!attempt.ok) {
+      throw classifyFetchError(attempt.error, {
+        timedOut,
+        proxyUsed: attempt.usedProxy,
+        url,
+      });
+    }
+    response = attempt.response;
+    usedProxy = attempt.usedProxy;
   } catch (error) {
     cleanup();
-    throw classifyFetchError(error, { timedOut, proxyUsed: usedProxy, url });
+    throw error instanceof EpgFetchError
+      ? error
+      : classifyFetchError(error, { timedOut, proxyUsed: canProxy, url });
   }
 
   if (response.status === 304) {

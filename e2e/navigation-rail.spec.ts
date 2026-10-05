@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { waitForAppReady } from './helpers.ts';
 
 /**
  * Geometry-dependent D-pad coverage for the permanent icon-only navigation
@@ -35,8 +36,19 @@ function focusedState(p: Page) {
   });
 }
 
-test('fresh install reaches Home with D-pad only', async () => {
+/**
+ * Navigates home and outwaits the boot splash. These tests are warm reloads
+ * (the playlist is already in IndexedDB), so the Home content is painted while
+ * the splash still owns input (ADR 022) — pressing D-pad keys before it clears
+ * silently drops them and leaves focus wherever the previous spec left it.
+ */
+async function reloadHome() {
   await page.goto('/');
+  await waitForAppReady(page);
+}
+
+test('fresh install reaches Home with D-pad only', async () => {
+  await reloadHome();
   await expect(page.getByRole('button', { name: /Get Started/i })).toBeVisible();
   await page.keyboard.press('Enter');
 
@@ -49,7 +61,7 @@ test('fresh install reaches Home with D-pad only', async () => {
 });
 
 test('rail and content never overlap at 720p, 1080p and 4K', async () => {
-  await page.goto('/');
+  await reloadHome();
   await expect(page.getByText('Featured Live')).toBeVisible({ timeout: 15_000 });
 
   for (const [width, height] of [
@@ -83,7 +95,7 @@ test('rail and content never overlap at 720p, 1080p and 4K', async () => {
 });
 
 test('LEFT enters the rail on the active destination', async () => {
-  await page.goto('/');
+  await reloadHome();
   await expect(page.getByText('Featured Live')).toBeVisible({ timeout: 15_000 });
 
   for (let i = 0; i < 8; i++) {
@@ -101,7 +113,7 @@ test('LEFT enters the rail on the active destination', async () => {
 });
 
 test('UP and DOWN stop at the rail ends without leaking into content', async () => {
-  await page.goto('/');
+  await reloadHome();
   await expect(page.getByText('Featured Live')).toBeVisible({ timeout: 15_000 });
 
   for (let i = 0; i < 8; i++) {
@@ -118,7 +130,7 @@ test('UP and DOWN stop at the rail ends without leaking into content', async () 
 });
 
 test('OK navigates and lands focus in the new screen content', async () => {
-  await page.goto('/');
+  await reloadHome();
   await expect(page.getByText('Featured Live')).toBeVisible({ timeout: 15_000 });
 
   for (let i = 0; i < 8; i++) {
@@ -138,7 +150,7 @@ test('OK navigates and lands focus in the new screen content', async () => {
 });
 
 test('RIGHT restores the previously focused content element', async () => {
-  await page.goto('/');
+  await reloadHome();
   await expect(page.getByText('Featured Live')).toBeVisible({ timeout: 15_000 });
 
   // Navigation is now transform-animated, so wait for the focus marker to

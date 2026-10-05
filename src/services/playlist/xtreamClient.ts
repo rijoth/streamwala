@@ -1,5 +1,34 @@
 import { XtreamCredentials, Channel, Group, Playlist } from '../../domain/types.ts';
+import { fetchWithTransportFallback } from '../net/transportFetch.ts';
 import { db } from '../storage/db.ts';
+
+/**
+ * Xtream panel calls go through the transport plan (ADR 023): the panel is
+ * queried directly first and only a real failure falls back to the configured
+ * CORS proxy, so a dead proxy cannot stop a reachable panel from being added
+ * (BUG-024).
+ */
+async function fetchXtreamJson<T>(
+  url: string,
+  proxyTemplate: string | undefined,
+  timeoutMs?: number
+): Promise<T> {
+  const attempt = await fetchWithTransportFallback(url, { proxyTemplate, timeoutMs });
+  if (!attempt.ok) {
+    const detail = attempt.error instanceof Error ? attempt.error.message : String(attempt.error);
+    throw new Error(
+      attempt.usedProxy
+        ? `The Xtream panel could not be reached, directly or through the CORS proxy in Settings (${detail}).`
+        : `Network error or CORS restriction reaching the Xtream panel (${detail}).`
+    );
+  }
+  if (!attempt.response.ok) {
+    throw new Error(
+      `Server returned HTTP ${attempt.response.status}: ${attempt.response.statusText}`
+    );
+  }
+  return (await attempt.response.json()) as T;
+}
 
 export async function testXtreamLogin(creds: XtreamCredentials, proxyTemplate?: string): Promise<{ success: boolean; message: string; expDate?: string }> {
   try {
@@ -8,17 +37,13 @@ export async function testXtreamLogin(creds: XtreamCredentials, proxyTemplate?: 
       cleanServer = `http://${cleanServer}`;
     }
 
-    let url = `${cleanServer}/player_api.php?username=${encodeURIComponent(creds.username)}&password=${encodeURIComponent(creds.password)}`;
-    if (proxyTemplate) {
-      url = proxyTemplate.replace('{url}', encodeURIComponent(url));
-    }
+    const url = `${cleanServer}/player_api.php?username=${encodeURIComponent(creds.username)}&password=${encodeURIComponent(creds.password)}`;
 
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-    if (!res.ok) {
-      return { success: false, message: `Server returned HTTP ${res.status}: ${res.statusText}` };
-    }
-
-    const data = await res.json();
+    const data = await fetchXtreamJson<{ user_info?: { auth?: number; status?: string; exp_date?: string } }>(
+      url,
+      proxyTemplate,
+      8000
+    );
     if (!data.user_info || data.user_info.auth === 0) {
       return { success: false, message: 'Invalid username or password.' };
     }
@@ -55,12 +80,9 @@ export async function importXtreamPlaylist(
   onProgress?.('Fetching categories...');
 
   // 1. Fetch live categories
-  let catUrl = `${cleanServer}/player_api.php?username=${encodeURIComponent(creds.username)}&password=${encodeURIComponent(creds.password)}&action=get_live_categories`;
-  if (proxyTemplate) catUrl = proxyTemplate.replace('{url}', encodeURIComponent(catUrl));
+  const catUrl = `${cleanServer}/player_api.php?username=${encodeURIComponent(creds.username)}&password=${encodeURIComponent(creds.password)}&action=get_live_categories`;
 
-  const catRes = await fetch(catUrl);
-  const categories = await catRes.json();
-
+  const categories = await fetchXtreamJson<unknown>(catUrl, proxyTemplate);
   const groups: Group[] = Array.isArray(categories)
     ? categories.map((c: { category_id: string; category_name: string }) => ({
         id: `grp_${playlistId}_${c.category_id}`,
@@ -75,11 +97,9 @@ export async function importXtreamPlaylist(
 
   // 2. Fetch live streams
   onProgress?.('Fetching live channels...');
-  let streamListUrl = `${cleanServer}/player_api.php?username=${encodeURIComponent(creds.username)}&password=${encodeURIComponent(creds.password)}&action=get_live_streams`;
-  if (proxyTemplate) streamListUrl = proxyTemplate.replace('{url}', encodeURIComponent(streamListUrl));
+  const streamListUrl = `${cleanServer}/player_api.php?username=${encodeURIComponent(creds.username)}&password=${encodeURIComponent(creds.password)}&action=get_live_streams`;
 
-  const streamRes = await fetch(streamListUrl);
-  const streamData = await streamRes.json();
+  const streamData = await fetchXtreamJson<unknown>(streamListUrl, proxyTemplate);
 
   const channels: Channel[] = [];
   if (Array.isArray(streamData)) {

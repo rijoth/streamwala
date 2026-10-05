@@ -233,6 +233,77 @@ describe('fetchEpgStream', () => {
   });
 });
 
+/**
+ * BUG-024: with a proxy configured the EPG download used to be sent through it
+ * unconditionally, so a dead proxy failed the refresh even for a CORS-enabled
+ * XMLTV host — the same defect class as BUG-023, on the EPG surface.
+ */
+describe('fetchEpgStream transport policy', () => {
+  const PROXY = 'https://proxy.example.invalid/raw?url={url}';
+  const ORIGIN = 'https://origin.example.invalid/epg.xml';
+
+  function recordingFetch(calls: string[], originFails: boolean): typeof fetch {
+    return (async (url: string) => {
+      calls.push(url);
+      if (url.includes('proxy.example.invalid')) return new Response(XML, { status: 200 });
+      if (originFails) throw new TypeError('Failed to fetch');
+      return new Response(XML, { status: 200 });
+    }) as unknown as typeof fetch;
+  }
+
+  it('fetches the origin directly even when a proxy is configured', async () => {
+    const calls: string[] = [];
+    const result = await fetchEpgStream({
+      url: ORIGIN,
+      proxyTemplate: PROXY,
+      fetchImpl: recordingFetch(calls, false),
+    });
+
+    expect(calls).toEqual([ORIGIN]);
+    expect(result.usedProxy).toBe(false);
+    expect(await readStreamText(result.stream)).toBe(XML);
+  });
+
+  it('falls back to the proxy when the origin request is blocked', async () => {
+    const calls: string[] = [];
+    const result = await fetchEpgStream({
+      url: ORIGIN,
+      proxyTemplate: PROXY,
+      fetchImpl: recordingFetch(calls, true),
+    });
+
+    expect(calls).toHaveLength(2);
+    expect(calls[1]).toContain('proxy.example.invalid');
+    expect(result.usedProxy).toBe(true);
+    expect(await readStreamText(result.stream)).toBe(XML);
+  });
+
+  it('says the request also failed through the proxy when both transports fail', async () => {
+    const error = await fetchEpgStream({
+      url: ORIGIN,
+      proxyTemplate: PROXY,
+      fetchImpl: (async () => {
+        throw new TypeError('Failed to fetch');
+      }) as unknown as typeof fetch,
+    }).catch((e: unknown) => e);
+
+    expect((error as EpgFetchError).kind).toBe('cors');
+    expect((error as EpgFetchError).message).toContain('through the proxy');
+  });
+
+  it('never uses a template without the {url} token', async () => {
+    const calls: string[] = [];
+    const error = await fetchEpgStream({
+      url: ORIGIN,
+      proxyTemplate: 'https://proxy.example.invalid/raw',
+      fetchImpl: recordingFetch(calls, true),
+    }).catch((e: unknown) => e);
+
+    expect(calls).toEqual([ORIGIN]);
+    expect((error as EpgFetchError).kind).toBe('cors');
+  });
+});
+
 describe('fetchEpgFile', () => {
   it('sniffs gzip in a local file', async () => {
     const gz = await gzipBytes(XML);

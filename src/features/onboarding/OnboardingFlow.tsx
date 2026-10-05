@@ -6,6 +6,7 @@ import { PRODUCT_NAME } from '../../shared/product.ts';
 import { parseAndSaveM3U, ParseProgress } from '../../services/playlist/m3uParser.ts';
 import { installDemoPlaylist } from '../../services/playlist/demoPlaylist.ts';
 import { importXtreamPlaylist, testXtreamLogin } from '../../services/playlist/xtreamClient.ts';
+import { fetchWithTransportFallback } from '../../services/net/transportFetch.ts';
 import { savePlaylist, toUserStorageMessage } from '../../services/storage/db.ts';
 import { useSettingsStore } from '../../app/settingsStore.ts';
 import { CorsDiagnosticModal } from './CorsDiagnosticModal.tsx';
@@ -114,10 +115,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
           return;
         }
 
-        let fetchUrl = m3uUrl.trim();
-        if (settings.proxyUrlTemplate) {
-          fetchUrl = settings.proxyUrlTemplate.replace('{url}', encodeURIComponent(fetchUrl));
-        }
+        const fetchUrl = m3uUrl.trim();
 
         setStep('importing');
         setImportProgress({
@@ -127,7 +125,21 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
           status: 'Connecting to playlist source...',
         });
 
-        const res = await fetch(fetchUrl, { signal: AbortSignal.timeout(12000) });
+        // Direct first, configured proxy as fallback (ADR 023 / BUG-023): a
+        // broken proxy must not stop a reachable playlist URL from importing.
+        const attempt = await fetchWithTransportFallback(fetchUrl, {
+          proxyTemplate: settings.proxyUrlTemplate,
+          timeoutMs: 12_000,
+        });
+        if (!attempt.ok) {
+          throw new Error(
+            attempt.usedProxy
+              ? 'Network error: the CORS proxy in Settings could not fetch the playlist URL either. Try another proxy, or import the file locally.'
+              : 'Network error or CORS restriction fetching the playlist URL.'
+          );
+        }
+
+        const res = attempt.response;
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}: ${res.statusText}`);
         }

@@ -5,9 +5,10 @@
 
 import type { EpgSourceKind, Playlist, XtreamCredentials } from '../../domain/types.ts';
 import { parseM3uHeader, type M3uHeaderInfo } from '../playlist/m3uParser.ts';
+import { canProxyUrl } from '../../domain/transport.ts';
+import { fetchWithTransportFallback } from '../net/transportFetch.ts';
 import {
   EpgFetchError,
-  buildProxiedUrl,
   classifyFetchError,
   isMixedContent,
   mixedContentMessage,
@@ -52,10 +53,9 @@ async function readPrefix(response: Response, maxBytes: number): Promise<string>
 
 async function fetchM3uHeader(url: string, options: DetectEpgOptions): Promise<M3uHeaderInfo> {
   const { proxyTemplate, fetchImpl = fetch, timeoutMs = 15_000, maxHeaderBytes = 8192 } = options;
-  if (!proxyTemplate && isMixedContent(url)) {
+  if (!canProxyUrl(proxyTemplate, url) && isMixedContent(url)) {
     throw new EpgFetchError('mixed-content', mixedContentMessage(url));
   }
-  const finalUrl = buildProxiedUrl(url, proxyTemplate);
   const controller = new AbortController();
   let timedOut = false;
   const timer = setTimeout(() => {
@@ -64,14 +64,29 @@ async function fetchM3uHeader(url: string, options: DetectEpgOptions): Promise<M
   }, timeoutMs);
 
   try {
-    const response = await fetchImpl(finalUrl, { signal: controller.signal });
+    // Direct first, proxy as fallback (BUG-024).
+    const attempt = await fetchWithTransportFallback(url, {
+      proxyTemplate,
+      fetchImpl,
+      init: { signal: controller.signal },
+    });
+    if (!attempt.ok) {
+      throw classifyFetchError(attempt.error, {
+        timedOut,
+        proxyUsed: attempt.usedProxy,
+        url,
+      });
+    }
+    const { response } = attempt;
     if (!response.ok) {
       throw new EpgFetchError('http', `HTTP ${response.status}`, response.status);
     }
     const text = await readPrefix(response, maxHeaderBytes);
     return parseM3uHeader(text);
   } catch (error) {
-    throw classifyFetchError(error, { timedOut, proxyUsed: Boolean(proxyTemplate), url });
+    throw error instanceof EpgFetchError
+      ? error
+      : classifyFetchError(error, { timedOut, proxyUsed: canProxyUrl(proxyTemplate, url), url });
   } finally {
     clearTimeout(timer);
   }

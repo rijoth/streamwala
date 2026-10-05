@@ -4,6 +4,7 @@ import {
   planTransports,
   type PlaybackTransport,
 } from '../../domain/transport.ts';
+import { knownTransport, rememberTransport } from '../net/transportMemory.ts';
 
 export type PreferredEngine = 'auto' | 'hls' | 'mpegts' | 'native';
 
@@ -44,13 +45,6 @@ export class PlayerManager {
   private transportIndex = 0;
   private currentEngineIndex = 0;
   private isPlaybackStarted = false;
-
-  /**
-   * Session-only memory of which transport worked for a stream host, so zapping
-   * between channels of one provider does not repeat a known-failed attempt.
-   * Deliberately in-memory: a dead proxy must never survive a restart (BUG-023).
-   */
-  private static readonly transportMemory = new Map<string, PlaybackTransport>();
   private retryCount = 0;
   private maxRetries = 2;
   private retryTimeout: NodeJS.Timeout | null = null;
@@ -98,25 +92,12 @@ export class PlayerManager {
       streamUrl: this.rawStreamUrl,
       proxyTemplate: this.options.proxyUrlTemplate,
       pageProtocol: window.location.protocol,
-      remembered: PlayerManager.rememberedTransport(this.rawStreamUrl),
+      remembered: knownTransport(this.rawStreamUrl),
     });
     this.transportIndex = 0;
     this.currentEngineIndex = 0;
 
     await this.attemptEngineAtIndex(this.currentEngineIndex);
-  }
-
-  private static streamHost(url: string): string | null {
-    try {
-      return new URL(url).host;
-    } catch {
-      return null;
-    }
-  }
-
-  private static rememberedTransport(url: string): PlaybackTransport | undefined {
-    const host = PlayerManager.streamHost(url);
-    return host ? PlayerManager.transportMemory.get(host) : undefined;
   }
 
   private currentTransport(): PlaybackTransport {
@@ -256,8 +237,7 @@ export class PlayerManager {
   }
 
   private rememberCurrentTransport() {
-    const host = PlayerManager.streamHost(this.rawStreamUrl);
-    if (host) PlayerManager.transportMemory.set(host, this.currentTransport());
+    rememberTransport(this.rawStreamUrl, this.currentTransport());
   }
 
   /**

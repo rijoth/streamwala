@@ -52,6 +52,12 @@ Each guardrail below prevents a bug class found in the audit (see
   including OK activation. This is what catches a screen that is technically
   "navigable" but silently stops on non-interactive containers (the previous
   test only checked `document.activeElement`, which a click leaves on the rail).
+- **Splash guardrail (ADR 022):** a warm reload paints Home while the boot
+  splash still owns input, so D-pad keys pressed in that window are dropped and
+  focus silently stays where the previous spec left it. Specs that act on the
+  first frame after a `goto`/`reload` must `await waitForAppReady(page)`
+  (`e2e/helpers.ts`) instead of waiting on a content sentinel — that mismatch
+  made `e2e/navigation-rail.spec.ts` fail intermittently under full-suite load.
 - **Negative proof:** reintroducing `autoFocus` on search results makes
   `SearchView.test.tsx` fail (`expected 'sn:focusable-item-1' to be
   'SEARCH_FIELD'`).
@@ -103,24 +109,32 @@ Each guardrail below prevents a bug class found in the audit (see
 
 ## F. Stream transport policy (proxy is a fallback)
 
-- **Prevents:** BUG-023 — a persisted CORS proxy applied to every stream URL,
-  so a proxy that was down, rate-limited or blocklisting the provider broke
-  every channel, including origins that already return
-  `Access-Control-Allow-Origin`.
+- **Prevents:** BUG-023 and BUG-024 — a persisted CORS proxy applied to every
+  URL, so a proxy that was down, rate-limited or blocklisting the provider broke
+  every channel, the EPG refresh and the playlist import, including origins that
+  already return `Access-Control-Allow-Origin`.
 - **Enforcement:** `src/domain/transport.ts` owns the policy as a pure function
-  (`planTransports`, `applyProxyTemplate`, `isProxiableUrl`); `PlayerManager`
-  must not build a proxied URL itself. `src/domain/transport.test.ts` pins the
-  plan for every case (no proxy, proxy configured, mixed content, malformed
-  template, `data:`/`blob:` URL, remembered transport) and
-  `e2e/player-transport.spec.ts` drives the real player over routed streams:
-  with a dead proxy the origin is fetched directly and the proxy is never
-  touched; with an unreachable origin the direct attempt happens first and the
-  proxy takes over.
+  (`planTransports`, `applyProxyTemplate`, `canProxyUrl`, `isProxiableUrl`);
+  `PlayerManager` must not build a proxied URL itself, and every non-player
+  proxy-aware request goes through `src/services/net/transportFetch.ts`, which
+  applies the same plan and records the working transport in
+  `src/services/net/transportMemory.ts` (session-only).
+  `src/domain/transport.test.ts` pins the plan for every case (no proxy, proxy
+  configured, mixed content, malformed template, `data:`/`blob:` URL, remembered
+  transport), `src/services/net/transportFetch.test.ts` pins the fetch behaviour
+  (direct-only, fallback on rejection and on 401/403/407/429/5xx, no fallback on
+  404, per-attempt timeout, abort stops retries, memory reuse) and
+  `e2e/transport-policy.spec.ts` drives the real app over routed streams and
+  playlists: with a dead proxy the origin is fetched directly and the proxy is
+  never touched, including during a playlist import; with an unreachable origin
+  the direct attempt happens first and the proxy takes over.
 - **Extend:** new transport decisions go into `planTransports` with a unit case;
-  a new proxy preset must not introduce a code path that bypasses the plan.
-- **Negative proof:** forcing `proxyUrlTemplate` in `resolveUrl` (the pre-fix
-  behaviour) fails both specs of `e2e/player-transport.spec.ts`
-  (`Expected: "direct" / Received: "proxied"`).
+  a new proxy preset must not introduce a code path that bypasses the plan —
+  any new fetch that takes `proxyTemplate` must call
+  `fetchWithTransportFallback`, never `template.replace('{url}', …)`.
+- **Negative proof:** making `planTransports` proxy-first fails 10 unit tests,
+  both `src/services/epg/fetcher.test.ts` transport-policy cases, and all three
+  `e2e/transport-policy.spec.ts` specs (`Received array: ["proxied", …]`).
 
 ## Wiring into CI
 

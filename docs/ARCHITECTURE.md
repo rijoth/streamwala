@@ -12,7 +12,7 @@ src/
   App.tsx         app shell: loads DB state, owns activeNavId + playingChannel
   app/            settings store (Zustand) + theme application
   domain/         pure types, Zod schemas, pure helpers (no React, no I/O)
-  services/       I/O adapters: storage (Dexie), player engines, playlist/EPG parsers
+  services/       I/O adapters: storage (Dexie), player engines, net transport, playlist/EPG parsers
   features/       screen-level features (onboarding, live-tv, guide, vod, player, ...)
   shared/         reusable primitives: ui (M3), focus, input, icons, hooks
   test/           test-only utilities (renderWithProviders, pressKey, expectFocused)
@@ -56,6 +56,14 @@ feature's `index.ts` barrel.
   pipeline lives in `services/epg` (streaming fetcher, worker tokenizer/parser,
   repository, scheduler) with the pure core in `domain/epg`; see
   [`EPG.md`](./EPG.md). Import writes are transactional.
+- **Outbound HTTP** goes through `services/net/transportFetch.ts`, which applies
+  the transport policy from `domain/transport.ts`: query the origin directly
+  first, fall back to the user's CORS proxy template only when the direct
+  attempt fails (mixed content is proxied-first because direct is impossible).
+  `services/net/transportMemory.ts` remembers the transport that worked per host
+  for the session. The player follows the same plan through `PlayerManager`
+  (engine × transport). Never build a proxied URL by hand; see
+  [`DECISIONS.md`](./DECISIONS.md) (ADR 023).
 
 ## Playback
 

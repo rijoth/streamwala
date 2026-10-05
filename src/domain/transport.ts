@@ -30,6 +30,17 @@ export function isProxiableUrl(url: string): boolean {
   return !normalized.startsWith('data:') && !normalized.startsWith('blob:');
 }
 
+/**
+ * True when this template can actually proxy this URL: it exists, the URL is
+ * proxyable, and the template carries the `{url}` token. Used by callers that
+ * must answer "is there a proxy for this?" before making a request (e.g. the
+ * mixed-content pre-check, where direct is impossible).
+ */
+export function canProxyUrl(proxyTemplate: string | undefined, url: string): boolean {
+  if (!proxyTemplate || !isProxiableUrl(url)) return false;
+  return applyProxyTemplate(proxyTemplate, url) !== null;
+}
+
 export interface TransportPlanInput {
   streamUrl: string;
   proxyTemplate?: string;
@@ -54,8 +65,7 @@ export interface TransportPlanInput {
  */
 export function planTransports(input: TransportPlanInput): PlaybackTransport[] {
   const url = input.streamUrl.trim();
-  if (!input.proxyTemplate || !isProxiableUrl(url)) return ['direct'];
-  if (!applyProxyTemplate(input.proxyTemplate, url)) return ['direct'];
+  if (!canProxyUrl(input.proxyTemplate, url)) return ['direct'];
   if (input.pageProtocol === 'https:' && /^http:\/\//i.test(url)) return ['proxied'];
   return input.remembered === 'proxied' ? ['proxied', 'direct'] : ['direct', 'proxied'];
 }
