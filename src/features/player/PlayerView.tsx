@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Channel } from '../../domain/types.ts';
 import { PlayerManager, PlayerManagerState } from '../../services/player/PlayerManager.ts';
 import { addWatchHistory, toggleChannelFavorite } from '../../services/storage/db.ts';
+import { playChannelSwitchSound } from '../../services/audio/index.ts';
 import { useSettingsStore } from '../../app/settingsStore.ts';
 import { useNowNext } from '../../app/epgRuntime.tsx';
 import { useTvInput, pushBackHandler } from '../../shared/input/index.ts';
@@ -76,6 +77,10 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
   const controlsTimerRef = useRef<NodeJS.Timeout | null>(null);
   const nowNextTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Last channel id rendered, so the switch blip fires on a real switch and
+  // not on the initial tune-in. See the effect below.
+  const previousChannelIdRef = useRef<string | null>(null);
+
   const resetControlsTimer = useCallback(() => {
     if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
     controlsTimerRef.current = setTimeout(() => {
@@ -103,6 +108,17 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
       streamUrl: channel.streamUrl,
     });
   }, [channel, triggerNowNextBanner]);
+
+  // Channel-switch confirmation tone. Keyed on the channel id alone so the
+  // blip fires for every switch path (CH_UP/CH_DOWN, number zap, mini list)
+  // regardless of which handler caused it, and never on first mount or when
+  // the preference is toggled mid-session.
+  useEffect(() => {
+    const previousChannelId = previousChannelIdRef.current;
+    previousChannelIdRef.current = channel.id;
+    if (previousChannelId === null || previousChannelId === channel.id) return;
+    if (settings.channelSwitchSound) playChannelSwitchSound();
+  }, [channel.id, settings.channelSwitchSound]);
 
   // Initialize and load stream
   useEffect(() => {

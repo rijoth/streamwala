@@ -176,6 +176,8 @@ export interface AppSettings {
   bufferLengthSeconds: number;
   lowPowerMode: boolean;
   showNerdStats: boolean;
+  /** Play a short confirmation tone when the channel changes. */
+  channelSwitchSound: boolean;
   /** Show the remote color-key legend in the content footer. */
   showRemoteHints: boolean;
   /** EPG refresh TTL in hours (default 12). */
@@ -233,6 +235,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   bufferLengthSeconds: 15,
   lowPowerMode: false,
   showNerdStats: false,
+  channelSwitchSound: true,
   showRemoteHints: true,
   epgTtlHours: 12,
   epgRetentionPastDays: 1,

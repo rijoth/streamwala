@@ -78,4 +78,23 @@ describe('SettingsView D-pad reachability (BUG-020)', () => {
 
     await waitFor(() => expect(useSettingsStore.getState().settings.defaultEngine).toBe('hls'));
   });
+
+  it('toggles the channel-switch sound preference from the remote OK key', async () => {
+    renderSettings();
+
+    setFocus('SETTINGS_TAB_playback');
+    await waitFor(() => expect(getCurrentFocusKey()).toBe('SETTINGS_TAB_playback'));
+    pressKey('Enter');
+    await waitFor(() => expect(focusKeyExists('SETTINGS_SOUND_TOGGLE')).toBe(true));
+
+    setFocus('SETTINGS_SOUND_TOGGLE');
+    await waitFor(() => expect(getCurrentFocusKey()).toBe('SETTINGS_SOUND_TOGGLE'));
+    expect(useSettingsStore.getState().settings.channelSwitchSound).toBe(true);
+
+    pressKey('Enter');
+
+    await waitFor(() =>
+      expect(useSettingsStore.getState().settings.channelSwitchSound).toBe(false)
+    );
+  });
 });

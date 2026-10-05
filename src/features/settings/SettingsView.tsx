@@ -246,6 +246,25 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </Card>
 
             <Card variant="filled" isInteractive={false} className="p-6 flex flex-col gap-4">
+              <FocusZone focusKey="SETTINGS_SECTION_SOUND" ownsChildren className="flex flex-col gap-4">
+              <h3 className="font-bold text-lg">Channel Switch Sound</h3>
+              <p className="text-xs text-[var(--md-sys-color-outline)]">
+                Plays a short confirmation tone when you change channel with the remote. Turn it off to keep zapping silent.
+              </p>
+              <div className="flex items-center gap-3">
+                <Button
+                  focusKey="SETTINGS_SOUND_TOGGLE"
+                  variant={settings.channelSwitchSound ? 'filled' : 'tonal'}
+                  icon={settings.channelSwitchSound ? 'volume_up' : 'volume_off'}
+                  onClick={() => updateSettings({ channelSwitchSound: !settings.channelSwitchSound })}
+                >
+                  {settings.channelSwitchSound ? 'Switch Sound On' : 'Switch Sound Off'}
+                </Button>
+              </div>
+              </FocusZone>
+            </Card>
+
+            <Card variant="filled" isInteractive={false} className="p-6 flex flex-col gap-4">
               <FocusZone focusKey="SETTINGS_SECTION_NERD" ownsChildren className="flex flex-col gap-4">
               <h3 className="font-bold text-lg">Technical Nerd Diagnostics</h3>
               <Button
