@@ -72,6 +72,21 @@
   --md-shape-full: 9999px;
 }
 
+/*
+ * Indeterminate progress sweep (LinearProgress composes it as a Tailwind
+ * arbitrary animation, so the keyframes keep this exact name and live here
+ * rather than in the component). Without it the bar sat motionless, which
+ * reads as a hung app.
+ */
+@keyframes indeterminate {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
 /* Light theme variant. Same token names, light M3 tonal values. */
 html.theme-light {
   color-scheme: light;
