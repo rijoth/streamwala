@@ -78,3 +78,11 @@ export function applyTheme(settings: AppSettings) {
   // UI scale
   root.style.setProperty('--ui-scale', String(settings.uiScale));
 }
+
+// Applied at module load, not from a React effect: the first paint — including
+// the pre-React boot splash (ADR 022) — must already be in the stored theme.
+// index.html's inline pre-script can only add the theme class, because the
+// theme tokens live in this stylesheet, which the module script loads.
+if (typeof document !== 'undefined') {
+  applyTheme(loadInitialSettings());
+}

@@ -57,6 +57,16 @@
   --rail-item-size: calc(64px * var(--ui-scale));
   --rail-icon-size: calc(32px * var(--ui-scale));
 
+  /* Boot splash (ADR 022). 35vmin is 0.35 of the shorter viewport side: the
+     bottom of the native splash's 0.35-0.54 range, matching its densest TV
+     bucket (drawable-land-xxxhdpi, 0.352) so the mark does not resize when the
+     native splash hands over to the web one. The pre-React copy of this value
+     in index.html is asserted to match by brandAssets.test.ts. */
+  --brand-mark-size: 35vmin;
+  --brand-splash-gap: 3vmin;
+  --brand-title-size: calc(28px * var(--ui-scale));
+  --brand-tagline-size: calc(16px * var(--ui-scale));
+
   /* Remote color-key dots (physical remote button colours, theme-independent) */
   --streamwala-color-key-red: #ef4444;
   --streamwala-color-key-green: #22c55e;
@@ -211,6 +221,40 @@ textarea,
 .tv-focused-subtle {
   box-shadow: inset 0 0 0 2px var(--md-sys-color-focus-ring);
   background-color: var(--md-sys-color-surface-container-highest) !important;
+}
+
+/*
+ * Boot splash (ADR 022). The static pre-React copy in index.html carries its own
+ * subset of this, because the bundled stylesheet does not exist yet at that
+ * point. Reduced motion keeps the minimum display time but drops both the pulse
+ * and the cross-fade, so the swap is instant.
+ */
+@keyframes brand-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.72;
+  }
+}
+
+.app-splash {
+  transition: opacity 180ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.app-splash-mark {
+  animation: brand-pulse 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-splash {
+    transition: none;
+  }
+
+  .app-splash-mark {
+    animation: none;
+  }
 }
 
 /* Custom leanback scrollbars (hidden on TV by default) */

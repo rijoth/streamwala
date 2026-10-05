@@ -10,8 +10,9 @@ import {
   isRailFocusKey,
 } from './shared/focus/index.ts';
 import { useTvInput, useIdleCursor } from './shared/input/index.ts';
-import { NavigationRail, NavDestination, RemoteHintBar } from './shared/ui/index.ts';
+import { NavigationRail, NavDestination, RemoteHintBar, AppSplash } from './shared/ui/index.ts';
 import { useSettingsStore, applyTheme } from './app/settingsStore.ts';
+import { useAppBoot } from './app/useAppBoot.ts';
 import { EpgProvider } from './app/epgRuntime.tsx';
 import { getActivePlaylist, getAllPlaylists, getChannelsByGroup, getGroupsForPlaylist, toggleChannelFavorite } from './services/storage/db.ts';
 import { syncDemoPlaylistIfOutdated } from './services/playlist/demoPlaylist.ts';
@@ -76,7 +77,6 @@ function focusPrimaryTarget(destinationId: string): void {
 export default function App() {
   const { settings } = useSettingsStore();
 
-  const [isLoading, setIsLoading] = useState(true);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [activePlaylist, setActivePlaylist] = useState<Playlist | undefined>();
   const [channels, setChannels] = useState<Channel[]>([]);
@@ -100,42 +100,43 @@ export default function App() {
 
   useIdleCursor(3500);
 
-  // Load database state
-  const refreshData = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      await syncDemoPlaylistIfOutdated();
-      const allPl = await getAllPlaylists();
-      setPlaylists(allPl);
+  /**
+   * Read the playlists, the active playlist / onboarding decision and its
+   * channels and groups. Also the "reload everything" action (EPG change,
+   * Settings refresh, onboarding completion), so it never rejects: `useAppBoot`
+   * owns the failure logging and the boot gate.
+   */
+  const loadDatabase = useCallback(async () => {
+    await syncDemoPlaylistIfOutdated();
+    const allPl = await getAllPlaylists();
+    setPlaylists(allPl);
 
-      const activePl = await getActivePlaylist();
-      setActivePlaylist(activePl);
+    const activePl = await getActivePlaylist();
+    setActivePlaylist(activePl);
 
-      if (activePl) {
-        const [chans, grps] = await Promise.all([
-          getChannelsByGroup(activePl.id),
-          getGroupsForPlaylist(activePl.id),
-        ]);
-        setChannels(chans);
-        setGroups(grps);
-      } else {
-        setChannels([]);
-        setGroups([]);
-      }
-    } catch (err) {
-      console.error('Error loading IPTV data:', err);
-    } finally {
-      setIsLoading(false);
+    if (activePl) {
+      const [chans, grps] = await Promise.all([
+        getChannelsByGroup(activePl.id),
+        getGroupsForPlaylist(activePl.id),
+      ]);
+      setChannels(chans);
+      setGroups(grps);
+    } else {
+      setChannels([]);
+      setGroups([]);
     }
   }, []);
 
-  useEffect(() => {
-    refreshData();
-  }, [refreshData]);
+  const { isBooting, isLeaving, refreshData } = useAppBoot(loadDatabase);
 
   // Handle color keys shortcuts when not inside video player
   useTvInput((event) => {
     if (playingChannel) return; // Player has its own handlers
+
+    // Ignore everything while the boot splash is up (ADR 022): these shortcuts
+    // mutate the destination, so a remote pressed at the splash would land the
+    // user in Settings or the Guide the moment it cleared.
+    if (isBooting) return;
 
     // Remember where focus was in content so the rail can restore it later.
     const currentFocusKey = getCurrentFocusKey();
@@ -159,7 +160,7 @@ export default function App() {
       setActiveNavId('settings');
       return true;
     }
-  }, [playingChannel]);
+  }, [isBooting, playingChannel]);
 
   // Navigate from the rail. Activating the already-active destination is a
   // no-op that instead moves focus into the current screen's content.
@@ -214,19 +215,30 @@ export default function App() {
     );
   };
 
+  // Cold boot: nothing else renders until the boot sequence settles, and the
+  // splash stays on top while it fades out (ADR 022).
+  if (isBooting && !isLeaving) {
+    return <AppSplash />;
+  }
+
+  const leavingSplash = isLeaving ? <AppSplash leaving /> : null;
+
   // If no playlist exists or user explicitly requested onboarding
-  if (!isLoading && (!activePlaylist || showOnboarding)) {
+  if (!activePlaylist || showOnboarding) {
     return (
-      <OnboardingFlow
-        onComplete={() => {
-          setShowOnboarding(false);
-          refreshData();
-        }}
-        onOpenSettings={() => {
-          setShowOnboarding(false);
-          setActiveNavId('settings');
-        }}
-      />
+      <>
+        <OnboardingFlow
+          onComplete={() => {
+            setShowOnboarding(false);
+            refreshData();
+          }}
+          onOpenSettings={() => {
+            setShowOnboarding(false);
+            setActiveNavId('settings');
+          }}
+        />
+        {leavingSplash}
+      </>
     );
   }
 
@@ -348,6 +360,7 @@ export default function App() {
         />
       )}
     </div>
+    {leavingSplash}
     </EpgProvider>
   );
 }

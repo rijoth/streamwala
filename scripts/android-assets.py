@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenerate Android launcher icons, TV banner and splash screens.
+"""Regenerate the brand artwork: Android icons/banner/splashes and the web mark.
 
 Usage:  python3 scripts/android-assets.py
 
@@ -9,6 +9,15 @@ colour stays in sync with `android/app/src/main/res/values/colors.xml`.
 
 Brand: background #0B0C13, plate #1B4578 (M3 primary-container), glyph #A0CAFF
 (M3 primary), live pip #D6BDFB (M3 tertiary) — all from src/index.css.
+
+This script also writes the web layer's copies of the mark (ADR 022):
+`src/shared/ui/brand/streamwala-mark.svg`, `public/favicon.svg`, and the inline
+copy between the `streamwala-mark` markers in `index.html`. There is no
+hand-pasted copy of the mark anywhere, so the mark cannot drift into two shapes
+the way it did before ADR 021. The browser build and CI have no Python at all,
+so those committed outputs are the contract and
+`src/shared/ui/brand/brandAssets.test.ts` fails if they disagree with the
+constants below or with each other.
 """
 
 from __future__ import annotations
@@ -18,7 +27,13 @@ import pathlib
 
 from PIL import Image, ImageDraw
 
-RES = pathlib.Path(__file__).resolve().parent.parent / "android/app/src/main/res"
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+RES = ROOT / "android/app/src/main/res"
+WEB_MARK = ROOT / "src/shared/ui/brand/streamwala-mark.svg"
+WEB_FAVICON = ROOT / "public/favicon.svg"
+INDEX_HTML = ROOT / "index.html"
+INLINE_MARK_START = "<!-- streamwala-mark:start -->"
+INLINE_MARK_END = "<!-- streamwala-mark:end -->"
 
 BACKGROUND = (11, 12, 19, 255)
 ACCENT_DIM = (27, 69, 120, 255)
@@ -33,6 +48,42 @@ GLYPH_RY = 0.125
 GLYPH_STROKE = 0.092
 PIP_RADIUS = 0.056
 PIP_CENTRE = 0.815
+
+# The SVG draws in a 1000-unit plate box, so every fraction above carries over
+# unchanged instead of being restated in pixels.
+SVG_UNITS = 1000
+# Favicon only: the mark covers 86% of the canvas so it does not run into the
+# browser's own rounding, and the rest is the brand background.
+SVG_FAVICON_INSET = 0.86
+
+
+def glyph_points(left: float, top: float, side: float) -> list[tuple[float, float]]:
+    """The "S" spine as one polyline inside a plate box at `left`/`top`/`side`.
+
+    Shared by the raster and the vector build so the two cannot disagree about
+    the shape.
+    """
+    cx = left + side / 2
+    cy = top + side / 2
+    rx = side * GLYPH_RX
+    ry = side * GLYPH_RY
+    steps = 96
+    sweep = 3 * math.pi / 2
+
+    points: list[tuple[float, float]] = []
+
+    # Upper bowl: right terminal, over the top, down the left, to the centre.
+    for i in range(steps + 1):
+        phi = sweep * i / steps
+        points.append((cx + rx * math.cos(phi), cy - ry - ry * math.sin(phi)))
+
+    # Lower bowl: centre, out to the right, under the bottom, to the left
+    # terminal. The centre point is shared with the upper bowl, so skip it.
+    for i in range(1, steps + 1):
+        psi = sweep + sweep * i / steps
+        points.append((cx + rx * math.cos(psi), cy + ry + ry * math.sin(psi)))
+
+    return points
 
 
 def draw_glyph(draw: ImageDraw.ImageDraw, left: float, top: float, side: float) -> None:
@@ -53,32 +104,15 @@ def draw_glyph(draw: ImageDraw.ImageDraw, left: float, top: float, side: float) 
     Emitted as one polyline with rounded joints and round terminals, at a stroke
     weight that matches the Material Symbols Rounded icons in the nav rail.
     """
-    cx = left + side / 2
-    cy = top + side / 2
-    rx = side * GLYPH_RX
-    ry = side * GLYPH_RY
     stroke = max(2, int(round(side * GLYPH_STROKE)))
-    steps = 96
-    sweep = 3 * math.pi / 2
-
-    points: list[tuple[float, float]] = []
-
-    # Upper bowl: right terminal, over the top, down the left, to the centre.
-    for i in range(steps + 1):
-        phi = sweep * i / steps
-        points.append((cx + rx * math.cos(phi), cy - ry - ry * math.sin(phi)))
-
-    # Lower bowl: centre, out to the right, under the bottom, to the left
-    # terminal. The centre point is shared with the upper bowl, so skip it.
-    for i in range(1, steps + 1):
-        psi = sweep + sweep * i / steps
-        points.append((cx + rx * math.cos(psi), cy + ry + ry * math.sin(psi)))
+    points = glyph_points(left, top, side)
 
     draw.line(points, fill=ACCENT, width=stroke, joint="curve")
 
     # PIL's thick-line joints leave 1px pinholes where chords meet on a convex
     # curve, and it has no round line caps at all. Stamping a disc at every
-    # vertex makes the union an exact round-joined, round-capped stroke.
+    # vertex makes the union an exact round-joined, round-capped stroke. The SVG
+    # build gets the same silhouette from stroke-linecap/linejoin="round".
     cap = stroke / 2
     for x, y in points:
         draw.ellipse([x - cap, y - cap, x + cap, y + cap], fill=ACCENT)
@@ -210,9 +244,88 @@ def write_launcher_background() -> None:
     )
 
 
+def hex_color(rgb: tuple[int, int, int, int]) -> str:
+    return "#{:02X}{:02X}{:02X}".format(*rgb[:3])
+
+
+def fmt(value: float) -> str:
+    """One decimal, trailing zeros trimmed, so regenerating is byte-identical."""
+    return f"{value:.1f}".rstrip("0").rstrip(".")
+
+
+def svg_document(*, background: tuple[int, int, int, int] | None, inset: float) -> str:
+    """The mark as SVG, for the web splash and the favicon.
+
+    `inset` is how much of the canvas the plate covers: the splash mark fills it
+    (the CSS sizes it), the favicon leaves a margin so the browser's own
+    rounding cannot clip the plate corner.
+    """
+    side = SVG_UNITS * inset
+    offset = (SVG_UNITS - side) / 2
+    stroke = max(2, int(round(side * GLYPH_STROKE)))
+    points = glyph_points(offset, offset, side)
+    path = "M" + " L".join(f"{fmt(x)} {fmt(y)}" for x, y in points)
+    pip = offset + side * PIP_CENTRE
+
+    lines = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {SVG_UNITS} {SVG_UNITS}"'
+        f' width="{SVG_UNITS}" height="{SVG_UNITS}" aria-hidden="true">',
+    ]
+    if background is not None:
+        lines.append(
+            f'  <rect width="{SVG_UNITS}" height="{SVG_UNITS}" fill="{hex_color(background)}"/>'
+        )
+    lines += [
+        f'  <rect x="{fmt(offset)}" y="{fmt(offset)}" width="{fmt(side)}" height="{fmt(side)}"'
+        f' rx="{fmt(side * PLATE_RADIUS)}" fill="{hex_color(ACCENT_DIM)}"/>',
+        f'  <path d="{path}" fill="none" stroke="{hex_color(ACCENT)}" stroke-width="{fmt(stroke)}"'
+        ' stroke-linecap="round" stroke-linejoin="round"/>',
+        f'  <circle cx="{fmt(pip)}" cy="{fmt(pip)}" r="{fmt(side * PIP_RADIUS)}"'
+        f' fill="{hex_color(TERTIARY)}"/>',
+        "</svg>",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def write_inline_svg(mark: str) -> None:
+    """Rewrite the inline mark in index.html between its markers.
+
+    index.html cannot import the SVG, and a hand-pasted copy is exactly the
+    drift this generator exists to prevent, so the copy is generated too.
+    """
+    html = INDEX_HTML.read_text()
+    start = html.find(INLINE_MARK_START)
+    end = html.find(INLINE_MARK_END)
+    if start == -1 or end == -1 or end < start:
+        raise SystemExit(
+            f"index.html is missing the {INLINE_MARK_START} / {INLINE_MARK_END} markers"
+        )
+
+    indented = "\n".join(f"        {line}" if line else line for line in mark.splitlines())
+    head = html[: start + len(INLINE_MARK_START)]
+    tail = html[end:]
+    updated = f"{head}\n{indented}\n{tail}"
+    if updated != html:
+        INDEX_HTML.write_text(updated)
+
+
+def write_web_brand() -> None:
+    """Splash mark, favicon and the inline pre-React copy of the mark."""
+    mark = svg_document(background=None, inset=1.0)
+    WEB_MARK.parent.mkdir(parents=True, exist_ok=True)
+    WEB_MARK.write_text(mark)
+
+    WEB_FAVICON.parent.mkdir(parents=True, exist_ok=True)
+    WEB_FAVICON.write_text(svg_document(background=BACKGROUND, inset=SVG_FAVICON_INSET))
+
+    write_inline_svg(mark)
+
+
 if __name__ == "__main__":
     write_icons()
     write_banner()
     write_splashes()
     write_launcher_background()
+    write_web_brand()
     print("Android assets regenerated in", RES)
+    print("Web brand written to", WEB_MARK.parent, "and", WEB_FAVICON.parent)
