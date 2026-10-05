@@ -21,7 +21,9 @@
     "android:sync": "npm run build && cap sync android",
     "android:debug": "npm run android:sync && bash scripts/android-gradle.sh assembleMobileDebug assembleTvDebug",
     "android:release": "npm run android:sync && bash scripts/android-gradle.sh assembleMobileRelease assembleTvRelease",
-    "android:java": "bash scripts/android-gradle.sh --version"
+    "android:bundle": "npm run android:sync && bash scripts/android-gradle.sh bundleMobileRelease bundleTvRelease",
+    "android:java": "bash scripts/android-gradle.sh --version",
+    "release": "bash scripts/release.sh"
   },
   "dependencies": {
     "@capacitor/android": "^7.6.9",

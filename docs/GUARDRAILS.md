@@ -142,3 +142,9 @@ Each guardrail below prevents a bug class found in the audit (see
 coverage thresholds → Playwright Chromium. `.github/workflows/ci.yml` installs
 dependencies and the Chromium browser, then runs `npm run check`. Any guardrail
 violation fails the job.
+
+`.github/workflows/release.yml` runs the same gate on a `v*` tag before it builds
+or publishes anything, so a tagged commit cannot ship without passing here. It
+then verifies the artifacts too: `apksigner` rejects a debug-signed APK, and
+`aapt2 dump badging` pins each flavour's launcher and `uses-feature` identity
+plus the tag's `versionCode`/`versionName`. See `docs/RELEASING.md`.

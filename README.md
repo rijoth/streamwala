@@ -89,6 +89,17 @@ npm run android:assets   # regenerate icons, banner and splash
 
 APKs land in `android/app/build/outputs/apk/{mobile,tv}/{debug,release}/`. `docs/ANDROID.md` covers signing, installing and the manifest checks.
 
+## Releases
+
+A git tag is the release. Pushing `v1.2.3` runs `.github/workflows/release.yml`, which checks the commit exactly like a pull request, builds the web bundle and both Android form factors, and publishes a GitHub Release with the zip, both signed APKs, both AABs and a `SHA256SUMS.txt` attached.
+
+```bash
+scripts/release.sh patch --push        # v0.1.0 -> v0.1.1, tagged and published
+scripts/release.sh v1.0.0-rc.1 --push  # pre-release
+```
+
+The tag is the version: the pipeline derives `versionName` and `versionCode` from it, so nothing in the repository can disagree with what was shipped. Releases need four `ANDROID_*` repository secrets (the release keystore, base64-encoded) — `docs/RELEASING.md` has the list, the failure modes and how to re-run or undo one.
+
 ## Only a player
 
 Streamwala ships no channels and no playlists. You are responsible for the sources you add and for having the right to watch them. The built-in demo list is public test streams and open movie clips only.

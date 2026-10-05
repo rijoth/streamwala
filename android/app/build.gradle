@@ -10,6 +10,16 @@ if (keystorePropsFile.exists()) {
     keystoreProps.load(new FileInputStream(keystorePropsFile))
 }
 
+/**
+ * The release pipeline stamps the version from the git tag:
+ *   -Pstreamwala.versionName=1.2.3 -Pstreamwala.versionCode=1002003
+ * (see .github/workflows/release.yml). A local build without those properties
+ * keeps the checked-in defaults. Read them into locals: `versionCode (expr)` is
+ * ambiguous to the Groovy parser and silently resolves to a method chain.
+ */
+def streamwalaVersionName = (project.findProperty('streamwala.versionName') ?: '1.0').toString()
+def streamwalaVersionCode = (project.findProperty('streamwala.versionCode') ?: '1').toString().toInteger()
+
 android {
     namespace "tv.streamwala.iptv"
     compileSdk rootProject.ext.compileSdkVersion
@@ -17,8 +27,12 @@ android {
         applicationId "tv.streamwala.iptv"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // The release pipeline stamps the version from the git tag:
+        //   -Pstreamwala.versionName=1.2.3 -Pstreamwala.versionCode=1002003
+        // (see .github/workflows/release.yml and scripts/release.sh). A local
+        // build without those properties keeps the checked-in defaults.
+        versionCode = streamwalaVersionCode
+        versionName = streamwalaVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

@@ -73,6 +73,9 @@ precache-manifest*.js
 android/.gradle/
 android/build/
 android/app/build/
+# Release-pipeline scratch directories (created by .github/workflows/release.yml)
+release-artifacts/
+staging/
 android/app/release/
 android/capacitor-cordova-android-plugins/
 android/app/src/main/assets/

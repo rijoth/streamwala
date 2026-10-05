@@ -58,6 +58,7 @@ above ignores it, or fix it with `export JAVA_HOME=$HOME/.java/jdk`.
 ```bash
 npm run android:debug     # build web bundle, cap sync, assemble 2 debug APKs
 npm run android:release   # same, signed release APKs (needs keystore.properties)
+npm run android:bundle    # same, signed release AABs for Google Play
 npm run android:sync      # rebuild dist + cap sync only (after web changes)
 npm run android:assets    # regenerate icons / banner / splash from brand colors
 ```
@@ -69,6 +70,17 @@ android/app/build/outputs/apk/mobile/debug/streamwala-mobile-debug.apk
 android/app/build/outputs/apk/tv/debug/streamwala-tv-debug.apk
 android/app/build/outputs/apk/mobile/release/streamwala-mobile-release.apk
 android/app/build/outputs/apk/tv/release/streamwala-tv-release.apk
+android/app/build/outputs/bundle/mobileRelease/app-mobile-release.aab
+android/app/build/outputs/bundle/tvRelease/app-tv-release.aab
+```
+
+`versionName` / `versionCode` come from `android/app/build.gradle` defaults
+(`1.0` / `1`) unless the release pipeline stamps them from the git tag:
+
+```bash
+bash scripts/android-gradle.sh \
+  -Pstreamwala.versionName=1.2.3 -Pstreamwala.versionCode=1002003 \
+  assembleTvRelease
 ```
 
 Raw Gradle equivalents:
@@ -108,7 +120,10 @@ keyPassword=…
 `android/app/build.gradle` skips the release signing config when the file is
 absent, so debug builds keep working on a clean checkout. **Back the keystore up
 off-machine**: losing it means you can never update the app under the same
-identity.
+identity. The release pipeline keeps this hazard away from published artifacts
+by failing the job before Gradle whenever a keystore secret is missing, and by
+rejecting a release APK that `apksigner` reports as debug-signed. See
+`docs/RELEASING.md`.
 
 ## 5. What the shell does (and does not do)
 
@@ -152,10 +167,19 @@ ANDROID_HOME/build-tools/35.0.0/apksigner verify --print-certs <apk>
 npm run check
 ```
 
-Expected in the TV badging output: `leanback-launchable-activity`,
-`uses-feature: android.software.leanback`,
-`uses-feature-not-required: android.hardware.touchscreen`. The mobile APK must
-show neither a leanback launcher nor the leanback feature.
+Expected in the TV badging output:
+
+```
+launchable-activity: name='tv.streamwala.iptv.MainActivity' …
+leanback-launchable-activity: name='tv.streamwala.iptv.MainActivity' …
+  uses-feature-not-required: name='android.hardware.touchscreen'
+  uses-feature: name='android.software.leanback'
+```
+
+The mobile APK must show neither a leanback launcher nor
+`uses-feature: name='android.software.leanback'`, and must require the
+touchscreen instead. `.github/workflows/release.yml` asserts all of these with
+`aapt2`, plus the tag's `versionCode`/`versionName`, before it publishes.
 
 D-pad geometry is still covered by `e2e/dpad.spec.ts` for the web surface. jsdom
 cannot prove device focus behaviour, so device-level checks are instrumented

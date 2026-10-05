@@ -1,0 +1,413 @@
+name: Release
+
+# A git tag is the release trigger. Nothing else publishes.
+#
+#   scripts/release.sh patch --push        # v0.1.0 -> v0.1.1, pushed -> pipeline runs
+#
+# Flow: version (validate tag, derive versionName/versionCode, build the notes)
+#   -> verify (`npm run check`, the same gate as CI)
+#   -> web (static bundle zip) and android (signed APKs + AABs, verified)
+#   -> release (GitHub Release with all assets and SHA256SUMS.txt).
+#
+# docs/RELEASING.md covers the required secrets, the version scheme and re-runs.
+
+on:
+  push:
+    tags:
+      - 'v[0-9]*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to (re)release, e.g. v0.1.0'
+        required: true
+        type: string
+
+# One release per tag, never cancelled: a half-published release is worse than a slow one.
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    name: Resolve version
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.derive.outputs.tag }}
+      version: ${{ steps.derive.outputs.version }}
+      version_code: ${{ steps.derive.outputs.version_code }}
+      prerelease: ${{ steps.derive.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - name: Validate the tag, derive versionName / versionCode, build the notes
+        id: derive
+        env:
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$TAG" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "::error title=Unsupported tag::Release tags must look like v1.2.3 or v1.2.3-rc.1 (got '$TAG')."
+            exit 1
+          fi
+
+          major="${BASH_REMATCH[1]}"
+          minor="${BASH_REMATCH[2]}"
+          patch="${BASH_REMATCH[3]}"
+          suffix="${BASH_REMATCH[4]}"
+
+          # versionCode packs the tag: major*1000000 + minor*1000 + patch, so it
+          # is monotonic across releases and fits Android's 2100000000 ceiling.
+          if (( major > 2099 || minor > 999 || patch > 999 )); then
+            echo "::error title=Version out of range::versionCode packs major*1000000 + minor*1000 + patch, so major<=2099 and minor,patch<=999."
+            exit 1
+          fi
+
+          version="${TAG#v}"
+          version_code=$(( major * 1000000 + minor * 1000 + patch ))
+          prerelease=false
+          if [ -n "$suffix" ]; then
+            prerelease=true
+          fi
+
+          {
+            echo "tag=$TAG"
+            echo "version=$version"
+            echo "version_code=$version_code"
+            echo "prerelease=$prerelease"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "release: $TAG -> versionName $version, versionCode $version_code, prerelease $prerelease"
+
+          previous="$(git tag --list 'v[0-9]*' --sort=-v:refname | grep -v -x "$TAG" | head -n1 || true)"
+
+          {
+            printf '## Streamwala %s\n\n' "$version"
+            printf 'One client-side IPTV player, built from one tag: the static web bundle plus the mobile and Android TV apps. No backend, no account, everything stays on the device.\n\n'
+            printf '### Downloads\n\n'
+            printf '| Target | Asset |\n| --- | --- |\n'
+            printf '| Web (any browser, 10-foot UI) | streamwala-web-v%s.zip |\n' "$version"
+            printf '| Android phone / tablet | streamwala-mobile-v%s.apk |\n' "$version"
+            printf '| Android TV / Google TV / Fire TV | streamwala-tv-v%s.apk |\n' "$version"
+            printf '| Google Play (mobile) | streamwala-mobile-v%s.aab |\n' "$version"
+            printf '| Google Play (TV) | streamwala-tv-v%s.aab |\n' "$version"
+            printf '\nBoth APKs and both AABs are signed with the same release key, and SHA256SUMS.txt covers every asset above.\n\n'
+            printf 'Web: unzip and serve the folder over HTTPS. The app is 100%% client-side, so opening index.html from file:// will not work.\n\n'
+            printf 'Android: sideload the APK with adb install -r, or download it on the device. Mobile and TV use different application ids (tv.streamwala.iptv, tv.streamwala.iptv.tv), so both can live side by side on one box.\n\n'
+            printf '### Changes\n\n'
+            if [ -n "$previous" ]; then
+              printf 'Since %s:\n\n' "$previous"
+              git log --no-merges --pretty='- %s (%h)' "$previous..$TAG"
+              printf '\n**Full changelog:** %s/%s/compare/%s...%s\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$previous" "$TAG"
+            else
+              printf 'First tagged release:\n\n'
+              git log --no-merges --pretty='- %s (%h)' "$TAG"
+            fi
+          } > release-notes.md
+
+          echo "--- release-notes.md ---"
+          cat release-notes.md
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-notes
+          path: release-notes.md
+          retention-days: 7
+
+  verify:
+    name: Check (same gate as CI)
+    needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      # tsc + eslint guardrails + vitest coverage thresholds + playwright e2e.
+      # A tag is not allowed to publish code that would not pass a pull request.
+      - name: Check
+        run: npm run check
+
+  web:
+    name: Web bundle
+    needs: version
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Package dist
+        run: |
+          set -euo pipefail
+          test -f dist/index.html
+          mkdir -p staging release-artifacts
+          cp -R dist "staging/streamwala-web-v$VERSION"
+          ( cd staging && zip -qr "../release-artifacts/streamwala-web-v$VERSION.zip" "streamwala-web-v$VERSION" )
+          ( cd release-artifacts && sha256sum ./* > SHA256SUMS.txt )
+          ls -l release-artifacts
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bundle-web
+          path: release-artifacts/
+          if-no-files-found: error
+          retention-days: 14
+
+  android:
+    name: Signed Android build
+    needs: [version, verify]
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      VERSION_CODE: ${{ needs.version.outputs.version_code }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      # scripts/android-gradle.sh picks a JDK 21+ itself; setup-java makes
+      # JAVA_HOME one so the wrapper resolves it on the first try.
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Install Android SDK packages
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Android/Sdk}}"
+          if [ ! -d "$SDK/cmdline-tools" ]; then
+            echo "::error title=No Android SDK::no cmdline-tools under '$SDK'."
+            exit 1
+          fi
+          yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
+          "$SDK/cmdline-tools/latest/bin/sdkmanager" --install \
+            "platform-tools" "platforms;android-35" "build-tools;35.0.0" > /dev/null
+          {
+            echo "ANDROID_HOME=$SDK"
+            echo "ANDROID_SDK_ROOT=$SDK"
+          } >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Restore the release keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          for name in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error title=Missing secret::\$name is empty. Set all four ANDROID_* secrets; see docs/RELEASING.md."
+              exit 1
+            fi
+          done
+
+          # A release that silently falls back to an unsigned or debug-signed APK
+          # is worse than a failed job, so fail before Gradle runs.
+          if ! git check-ignore -q android/keystore.properties || ! git check-ignore -q android/aether-release.jks; then
+            echo "::error title=Keystore not ignored::android/keystore.properties and android/*.jks must stay gitignored."
+            exit 1
+          fi
+
+          umask 077
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > android/aether-release.jks
+          printf 'storeFile=aether-release.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+            "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > android/keystore.properties
+
+          echo "release: keystore restored, alias '$KEY_ALIAS'"
+
+      - name: Build the web bundle and sync it into the shell
+        run: npm run android:sync
+
+      - name: Assemble signed release APKs and AABs
+        run: |
+          set -euo pipefail
+          bash scripts/android-gradle.sh \
+            -Pstreamwala.versionName="$VERSION" \
+            -Pstreamwala.versionCode="$VERSION_CODE" \
+            assembleMobileRelease assembleTvRelease \
+            bundleMobileRelease bundleTvRelease
+
+      # Rule 15: an Android change is done when the APK is verified, not when it
+      # compiles. Signature, version and manifest identity are asserted here.
+      - name: Collect, verify and checksum
+        run: |
+          set -euo pipefail
+
+          SDK="${ANDROID_HOME:?}"
+          BT="$(ls -d "$SDK"/build-tools/35.* | tail -n1)"
+          APK_DIR="android/app/build/outputs/apk"
+          BUNDLE_DIR="android/app/build/outputs/bundle"
+          OUT="release-artifacts"
+          mkdir -p "$OUT"
+
+          fail() {
+            echo "::error title=Release verification failed::$1"
+            exit 1
+          }
+
+          mobile_apk="$OUT/streamwala-mobile-v$VERSION.apk"
+          tv_apk="$OUT/streamwala-tv-v$VERSION.apk"
+          cp "$APK_DIR/mobile/release/streamwala-mobile-release.apk" "$mobile_apk"
+          cp "$APK_DIR/tv/release/streamwala-tv-release.apk" "$tv_apk"
+
+          # AGP writes bundles to bundle/<flavour><BuildType>/ (app-mobile-release.aab).
+          mobile_aab="$(find "$BUNDLE_DIR/mobileRelease" -maxdepth 1 -name '*.aab' -print -quit)"
+          tv_aab="$(find "$BUNDLE_DIR/tvRelease" -maxdepth 1 -name '*.aab' -print -quit)"
+          if [ -z "$mobile_aab" ] || [ -z "$tv_aab" ]; then
+            fail "a release AAB is missing (looked in $BUNDLE_DIR/{mobileRelease,tvRelease})"
+          fi
+          cp "$mobile_aab" "$OUT/streamwala-mobile-v$VERSION.aab"
+          cp "$tv_aab" "$OUT/streamwala-tv-v$VERSION.aab"
+
+          for apk in "$mobile_apk" "$tv_apk"; do
+            certs="$("$BT/apksigner" verify --print-certs "$apk")" || fail "$apk is not a validly signed APK (keystore restored?)"
+            if echo "$certs" | grep -q 'CN=Android Debug'; then
+              fail "$apk was signed with the Android debug key"
+            fi
+            echo "$apk"
+            echo "$certs" | grep -E '^Signer #1 certificate (DN|SHA-256)' || true
+          done
+
+          tv_badging="$("$BT/aapt2" dump badging "$tv_apk")"
+          mobile_badging="$("$BT/aapt2" dump badging "$mobile_apk")"
+
+          # The TV APK is the leanback one: leanback launcher entry, leanback
+          # feature required, touchscreen explicitly not required.
+          grep -q 'leanback-launchable-activity' <<<"$tv_badging" || fail "TV APK has no leanback launcher activity"
+          grep -q "uses-feature: name='android.software.leanback'" <<<"$tv_badging" || fail "TV APK does not require android.software.leanback"
+          grep -q "uses-feature-not-required: name='android.hardware.touchscreen'" <<<"$tv_badging" || fail "TV APK does not mark the touchscreen as not required"
+          if grep -q "uses-feature: name='android.hardware.touchscreen'" <<<"$tv_badging"; then
+            fail "TV APK requires a touchscreen"
+          fi
+
+          # The mobile APK must be the inverse: no leanback launcher, leanback
+          # not required, touchscreen required.
+          if grep -q 'leanback-launchable-activity' <<<"$mobile_badging"; then
+            fail "mobile APK declares a leanback launcher"
+          fi
+          grep -q "uses-feature-not-required: name='android.software.leanback'" <<<"$mobile_badging" || fail "mobile APK does not mark leanback as not required"
+          grep -q "uses-feature: name='android.hardware.touchscreen'" <<<"$mobile_badging" || fail "mobile APK does not require a touchscreen"
+          if grep -q "uses-feature: name='android.software.leanback'" <<<"$mobile_badging"; then
+            fail "mobile APK requires android.software.leanback"
+          fi
+
+          tv_package="$(grep -m1 '^package:' <<<"$tv_badging")"
+          mobile_package="$(grep -m1 '^package:' <<<"$mobile_badging")"
+          echo "TV:     $tv_package"
+          echo "Mobile: $mobile_package"
+
+          grep -q "name='tv.streamwala.iptv.tv'" <<<"$tv_package" || fail "TV APK package is not tv.streamwala.iptv.tv"
+          grep -q "name='tv.streamwala.iptv'" <<<"$mobile_package" || fail "mobile APK package is not tv.streamwala.iptv"
+          for line in "$tv_package" "$mobile_package"; do
+            grep -q "versionCode='$VERSION_CODE'" <<<"$line" || fail "expected versionCode $VERSION_CODE, got: $line"
+            grep -q "versionName='$VERSION'" <<<"$line" || fail "expected versionName $VERSION, got: $line"
+          done
+
+          ( cd "$OUT" && sha256sum ./* > SHA256SUMS.txt )
+          ls -l "$OUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bundle-android
+          path: release-artifacts/
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Publish GitHub Release
+    needs: [version, web, android]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ needs.version.outputs.tag }}
+      VERSION: ${{ needs.version.outputs.version }}
+      PRERELEASE: ${{ needs.version.outputs.prerelease }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: bundle-*
+          path: release-artifacts
+          merge-multiple: true
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-notes
+          path: notes
+
+      - name: Create or update the release
+        run: |
+          set -euo pipefail
+
+          echo "Assets:"
+          ls -l release-artifacts
+
+          # A pre-release tag (v1.2.3-rc.1) must never become "Latest".
+          prerelease_arg=""
+          if [ "$PRERELEASE" = "true" ]; then
+            prerelease_arg="--prerelease"
+          fi
+
+          # Re-running a release (workflow_dispatch, or a retried job) must be
+          # idempotent: edit and re-upload instead of failing on a 422.
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release edit "$TAG" \
+              --title "Streamwala $VERSION" \
+              --notes-file notes/release-notes.md \
+              $prerelease_arg
+            gh release upload "$TAG" release-artifacts/* --clobber
+          else
+            gh release create "$TAG" release-artifacts/* \
+              --verify-tag \
+              --title "Streamwala $VERSION" \
+              --notes-file notes/release-notes.md \
+              $prerelease_arg
+          fi
+
+          echo "Release: $(gh release view "$TAG" --json url -q .url)"
+          gh release view "$TAG" --json assets -q '.assets[].name'
