@@ -90,4 +90,23 @@ describe('App navigation shell', () => {
       expect(screen.queryByTestId('remote-hint-bar')).not.toBeInTheDocument()
     );
   });
+
+  it('covers the shell with the boot splash and drops remote shortcuts meanwhile', async () => {
+    await installDemoPlaylist();
+    renderWithProviders(<App />);
+
+    // Nothing of the app is mounted behind the splash: no rail, no empty rows.
+    expect(screen.getByTestId('app-splash')).toBeInTheDocument();
+    expect(screen.queryByTestId('navigation-rail')).not.toBeInTheDocument();
+
+    // COLOR_RED switches to Favorites once the app is interactive, so a press
+    // during the splash must be dropped instead of pre-selecting a destination.
+    fireEvent.keyDown(window, { key: 'ColorF0Red', keyCode: 403 });
+
+    await screen.findByText('Featured Live', undefined, { timeout: 5_000 });
+    // The splash fades out over the app, so it detaches a frame or two later.
+    await waitFor(() => expect(screen.queryByTestId('app-splash')).not.toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('button', { name: 'Favorites' })).not.toHaveAttribute('aria-current');
+  });
 });

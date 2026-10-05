@@ -68,6 +68,23 @@ hole through the plate is only 2.02:1 and vanishes at small sizes.
 The "S" is drawn as two 270° elliptical bowls meeting tangentially at the
 centre, not typeset, so the assets stay reproducible without an installed font.
 
+The same generator also writes the web layer's copies of the mark (ADR 022):
+`src/shared/ui/brand/streamwala-mark.svg` for the boot splash, `public/favicon.svg`
+for the tab icon, and the inline copy between the `streamwala-mark` markers in
+`index.html`, which paints before any script has run. Neither copy is hand-pasted
+— the generator rewrites the inline one. The SVG renders in a 1000-unit plate box
+so the fractions above carry over unchanged, and it asks for
+`stroke-linecap`/`stroke-linejoin="round"` where the raster build has to stamp a
+disc into every vertex (ADR 021 item 6). Regenerating everything is
+`npm run android:assets`; `src/shared/ui/brand/brandAssets.test.ts` fails if a
+committed copy drifts from these constants or from another copy, since the browser
+build and CI have no Python at all.
+
+The boot splash renders the mark at `--brand-mark-size` (`35vmin`, i.e. 0.35 of
+the shorter viewport side) — the bottom of the native splash's 0.35–0.54 range,
+matching its densest TV bucket, so the mark does not visibly resize when the
+native splash hands over to the web one.
+
 ## Remote color-key dots
 
 Physical remote colour keys keep their button colours regardless of theme.

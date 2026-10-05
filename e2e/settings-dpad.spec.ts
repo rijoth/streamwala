@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { waitForAppReady } from './helpers.ts';
 
 /**
  * Geometry-dependent D-pad coverage for the Settings screen (BUG-020).
@@ -53,6 +54,9 @@ async function focusRailSettings(p: Page) {
 
 async function openSettings(p: Page, viaDpad: boolean) {
   await p.goto('/');
+  // The boot splash ignores TV input and is not the onboarding screen, so the
+  // "is this a fresh profile?" probe below has to wait it out (ADR 022).
+  await waitForAppReady(p);
   const getStarted = p.getByRole('button', { name: /Get Started/i });
   if (await getStarted.isVisible().catch(() => false)) {
     await p.keyboard.press('Enter');
