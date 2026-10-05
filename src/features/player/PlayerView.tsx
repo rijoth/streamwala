@@ -77,8 +77,8 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
   const controlsTimerRef = useRef<NodeJS.Timeout | null>(null);
   const nowNextTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Last channel id rendered, so the switch blip fires on a real switch and
-  // not on the initial tune-in. See the effect below.
+  // Last channel id rendered, so the switch blip fires exactly once per
+  // channel, including the tune-in on first mount. See the effect below.
   const previousChannelIdRef = useRef<string | null>(null);
 
   const resetControlsTimer = useCallback(() => {
@@ -110,13 +110,15 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
   }, [channel, triggerNowNextBanner]);
 
   // Channel-switch confirmation tone. Keyed on the channel id alone so the
-  // blip fires for every switch path (CH_UP/CH_DOWN, number zap, mini list)
-  // regardless of which handler caused it, and never on first mount or when
-  // the preference is toggled mid-session.
+  // blip fires for every way a channel becomes active: selecting a card,
+  // CH_UP/CH_DOWN, the number zap and the mini channel list. A new channel id
+  // on first mount is a tune-in, which is a channel switch from the viewer's
+  // point of view, so it gets the tone too. Toggling the preference while the
+  // player is open must not replay it (the id has not changed).
   useEffect(() => {
     const previousChannelId = previousChannelIdRef.current;
     previousChannelIdRef.current = channel.id;
-    if (previousChannelId === null || previousChannelId === channel.id) return;
+    if (previousChannelId === channel.id) return;
     if (settings.channelSwitchSound) playChannelSwitchSound();
   }, [channel.id, settings.channelSwitchSound]);
 
