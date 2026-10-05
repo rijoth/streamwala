@@ -39,6 +39,35 @@ for dark mode; `src/app/settingsStore.test.ts` enforces this.
 Changing `settings.uiScale` rewrites `--ui-scale`; everything derived from it
 (including the rail) reflows without component branches.
 
+## Brand mark
+
+`scripts/android-assets.py` is the single source of the mark. It is generated,
+never hand-exported, so the launcher icons, adaptive foregrounds, splash screens
+and the 320×180 TV banner cannot drift apart (ADR 018, ADR 021). Geometry is
+expressed as fractions of the plate side so one set of numbers covers every
+density:
+
+| Constant | Value | Role |
+|---|---|---|
+| `PLATE_RADIUS` | `0.23` | rounded plate corner, of the plate side |
+| `GLYPH_RX` / `GLYPH_RY` | `0.180` / `0.125` | "S" bowl radii |
+| `GLYPH_STROKE` | `0.092` | "S" stroke weight |
+| `PIP_RADIUS` | `0.056` | live pip radius |
+| `PIP_CENTRE` | `0.815` | pip centre, per axis, of the plate side |
+
+Colors are the M3 tokens above and nothing else: plate
+`--md-sys-color-primary-container` (`#1B4578`), glyph `--md-sys-color-primary`
+(`#A0CAFF`), pip `--md-sys-color-tertiary` (`#D6BDFB`). Contrast is 5.71:1
+glyph-on-plate and 5.78:1 pip-on-plate; the pip never touches the glyph, since
+tertiary-on-primary is 1.01:1. The two are held at least 9% of the plate side
+apart, which is ~4.8px at the smallest rendered size (the 48px legacy launcher
+icon); the first geometry tried left only 3.6%, i.e. 1.7px, and the pip read as
+part of the glyph. A negative-space play aperture is deliberately not used — a
+hole through the plate is only 2.02:1 and vanishes at small sizes.
+
+The "S" is drawn as two 270° elliptical bowls meeting tangentially at the
+centre, not typeset, so the assets stay reproducible without an installed font.
+
 ## Remote color-key dots
 
 Physical remote colour keys keep their button colours regardless of theme.

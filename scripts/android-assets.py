@@ -7,61 +7,110 @@ The web app is the product; these assets are the only bitmap artwork the native
 shell ships. Keeping them generated (instead of hand-exported) means the brand
 colour stays in sync with `android/app/src/main/res/values/colors.xml`.
 
-Brand: background #0B0C13, accent #A0CAFF (M3 primary from src/index.css).
+Brand: background #0B0C13, plate #1B4578 (M3 primary-container), glyph #A0CAFF
+(M3 primary), live pip #D6BDFB (M3 tertiary) — all from src/index.css.
 """
 
 from __future__ import annotations
 
+import math
 import pathlib
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 RES = pathlib.Path(__file__).resolve().parent.parent / "android/app/src/main/res"
 
 BACKGROUND = (11, 12, 19, 255)
-ACCENT = (160, 202, 255, 255)
 ACCENT_DIM = (27, 69, 120, 255)
+ACCENT = (160, 202, 255, 255)
+TERTIARY = (214, 189, 251, 255)
 
-FONT_CANDIDATES = [
-    "/usr/share/fonts/noto/NotoSans-Bold.ttf",
-    "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
-    "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-]
+# Mark geometry, every value as a fraction of the plate side so the launcher
+# icons, splash screens and TV banner cannot drift apart.
+PLATE_RADIUS = 0.23
+GLYPH_RX = 0.180
+GLYPH_RY = 0.125
+GLYPH_STROKE = 0.092
+PIP_RADIUS = 0.056
+PIP_CENTRE = 0.815
 
 
-def load_font(size: int) -> ImageFont.FreeTypeFont:
-    for candidate in FONT_CANDIDATES:
-        path = pathlib.Path(candidate)
-        if path.exists():
-            return ImageFont.truetype(str(path), size)
-    raise SystemExit("No bold TTF font found; install dejavu or liberation fonts.")
+def draw_glyph(draw: ImageDraw.ImageDraw, left: float, top: float, side: float) -> None:
+    """Draw the Streamwala "S" as a stroked path.
+
+    Geometric, not typeset: a font glyph would make the artwork depend on which
+    bold TTF happens to be installed, so the assets would stop being
+    reproducible (ADR 018).
+
+    The spine is two 270-degree bowls that meet tangentially at the centre: the
+    upper bowl opens right, the lower bowl opens left, and both are horizontal
+    where they join, so the middle of the S is a smooth band rather than a seam.
+    Shapes that look right and are not: half-ellipse bowls joined by a straight
+    segment (reads as "Z"), a single-oscillation spine (reads as a slash), and a
+    1.5-oscillation cosine spine (reads as a lightning bolt — the reversals are
+    instantaneous instead of broad).
+
+    Emitted as one polyline with rounded joints and round terminals, at a stroke
+    weight that matches the Material Symbols Rounded icons in the nav rail.
+    """
+    cx = left + side / 2
+    cy = top + side / 2
+    rx = side * GLYPH_RX
+    ry = side * GLYPH_RY
+    stroke = max(2, int(round(side * GLYPH_STROKE)))
+    steps = 96
+    sweep = 3 * math.pi / 2
+
+    points: list[tuple[float, float]] = []
+
+    # Upper bowl: right terminal, over the top, down the left, to the centre.
+    for i in range(steps + 1):
+        phi = sweep * i / steps
+        points.append((cx + rx * math.cos(phi), cy - ry - ry * math.sin(phi)))
+
+    # Lower bowl: centre, out to the right, under the bottom, to the left
+    # terminal. The centre point is shared with the upper bowl, so skip it.
+    for i in range(1, steps + 1):
+        psi = sweep + sweep * i / steps
+        points.append((cx + rx * math.cos(psi), cy + ry + ry * math.sin(psi)))
+
+    draw.line(points, fill=ACCENT, width=stroke, joint="curve")
+
+    # PIL's thick-line joints leave 1px pinholes where chords meet on a convex
+    # curve, and it has no round line caps at all. Stamping a disc at every
+    # vertex makes the union an exact round-joined, round-capped stroke.
+    cap = stroke / 2
+    for x, y in points:
+        draw.ellipse([x - cap, y - cap, x + cap, y + cap], fill=ACCENT)
+
+
+def draw_pip(draw: ImageDraw.ImageDraw, left: float, top: float, side: float) -> None:
+    """Live pip in M3 tertiary: the one accent that is not a primary tone.
+
+    Kept fully inside the plate (never straddling the rounded corner) so the
+    adaptive-icon mask cannot clip it.
+    """
+    r = side * PIP_RADIUS
+    px = left + side * PIP_CENTRE
+    py = top + side * PIP_CENTRE
+    draw.ellipse([px - r, py - r, px + r, py + r], fill=TERTIARY)
 
 
 def draw_mark(draw: ImageDraw.ImageDraw, size: int, scale: float) -> None:
-    """Draw the play/tower mark inside a `size` box at `scale` of the box."""
+    """Draw the Streamwala mark inside a `size` box at `scale` of the box."""
     side = size * scale
     left = (size - side) / 2
     top = (size - side) / 2
 
     # Rounded plate
-    radius = side * 0.22
     draw.rounded_rectangle(
-        [left, top, left + side, top + side], radius=radius, fill=ACCENT_DIM
+        [left, top, left + side, top + side],
+        radius=side * PLATE_RADIUS,
+        fill=ACCENT_DIM,
     )
 
-    # Play triangle
-    tri_h = side * 0.42
-    tri_w = tri_h * 0.86
-    cx, cy = size / 2, size / 2
-    draw.polygon(
-        [
-            (cx - tri_w / 2, cy - tri_h / 2),
-            (cx - tri_w / 2, cy + tri_h / 2),
-            (cx + tri_w / 2, cy),
-        ],
-        fill=ACCENT,
-    )
+    draw_glyph(draw, left, top, side)
+    draw_pip(draw, left, top, side)
 
 
 def render(size: int, scale: float, *, bg: tuple[int, int, int, int] | None) -> Image.Image:
@@ -109,33 +158,18 @@ def write_icons() -> None:
 def write_banner() -> None:
     """Android TV home-screen banner: required 320x180 safe area.
 
-    Brand mark only — a letter "S" tile drawn in the M3 tokens (ACCENT_DIM
-    plate, ACCENT glyph). No wordmark: the app name lives in the launcher
-    label, matching the icon-only navigation rail.
+    The same mark as the launcher icons, so banner, icon, splash and nav-rail
+    mark are one shape. No wordmark: the app name lives in the launcher label
+    (ADR 019) and the navigation rail is icon-only.
     """
     path = RES / "drawable-nodpi"
     path.mkdir(parents=True, exist_ok=True)
     width, height = 320, 180
     banner = Image.new("RGB", (width, height), BACKGROUND[:3])
-    draw = ImageDraw.Draw(banner)
 
-    side = 96
-    left = (width - side) / 2
-    top = (height - side) / 2
-    draw.rounded_rectangle(
-        [left, top, left + side, top + side], radius=side * 0.24, fill=ACCENT_DIM
-    )
-
-    font = load_font(56)
-    bbox = draw.textbbox((0, 0), "S", font=font)
-    text_w = bbox[2] - bbox[0]
-    text_h = bbox[3] - bbox[1]
-    draw.text(
-        (left + (side - text_w) / 2 - bbox[0], top + (side - text_h) / 2 - bbox[1]),
-        "S",
-        font=font,
-        fill=ACCENT,
-    )
+    side = 104
+    mark = render(side, 1.0, bg=None)
+    banner.paste(mark, ((width - side) // 2, (height - side) // 2), mark)
 
     banner.save(path / "tv_banner.png")
 
