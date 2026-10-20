@@ -59,8 +59,9 @@ Each guardrail below prevents a bug class found in the audit (see
   (`e2e/helpers.ts`) instead of waiting on a content sentinel — that mismatch
   made `e2e/navigation-rail.spec.ts` fail intermittently under full-suite load.
 - **Negative proof:** reintroducing `autoFocus` on search results makes
-  `SearchView.test.tsx` fail (`expected 'sn:focusable-item-1' to be
-  'SEARCH_FIELD'`).
+  `SearchResultsGrid.test.tsx` fail (`expected 'sn:focusable-item-1' to be
+  'HOME_SEARCH_FIELD'`), and clearing an inline query that steals the caret
+  makes `HomeView.test.tsx` fail.
 
 ## D. Automated storage proof
 
@@ -135,6 +136,32 @@ Each guardrail below prevents a bug class found in the audit (see
 - **Negative proof:** making `planTransports` proxy-first fails 10 unit tests,
   both `src/services/epg/fetcher.test.ts` transport-policy cases, and all three
   `e2e/transport-policy.spec.ts` specs (`Received array: ["proxied", …]`).
+
+## G. Inline search: scoped queries, focus fallback, no focus theft
+
+- **Prevents:** a Yellow remote key with no destination, a filtered grid whose
+  `count`/keys/offset disagree with the rendered items, a removed result leaving
+  DOM focus on `<body>`, and clearing a query yanking the caret out of the field.
+- **Enforcement:** `src/domain/channelFilter.ts` owns matching (pure, unit
+  tested); `src/features/search/useSearchFocusGuard.ts` owns the filtered-grid
+  focus/scroll transition; `useGridScroller({ restore: false })` is mandatory
+  for query-derived grids; `useScrollRestore` and `Button` never move focus while
+  `isEditableElement(document.activeElement)` is true. `TextField` syncs the
+  engine cursor to its own field key on DOM focus. `e2e/search.spec.ts` drives
+  the real remote: rail has no Search destination, Yellow works on Home / Live
+  TV / Favorites / Guide / Settings / player, Home rows are replaced and
+  restored, Live chips re-scope the query, list/grid applies to results, an
+  unpinned focused card returns focus to the field, and narrowing a scrolled
+  result set clamps the offset instead of leaving a blank viewport.
+- **Extend:** a new browse surface that gains search must reuse `SearchField`,
+  `useChannelSearch` and `useSearchFocusGuard`, and add its field key to the
+  Yellow routing map plus `PRIMARY_FOCUS_TARGETS`. Never add the query to a
+  scroller `screenKey`.
+- **Negative proof:** removing the `isEditableElement` guard from
+  `useScrollRestore` / `Button` makes `HomeView.test.tsx` fail because the
+  remounted hero action takes the caret from the search input; returning a raw
+  `autoFocus` on result cards makes `SearchResultsGrid.test.tsx` and the e2e
+  focus assertion fail.
 
 ## Wiring into CI
 

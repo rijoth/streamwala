@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { waitForAppReady } from './helpers.ts';
+import { pressColorKey, waitForAppReady } from './helpers.ts';
 
 /**
  * Chromium-only D-pad end-to-end coverage. Geometry-dependent navigation is
@@ -128,18 +128,6 @@ test('BACK exits the player back to the app shell', async () => {
   await expect(page.locator('video')).toBeHidden();
 });
 
-/** Colour keys cannot be pressed by name in Playwright; dispatch the TV event. */
-async function pressColorKey(p: Page, key: string, keyCode: number) {
-  await p.evaluate(
-    ({ key, keyCode }) => {
-      const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
-      Object.defineProperty(event, 'keyCode', { get: () => keyCode });
-      window.dispatchEvent(event);
-    },
-    { key, keyCode }
-  );
-}
-
 /** Focus-ring owner's channel id and whether its Star icon is filled. */
 function focusedFavourite(p: Page) {
   return p.evaluate(() => {
@@ -159,7 +147,8 @@ test('Red key pins the focused channel instead of leaving the screen', async () 
 
   await page.getByRole('button', { name: 'Live TV' }).click();
   await expect(page.getByRole('heading', { name: 'All Channels' })).toBeVisible();
-  await page.keyboard.press('ArrowDown'); // category chips -> channel grid
+  await page.keyboard.press('ArrowDown'); // category chips -> inline search field
+  await page.keyboard.press('ArrowDown'); // search field -> channel grid
 
   await expect.poll(async () => (await focusedFavourite(page))?.id).toBeTruthy();
   const before = await focusedFavourite(page);

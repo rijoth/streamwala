@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { waitForAppReady } from './helpers.ts';
 
 /**
  * Focus-driven scrolling coverage on a large (10k channel) playlist.
@@ -81,7 +82,16 @@ function focusGeometry(p: Page): Promise<FocusGeometry | null> {
       const overflow = `${style.overflow}${style.overflowX}${style.overflowY}`;
       if (/hidden|auto|scroll|clip/.test(overflow)) {
         const pr = parent.getBoundingClientRect();
-        clip = { left: pr.left, top: pr.top, right: pr.right, bottom: pr.bottom };
+        // `overflow: clip` viewports paint the focus ring into an explicit
+        // clip margin instead of padding the content (which would desync the
+        // scroller's index math). Judge the real paint region.
+        const margin = parseFloat(style.overflowClipMargin) || 0;
+        clip = {
+          left: pr.left - margin,
+          top: pr.top - margin,
+          right: pr.right + margin,
+          bottom: pr.bottom + margin,
+        };
         break;
       }
       parent = parent.parentElement;
@@ -114,7 +124,14 @@ async function expectFocusedFullyVisible(p: Page, label: string) {
           geo.right + ringPad <= geo.clip.right + 2 &&
           geo.top - ringPad >= geo.clip.top - 2 &&
           geo.bottom + ringPad <= geo.clip.bottom + 2;
-        return inside ? 'ok' : `left=${Math.round(geo.left)} clip=${JSON.stringify(geo.clip)}`;
+        return inside
+          ? 'ok'
+          : `box=${JSON.stringify({
+              left: Math.round(geo.left),
+              top: Math.round(geo.top),
+              right: Math.round(geo.right),
+              bottom: Math.round(geo.bottom),
+            })} clip=${JSON.stringify(geo.clip)}`;
       },
       { timeout: 4_000, message: label }
     )
@@ -266,9 +283,13 @@ test('focused item stays visible at 720p, 1080p and 4K', async () => {
     [3840, 2160],
   ] as const) {
     await page.setViewportSize({ width, height });
-    await page.locator('aside button').nth(0).click(); // Home
-    await page.waitForTimeout(200);
+    // Reload so the module-level scroll memory from earlier specs cannot hand
+    // this viewport a stale offset; this test is about visibility, not restore.
+    await page.reload();
+    await waitForAppReady(page);
+    await expect(page.getByText('Featured Live')).toBeVisible({ timeout: 15_000 });
     await page.locator('aside button').nth(1).click(); // Live TV
+    await expect(page.getByRole('heading', { name: 'All Channels' })).toBeVisible();
     await page.waitForTimeout(400);
 
     for (const key of ['ArrowDown', 'ArrowRight', 'ArrowDown', 'ArrowLeft']) {

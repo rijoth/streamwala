@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Channel, Group } from '../../domain/types.ts';
 import { FocusZone, focusKeyExists, getCurrentFocusKey, setFocus } from '../../shared/focus/index.ts';
+import { useChannelSearch } from '../../shared/hooks/useChannelSearch.ts';
 import { useTvInput } from '../../shared/input/index.ts';
 import { Chip } from '../../shared/ui/index.ts';
 import { Icon } from '../../shared/icons/index.ts';
@@ -8,11 +9,13 @@ import {
   ScrollPositionIndicator,
   VirtualGrid,
   clamp,
+  focusRingClipStyle,
   rowSnapOffset,
   useGridScroller,
   useKeyRepeat,
   useStripScroller,
 } from '../../shared/scroll/index.ts';
+import { SearchField, useSearchFocusGuard } from '../search/index.ts';
 import {
   CHANNEL_GAP,
   CHANNEL_GRID_ITEM_HEIGHT,
@@ -32,6 +35,9 @@ export interface ChannelBrowserProps {
 
 type ChannelRef = { id: string };
 
+/** Both card types are results when the view toggle changes. */
+const RESULT_FOCUS_PREFIXES = ['CHANNEL_GRID_', 'CHANNEL_LIST_'] as const;
+
 export const ChannelBrowser: React.FC<ChannelBrowserProps> = ({
   channels,
   groups,
@@ -43,7 +49,8 @@ export const ChannelBrowser: React.FC<ChannelBrowserProps> = ({
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const isList = viewMode === 'list';
 
-  const filteredChannels = useMemo(
+  // The active chip is the search scope: `all`, `favorites`, or a group.
+  const scopedChannels = useMemo(
     () =>
       activeGroupId === 'all'
         ? channels
@@ -53,13 +60,18 @@ export const ChannelBrowser: React.FC<ChannelBrowserProps> = ({
     [channels, activeGroupId]
   );
 
+  const { query, setQuery, isSearching, results } = useChannelSearch(scopedChannels);
+  const displayChannels = isSearching ? results : scopedChannels;
+
   const listGap = 8;
   const gap = isList ? listGap : CHANNEL_GAP;
   const fallbackItemHeight = isList ? CHANNEL_LIST_ITEM_HEIGHT : CHANNEL_GRID_ITEM_HEIGHT;
 
   const { axis, config, columns, itemHeight, rowSize } = useGridScroller({
+    // Query is deliberately absent: the scroller is keyed by screen, so typing
+    // never re-runs the remembered offset/focus restore.
     screenKey: `live:${activeGroupId}:${viewMode}`,
-    count: filteredChannels.length,
+    count: displayChannels.length,
     rowSize: fallbackItemHeight + gap,
     minItemWidth: 180,
     gap,
@@ -67,6 +79,17 @@ export const ChannelBrowser: React.FC<ChannelBrowserProps> = ({
     columns: isList ? 1 : undefined,
     // Cards are rem-sized, so the row pitch must come from the rendered cell.
     measureItemHeight: true,
+  });
+
+  useSearchFocusGuard({
+    items: displayChannels,
+    isSearching,
+    fieldFocusKey: 'LIVE_SEARCH_FIELD',
+    resultFocusPrefixes: RESULT_FOCUS_PREFIXES,
+    axis,
+    columns,
+    rowSize,
+    config,
   });
 
   const chips = useMemo(() => {
@@ -79,15 +102,15 @@ export const ChannelBrowser: React.FC<ChannelBrowserProps> = ({
 
   const strip = useStripScroller({ itemCount: chips.length, memoryKey: `live:groups:${activeGroupId}` });
 
-  const totalRows = Math.max(1, Math.ceil(filteredChannels.length / Math.max(1, columns)));
+  const totalRows = Math.max(1, Math.ceil(displayChannels.length / Math.max(1, columns)));
   const keyForIndex = (index: number, mode = isList) =>
-    `${mode ? 'CHANNEL_LIST' : 'CHANNEL_GRID'}_${filteredChannels[index]?.id ?? ''}`;
+    `${mode ? 'CHANNEL_LIST' : 'CHANNEL_GRID'}_${displayChannels[index]?.id ?? ''}`;
 
   const idIndex = useMemo(() => {
     const map = new Map<string, number>();
-    filteredChannels.forEach((c, i) => map.set(c.id, i));
+    displayChannels.forEach((c, i) => map.set(c.id, i));
     return map;
-  }, [filteredChannels]);
+  }, [displayChannels]);
 
   const currentIndex = (): number => {
     const key = getCurrentFocusKey() ?? '';
@@ -97,7 +120,7 @@ export const ChannelBrowser: React.FC<ChannelBrowserProps> = ({
   };
 
   const jumpToIndex = (index: number) => {
-    if (index < 0 || index >= filteredChannels.length) return;
+    if (index < 0 || index >= displayChannels.length) return;
     const key = keyForIndex(index);
     // Fast path: the target is already inside the rendered window (within
     // overscan), so focus it directly and let minimal-scroll keep it in view.
@@ -114,7 +137,7 @@ export const ChannelBrowser: React.FC<ChannelBrowserProps> = ({
   const jumpRows = (deltaRows: number) => {
     const current = currentIndex();
     if (current < 0) return;
-    jumpToIndex(clamp(current + deltaRows * columns, 0, Math.max(0, filteredChannels.length - 1)));
+    jumpToIndex(clamp(current + deltaRows * columns, 0, Math.max(0, displayChannels.length - 1)));
   };
 
   // Held D-pad accelerates to 2/4 rows per step via the shared input layer.
@@ -144,13 +167,13 @@ export const ChannelBrowser: React.FC<ChannelBrowserProps> = ({
         const buffer = digitBufferRef.current;
         digitBufferRef.current = '';
         if (!buffer) return;
-        const index = filteredChannels.findIndex((c) => String(c.number ?? '').startsWith(buffer));
+        const index = displayChannels.findIndex((c) => String(c.number ?? '').startsWith(buffer));
         if (index >= 0) jumpToIndex(index);
       }, 2000);
       return true;
     }
     return false;
-  }, [filteredChannels, columns, rowSize, activeGroupId, viewMode]);
+  }, [displayChannels, columns, rowSize, activeGroupId, viewMode]);
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden text-[var(--md-sys-color-on-surface)]">
@@ -177,6 +200,16 @@ export const ChannelBrowser: React.FC<ChannelBrowserProps> = ({
         </div>
       </div>
 
+      <div className="px-6 pt-4">
+        <SearchField
+          focusKey="LIVE_SEARCH_FIELD"
+          value={query}
+          onChange={setQuery}
+          label="Search channels"
+          placeholder="Search this category by name, number or category"
+        />
+      </div>
+
       <div className="flex items-center justify-between py-3 px-6">
         <div className="flex items-center gap-3">
           <h2 className="text-xl font-bold tracking-tight">
@@ -186,7 +219,9 @@ export const ChannelBrowser: React.FC<ChannelBrowserProps> = ({
                 ? 'Favorite Channels'
                 : groups.find((g) => g.id === activeGroupId)?.name || 'Channels'}
           </h2>
-          <span className="text-sm text-[var(--md-sys-color-outline)]">({filteredChannels.length})</span>
+          <span className="text-sm text-[var(--md-sys-color-outline)]">
+            {isSearching ? `${displayChannels.length} of ${scopedChannels.length}` : `(${scopedChannels.length})`}
+          </span>
           <ScrollPositionIndicator axis={axis} itemSize={rowSize} count={totalRows} />
         </div>
 
@@ -201,56 +236,63 @@ export const ChannelBrowser: React.FC<ChannelBrowserProps> = ({
       </div>
 
       <div className="flex-1 min-h-0 px-6 pb-6">
-        {filteredChannels.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-[var(--md-sys-color-surface-container)] flex items-center justify-center text-[var(--md-sys-color-outline)] mb-3">
-              <Icon name="tv_off" size={32} />
-            </div>
-            <h3 className="font-semibold text-lg">No channels found in this category</h3>
-            <p className="text-sm text-[var(--md-sys-color-outline)] mt-1">
-              Select another group above or add favorites.
-            </p>
-          </div>
-        ) : (
-          <FocusZone focusKey={isList ? 'CHANNEL_LIST' : 'CHANNEL_GRID'} className="h-full">
-            <div
-              ref={axis.viewportRef}
-              data-testid="live-viewport"
-              data-scroll-axis="vertical"
-              className="relative h-full overflow-hidden"
-            >
-              <VirtualGrid<ChannelRef>
-                axis={axis}
-                items={filteredChannels}
-                columns={columns}
-                itemHeight={itemHeight}
-                gap={gap}
+        {/* The grid stays mounted at zero items so `contentRef` never detaches
+            from the layout pass; empty states are overlays inside the viewport. */}
+        <FocusZone focusKey={isList ? 'CHANNEL_LIST' : 'CHANNEL_GRID'} className="h-full">
+          <div
+            ref={axis.viewportRef}
+            data-testid="live-viewport"
+            data-scroll-axis="vertical"
+            className="relative h-full overflow-hidden"
+            style={focusRingClipStyle}
+          >
+            <VirtualGrid<ChannelRef>
+              axis={axis}
+              items={displayChannels}
+              columns={columns}
+              itemHeight={itemHeight}
+              gap={gap}
                 className="px-[var(--focus-ring-pad)]"
-                getKey={(item) => item.id}
-                renderItem={(channel, index) => {
-                  const ch = channel as Channel;
-                  return isList ? (
-                    <ChannelListItem
-                      channel={ch}
-                      index={index}
-                      focusKey={keyForIndex(index)}
-                      onSelect={() => onSelectChannel(ch)}
-                      onToggleFavorite={() => onToggleFavorite(ch.id)}
-                    />
-                  ) : (
-                    <ChannelGridCard
-                      channel={ch}
-                      index={index}
-                      focusKey={keyForIndex(index)}
-                      onSelect={() => onSelectChannel(ch)}
-                      onToggleFavorite={() => onToggleFavorite(ch.id)}
-                    />
-                  );
-                }}
-              />
-            </div>
-          </FocusZone>
-        )}
+              getKey={(item) => item.id}
+              renderItem={(channel, index) => {
+                const ch = channel as Channel;
+                return isList ? (
+                  <ChannelListItem
+                    channel={ch}
+                    index={index}
+                    focusKey={keyForIndex(index)}
+                    onSelect={() => onSelectChannel(ch)}
+                    onToggleFavorite={() => onToggleFavorite(ch.id)}
+                  />
+                ) : (
+                  <ChannelGridCard
+                    channel={ch}
+                    index={index}
+                    focusKey={keyForIndex(index)}
+                    onSelect={() => onSelectChannel(ch)}
+                    onToggleFavorite={() => onToggleFavorite(ch.id)}
+                  />
+                );
+              }}
+            />
+
+            {displayChannels.length === 0 && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
+                <div className="w-16 h-16 rounded-2xl bg-[var(--md-sys-color-surface-container)] flex items-center justify-center text-[var(--md-sys-color-outline)] mb-3">
+                  <Icon name={isSearching ? 'search_off' : 'tv_off'} size={32} />
+                </div>
+                <h3 className="font-semibold text-lg">
+                  {isSearching ? 'No channels match your search' : 'No channels found in this category'}
+                </h3>
+                <p className="text-sm text-[var(--md-sys-color-outline)] mt-1">
+                  {isSearching
+                    ? `Nothing in this category matches “${query.trim()}”. Clear the search or pick another group.`
+                    : 'Select another group above or add favorites.'}
+                </p>
+              </div>
+            )}
+          </div>
+        </FocusZone>
       </div>
     </div>
   );

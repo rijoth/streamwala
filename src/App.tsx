@@ -29,7 +29,6 @@ const EpgGuideView = React.lazy(() =>
   import('./features/guide/EpgGuideView.tsx').then((module) => ({ default: module.EpgGuideView }))
 );
 import { FavoritesView } from './features/favorites/index.ts';
-import { SearchView } from './features/search/index.ts';
 import { SettingsView } from './features/settings/index.ts';
 
 const NAV_DESTINATIONS: NavDestination[] = [
@@ -37,7 +36,6 @@ const NAV_DESTINATIONS: NavDestination[] = [
   { id: 'live', label: 'Live TV', icon: 'live_tv', path: '/live' },
   { id: 'guide', label: 'EPG Guide', icon: 'calendar_month', path: '/guide' },
   { id: 'favorites', label: 'Favorites', icon: 'star', path: '/favorites' },
-  { id: 'search', label: 'Search', icon: 'search', path: '/search' },
   { id: 'settings', label: 'Settings', icon: 'settings', path: '/settings' },
 ];
 
@@ -47,11 +45,10 @@ const NAV_DESTINATIONS: NavDestination[] = [
  * rather than staying on the rail.
  */
 const PRIMARY_FOCUS_TARGETS: Record<string, string[]> = {
-  home: ['HERO_ACTIONS', 'ROW_LIVE', 'ROW_CATEGORIES'],
-  live: ['CHANNEL_CATEGORIES', 'CHANNEL_GRID', 'CHANNEL_LIST'],
+  home: ['HERO_ACTIONS', 'ROW_LIVE', 'ROW_CATEGORIES', 'HOME_SEARCH_FIELD'],
+  live: ['CHANNEL_CATEGORIES', 'LIVE_SEARCH_FIELD', 'CHANNEL_GRID', 'CHANNEL_LIST'],
   guide: ['EPG_GRID', 'GUIDE_DAY_0'],
-  favorites: ['FAVORITES_GRID'],
-  search: ['SEARCH_FIELD'],
+  favorites: ['FAVORITES_GRID', 'FAVORITES_SEARCH_FIELD'],
   // The settings screen has no single focusable container; the first D-pad
   // stop is the active tab tile.
   settings: ['SETTINGS_TAB_appearance'],
@@ -106,6 +103,10 @@ export default function App() {
   // Forced onboarding state (e.g. adding new source)
   const [showOnboarding, setShowOnboarding] = useState(false);
 
+  // Focus key the next destination mount must land on, ahead of the usual
+  // primary targets (used by the Yellow key's route into Live TV search).
+  const pendingFocusRef = useRef<string | null>(null);
+
   // Initialize TV spatial engine and idle cursor
   useEffect(() => {
     initFocusEngine();
@@ -151,6 +152,45 @@ export default function App() {
     return isFav;
   }, []);
 
+  /**
+   * Focus `key` once its screen has mounted. Used when the destination is
+   * already active (e.g. Yellow inside the player), where the usual
+   * destination-change effect does not re-run.
+   */
+  const focusWhenReady = useCallback((key: string, attempt = 0) => {
+    if (focusKeyExists(key)) {
+      if (pendingFocusRef.current === key) pendingFocusRef.current = null;
+      setFocus(key);
+      return;
+    }
+    if (attempt >= 120) return;
+    requestAnimationFrame(() => focusWhenReady(key, attempt + 1));
+  }, []);
+
+  /**
+   * Yellow: focus the inline search field of the current screen. Guide and
+   * Settings have no field, so they route to Live TV with the full channel
+   * scope and land on its search field rather than the category chips.
+   */
+  const openSearch = useCallback(() => {
+    const fieldForNav: Record<string, string | undefined> = {
+      home: 'HOME_SEARCH_FIELD',
+      live: 'LIVE_SEARCH_FIELD',
+      favorites: 'FAVORITES_SEARCH_FIELD',
+    };
+    const field = fieldForNav[activeNavId];
+    if (field && focusKeyExists(field)) {
+      setFocus(field);
+      return;
+    }
+
+    const alreadyLive = activeNavId === 'live';
+    pendingFocusRef.current = 'LIVE_SEARCH_FIELD';
+    setActiveGroupId('all');
+    setActiveNavId('live');
+    if (alreadyLive) focusWhenReady('LIVE_SEARCH_FIELD');
+  }, [activeNavId, focusWhenReady]);
+
   // Handle color keys shortcuts when not inside video player
   useTvInput((event) => {
     if (playingChannel) return; // Player has its own handlers
@@ -183,14 +223,14 @@ export default function App() {
       return true;
     }
     if (event.action === 'COLOR_YELLOW') {
-      setActiveNavId('search');
+      openSearch();
       return true;
     }
     if (event.action === 'COLOR_BLUE') {
       setActiveNavId('settings');
       return true;
     }
-  }, [handleToggleFavorite, isBooting, playingChannel]);
+  }, [handleToggleFavorite, isBooting, playingChannel, openSearch]);
 
   // Navigate from the rail. Activating the already-active destination is a
   // no-op that instead moves focus into the current screen's content.
@@ -206,6 +246,7 @@ export default function App() {
         return;
       }
       clearContentFocusMemory();
+      pendingFocusRef.current = null;
       setActiveNavId(dest.id);
     },
     [activeNavId]
@@ -222,9 +263,17 @@ export default function App() {
     }
     let cancelled = false;
     let attempts = 0;
+    // A pending target (Yellow → Live TV search) outranks the usual primary
+    // targets for this destination. Read it once and clear it so a later
+    // destination change cannot inherit it.
+    const pending = pendingFocusRef.current;
+    pendingFocusRef.current = null;
     let raf = requestAnimationFrame(function tryFocus() {
       if (cancelled) return;
-      for (const key of PRIMARY_FOCUS_TARGETS[activeNavId] ?? []) {
+      const targets = pending
+        ? [pending, ...(PRIMARY_FOCUS_TARGETS[activeNavId] ?? [])]
+        : PRIMARY_FOCUS_TARGETS[activeNavId] ?? [];
+      for (const key of targets) {
         if (focusKeyExists(key)) {
           setFocus(key);
           return;
@@ -292,6 +341,7 @@ export default function App() {
               channels={channels}
               groups={groups}
               onSelectChannel={setPlayingChannel}
+              onToggleFavorite={handleToggleFavorite}
               onGoToLive={() => setActiveNavId('live')}
               onGoToCategory={(groupId) => {
                 setActiveGroupId(groupId);
@@ -338,14 +388,6 @@ export default function App() {
             />
           )}
 
-          {activeNavId === 'search' && (
-            <SearchView
-              channels={channels}
-              onSelectChannel={setPlayingChannel}
-              onToggleFavorite={handleToggleFavorite}
-            />
-          )}
-
           {activeNavId === 'settings' && (
             <SettingsView
               playlists={playlists}
@@ -375,7 +417,10 @@ export default function App() {
           }}
           onOpenSearch={() => {
             setPlayingChannel(null);
-            setActiveNavId('search');
+            setActiveGroupId('all');
+            setActiveNavId('live');
+            pendingFocusRef.current = 'LIVE_SEARCH_FIELD';
+            focusWhenReady('LIVE_SEARCH_FIELD');
           }}
           onOpenSettings={() => {
             setPlayingChannel(null);

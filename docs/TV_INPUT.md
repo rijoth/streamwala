@@ -18,9 +18,9 @@ The `src/shared/input` module intercepts raw keyboard and remote events and conv
 | `CH_DOWN` | ChannelDown (428), PageDown (34) | Previous channel |
 | `INFO` | ContextMenu (93), Info (457), KeyI, KeyM | Toggle nerd stats / Now-Next banner |
 | `DIGIT_0..9` | Key0–Key9 (48–57), Numpad0–9 (96–105) | Number zap buffer with 2s commit |
-| `COLOR_RED` | Tizen/webOS 403, Android `PROG_RED` (Chromium presents it as 403), key `Red`/`ColorF0Red` | Toggle favourite of the focused channel (Live TV / Home / Guide / Favorites / Search, player); opens the Favorites screen when focus is not on a channel |
+| `COLOR_RED` | Tizen/webOS 403, Android `PROG_RED` (Chromium presents it as 403), key `Red`/`ColorF0Red` | Toggle favourite of the focused channel (Live TV / Home / Guide / Favorites / inline search results / player); opens the Favorites screen when focus is not on a channel |
 | `COLOR_GREEN` | Tizen/webOS 404, Android `PROG_GREEN` (presented as 404), key `Green`/`ColorF1Green` | Shortcut: EPG Guide |
-| `COLOR_YELLOW` | Tizen/webOS 405, Android `PROG_YELLOW` (presented as 405), key `Yellow`/`ColorF2Yellow` | Shortcut: Search |
+| `COLOR_YELLOW` | Tizen/webOS 405, Android `PROG_YELLOW` (presented as 405), key `Yellow`/`ColorF2Yellow` | Focus the current screen's inline search field (Home / Live TV / Favorites); Guide, Settings and the player route to Live TV with the `all` chip and focus its field |
 | `COLOR_BLUE` | Tizen/webOS 406, Android `PROG_BLUE` (presented as 406), key `Blue`/`ColorF3Blue` | Shortcut: Settings |
 
 `STOP`, `FF` and `REWIND` still normalize in `keyCodes.ts`, but no player path

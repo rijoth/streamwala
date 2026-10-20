@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useFocusable } from '../focus/index.ts';
+import { isEditableElement } from '../input/useTvInput.ts';
 import { Icon } from '../icons/index.ts';
 
 export type ButtonVariant = 'filled' | 'tonal' | 'outlined' | 'text';
@@ -34,7 +35,10 @@ export const Button: React.FC<ButtonProps> = ({
   });
 
   useEffect(() => {
-    if (autoFocus) {
+    // Never steal focus from a text input that currently owns the caret, e.g.
+    // a screen whose auto-focusing primary action remounts when an inline
+    // search query is cleared.
+    if (autoFocus && !isEditableElement(document.activeElement)) {
       focusSelf();
     }
   }, [autoFocus, focusSelf]);

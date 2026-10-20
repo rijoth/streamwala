@@ -50,7 +50,10 @@ Public API is exported from `src/shared/scroll/index.ts` only.
 - Positioned content (`position: relative`) is required for the measurement
   helpers (`offsetTop`/`offsetLeft` are relative to it).
 - Add `--focus-ring-pad` (10 px) padding to scroll content so the 3 px focus
-  ring and `scale(1.04+)` are not clipped by `overflow: hidden`.
+  ring and `scale(1.04+)` are not clipped by `overflow: hidden`. Where padding
+  would change the index-math pitch (grids/lists), the clipping viewport uses
+  `overflow: clip` with `overflow-clip-margin: var(--focus-ring-pad)` instead:
+  the ring may paint into the margin, the row math is untouched.
 
 ## Adding a scrollable screen
 
@@ -71,6 +74,11 @@ Public API is exported from `src/shared/scroll/index.ts` only.
    layout and crop rem-sized text (BUG-022).
 6. Avoid putting content above the focused item in a way that shifts it (the
    leading spacer in `VirtualGrid` is a transform, never layout).
+7. A filtered grid keeps the VirtualGrid mounted at zero items and overlays its
+   empty state, so `contentRef` stays attached to the layout pass. When the
+   rendered set changes under focus, use
+   `src/features/search/useSearchFocusGuard.ts` to re-anchor a surviving card or
+   hand focus back to the search field when the focused card is gone.
 
 ## Key repeat
 
@@ -87,6 +95,17 @@ viewport of rows; digits quick-jump by channel number.
 `useScrollRestore` applies the remembered offset first (so the window renders
 the row) and then sets focus (next frame if needed). Memory is cleared on
 playlist change and falls back to "no focus key" when indices are invalidated.
+
+Two safety rules keep restoration from fighting the viewer:
+
+- **Never move focus out of a text input.** `useScrollRestore` restores the
+  offset but skips the focus restore while `document.activeElement` is editable.
+  Clearing an inline search query remounts the browse rows; pulling the caret
+  out of the field to the remembered card is a bug.
+- **Query-derived lists do not restore.** Pass `useGridScroller({ restore:
+  false })` (or `useScrollRestore(key, axis, false)`) for a filtered result
+  grid. New results always start at the top, and the query is never part of the
+  scroller `screenKey` (typing must not re-run the restore effect).
 
 ## Pitfalls
 

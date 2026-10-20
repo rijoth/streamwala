@@ -1,9 +1,16 @@
 import React, { useMemo } from 'react';
 import { Channel } from '../../domain/types.ts';
 import { FocusZone, useFocusable } from '../../shared/focus/index.ts';
+import { useChannelSearch } from '../../shared/hooks/useChannelSearch.ts';
 import { Button } from '../../shared/ui/index.ts';
 import { Icon } from '../../shared/icons/index.ts';
-import { ScrollPositionIndicator, VirtualGrid, useGridScroller } from '../../shared/scroll/index.ts';
+import {
+  ScrollPositionIndicator,
+  VirtualGrid,
+  focusRingClipStyle,
+  useGridScroller,
+} from '../../shared/scroll/index.ts';
+import { SearchField, useSearchFocusGuard } from '../search/index.ts';
 
 export interface FavoritesViewProps {
   channels: Channel[];
@@ -16,6 +23,8 @@ const FAVORITE_ITEM_HEIGHT = 208;
 const FAVORITE_ITEM_MIN_HEIGHT = '13rem';
 const FAVORITE_GAP = 16;
 
+const RESULT_FOCUS_PREFIXES = ['FAVORITES_'] as const;
+
 export const FavoritesView: React.FC<FavoritesViewProps> = ({
   channels,
   onSelectChannel,
@@ -23,10 +32,12 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
   onGoToLive,
 }) => {
   const favorites = useMemo(() => channels.filter((c) => c.isFavorite), [channels]);
+  const { query, setQuery, isSearching, results } = useChannelSearch(favorites);
+  const displayFavorites = isSearching ? results : favorites;
 
-  const { axis, columns, itemHeight, rowSize } = useGridScroller({
+  const { axis, config, columns, itemHeight, rowSize } = useGridScroller({
     screenKey: 'favorites',
-    count: favorites.length,
+    count: displayFavorites.length,
     rowSize: FAVORITE_ITEM_HEIGHT + FAVORITE_GAP,
     minItemWidth: 180,
     gap: FAVORITE_GAP,
@@ -34,65 +45,105 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
     // Cards are rem-sized, so the row pitch must come from the rendered cell.
     measureItemHeight: true,
   });
-  const totalRows = Math.max(1, Math.ceil(favorites.length / Math.max(1, columns)));
+
+  useSearchFocusGuard({
+    items: displayFavorites,
+    isSearching,
+    fieldFocusKey: 'FAVORITES_SEARCH_FIELD',
+    resultFocusPrefixes: RESULT_FOCUS_PREFIXES,
+    axis,
+    columns,
+    rowSize,
+    config,
+  });
+
+  const totalRows = Math.max(1, Math.ceil(displayFavorites.length / Math.max(1, columns)));
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden p-6 text-[var(--md-sys-color-on-surface)]">
-      <div className="flex items-center justify-between mb-6">
-        <div>
+      <div className="flex items-start justify-between gap-6 mb-3">
+        <div className="flex-1 min-w-0">
           <h2 className="text-2xl font-bold tracking-tight">Favorite Channels</h2>
           <p className="text-xs text-[var(--md-sys-color-outline)]">
             Your pinned channels for instant 10-foot remote access.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           <ScrollPositionIndicator axis={axis} itemSize={rowSize} count={totalRows} />
           <div className="flex items-center gap-2 text-xs font-semibold text-amber-400 bg-amber-950/40 border border-amber-800/60 px-3 py-1.5 rounded-full">
             <Icon name="star" size={16} filled />
-            <span>{favorites.length} Pinned</span>
+            <span>{isSearching ? `${displayFavorites.length} Match` : `${favorites.length} Pinned`}</span>
           </div>
         </div>
       </div>
 
+      <SearchField
+        focusKey="FAVORITES_SEARCH_FIELD"
+        value={query}
+        onChange={setQuery}
+        label="Search favorites"
+        placeholder="Search pinned channels by name, number or category"
+        className="mb-6 max-w-xl mx-auto"
+      />
+
       <div className="flex-1 min-h-0">
-        {favorites.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center text-[var(--md-sys-color-outline)]">
-            <div className="w-16 h-16 rounded-2xl bg-[var(--md-sys-color-surface-container)] flex items-center justify-center mb-3">
-              <Icon name="star_outline" size={32} />
-            </div>
-            <h3 className="font-semibold text-lg text-[var(--md-sys-color-on-surface)]">
-              No favorites pinned yet
-            </h3>
-            <p className="text-sm max-w-sm mt-1 mb-6">
-              Focus a channel in Live TV, Guide or Search and press the Red remote key — or use the
-              Star button on its card — to pin it here.
-            </p>
-            <Button variant="filled" icon="live_tv" autoFocus onClick={onGoToLive}>
-              Browse Channels
-            </Button>
-          </div>
-        ) : (
-          <FocusZone focusKey="FAVORITES_GRID" className="h-full">
-            <div ref={axis.viewportRef} data-scroll-axis="vertical" className="relative h-full overflow-hidden">
-              <VirtualGrid<Channel>
-                axis={axis}
-                items={favorites}
-                columns={columns}
-                itemHeight={itemHeight}
-                gap={FAVORITE_GAP}
+        <FocusZone focusKey="FAVORITES_GRID" className="h-full">
+          <div
+            ref={axis.viewportRef}
+            data-testid="favorites-viewport"
+            data-scroll-axis="vertical"
+            className="relative h-full overflow-hidden"
+            style={focusRingClipStyle}
+          >
+            <VirtualGrid<Channel>
+              axis={axis}
+              items={displayFavorites}
+              columns={columns}
+              itemHeight={itemHeight}
+              gap={FAVORITE_GAP}
                 className="px-[var(--focus-ring-pad)]"
-                getKey={(channel) => channel.id}
-                renderItem={(channel) => (
-                  <FavoriteCard
-                    channel={channel}
-                    onSelect={() => onSelectChannel(channel)}
-                    onToggleFavorite={() => onToggleFavorite(channel.id)}
-                  />
-                )}
-              />
-            </div>
-          </FocusZone>
-        )}
+              getKey={(channel) => channel.id}
+              renderItem={(channel, index) => (
+                <FavoriteCard
+                  channel={channel}
+                  index={index}
+                  onSelect={() => onSelectChannel(channel)}
+                  onToggleFavorite={() => onToggleFavorite(channel.id)}
+                />
+              )}
+            />
+
+            {favorites.length === 0 && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-[var(--md-sys-color-outline)]">
+                <div className="w-16 h-16 rounded-2xl bg-[var(--md-sys-color-surface-container)] flex items-center justify-center mb-3">
+                  <Icon name="star_outline" size={32} />
+                </div>
+                <h3 className="font-semibold text-lg text-[var(--md-sys-color-on-surface)]">
+                  No favorites pinned yet
+                </h3>
+                <p className="text-sm max-w-sm mt-1 mb-6">
+                  Focus a channel in Live TV or the Guide and press the Red remote key — or use the
+                  Star button on its card — to pin it here.
+                </p>
+                <Button variant="filled" icon="live_tv" autoFocus={!isSearching} onClick={onGoToLive}>
+                  Browse Channels
+                </Button>
+              </div>
+            )}
+
+            {favorites.length > 0 && displayFavorites.length === 0 && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-[var(--md-sys-color-outline)] pointer-events-none">
+                <Icon name="search_off" size={48} className="mb-2 opacity-40" />
+                <h3 className="font-semibold text-lg text-[var(--md-sys-color-on-surface)]">
+                  No favorites match your search
+                </h3>
+                <p className="text-sm max-w-sm mt-1">
+                  Nothing pinned matches “{query.trim()}”. Clear the search to see all favorites.
+                </p>
+              </div>
+            )}
+          </div>
+        </FocusZone>
       </div>
     </div>
   );
@@ -100,11 +151,17 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
 
 interface FavoriteCardProps {
   channel: Channel;
+  index: number;
   onSelect: () => void;
   onToggleFavorite: () => void;
 }
 
-const FavoriteCard: React.FC<FavoriteCardProps> = ({ channel, onSelect, onToggleFavorite }) => {
+const FavoriteCard: React.FC<FavoriteCardProps> = ({
+  channel,
+  index,
+  onSelect,
+  onToggleFavorite,
+}) => {
   const { ref, focused } = useFocusable({
     focusKey: `FAVORITES_${channel.id}`,
     onEnterPress: onSelect,
@@ -114,6 +171,7 @@ const FavoriteCard: React.FC<FavoriteCardProps> = ({ channel, onSelect, onToggle
     <div
       ref={ref as React.Ref<HTMLDivElement>}
       onClick={onSelect}
+      data-scroll-index={index}
       data-channel-id={channel.id}
       style={{ minHeight: FAVORITE_ITEM_MIN_HEIGHT }}
       className={`

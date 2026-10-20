@@ -32,6 +32,12 @@ export interface GridScrollerOptions {
    * (BUG-022).
    */
   measureItemHeight?: boolean;
+  /**
+   * Restore the remembered offset/focus for `screenKey` on mount. Defaults to
+   * `true`; query-derived grids pass `false` so a new result set always starts
+   * at the top instead of replaying a browse position.
+   */
+  restore?: boolean;
   config?: Partial<ScrollConfig>;
 }
 
@@ -102,7 +108,7 @@ export function useGridScroller(options: GridScrollerOptions): GridScroller {
   );
 
   useFocusedItemIndex(axis.viewportRef, handleFocusItem);
-  useScrollRestore(options.screenKey, axis);
+  useScrollRestore(options.screenKey, axis, options.restore !== false);
 
   return { axis, config, columns, itemHeight, rowSize };
 }

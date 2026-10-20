@@ -17,3 +17,4 @@ export * from './useKeyRepeat.ts';
 export * from './useScrollRestore.ts';
 export * from './scrollMemory.ts';
 export * from './ScrollPositionIndicator.tsx';
+export * from './focusRingClip.ts';
