@@ -144,4 +144,52 @@ describe('startEpgParse', () => {
     const error = await handle.promise.catch((e: unknown) => e);
     expect((error as EpgFetchError).kind).toBe('unknown');
   });
+
+  // BUG-025: the worker is a passive RPC target, so the request has to be
+  // posted or the worker idles until the watchdog reports a bogus stall.
+  it('posts the parse request to the worker', () => {
+    const worker = new FakeWorker();
+    startEpgParse(REQUEST, { createWorker: () => worker as unknown as Worker });
+
+    expect(worker.postMessage).toHaveBeenCalledTimes(1);
+    expect(worker.postMessage).toHaveBeenCalledWith(REQUEST);
+  });
+
+  it('resolves with a worker that only answers once it receives the request', async () => {
+    class RespondingWorker extends FakeWorker {
+      override postMessage = vi.fn((request: EpgParseRequest) => {
+        queueMicrotask(() => {
+          this.emit({
+            type: 'progress',
+            progress: { bytes: 2, channels: 0, programmesKept: request.kind === 'text' ? 1 : 0, programmesSkipped: 0 },
+          });
+          this.emit({ type: 'done', result: EMPTY_RESULT, notModified: false });
+        });
+      });
+    }
+    const worker = new RespondingWorker();
+    const onProgress = vi.fn();
+    const handle = startEpgParse(REQUEST, {
+      createWorker: () => worker as unknown as Worker,
+      onProgress,
+    });
+
+    const outcome = await handle.promise;
+    expect(outcome.result).toBe(EMPTY_RESULT);
+    expect(onProgress).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects when the request cannot be posted to the worker', async () => {
+    const worker = new FakeWorker();
+    worker.postMessage = vi.fn(() => {
+      throw new Error('DataCloneError');
+    });
+
+    const handle = startEpgParse(REQUEST, { createWorker: () => worker as unknown as Worker });
+
+    const error = await handle.promise.catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(EpgFetchError);
+    expect((error as EpgFetchError).message).toContain('DataCloneError');
+    expect(worker.terminate).toHaveBeenCalledTimes(1);
+  });
 });

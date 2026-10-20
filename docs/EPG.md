@@ -103,7 +103,15 @@ deleting a source cascades its channels, mappings and programmes.
 - **Stuck on "Downloading… 0 B"** — the download has an idle timeout (30 s,
   re-armed on every chunk) and the worker has a 90 s no-message watchdog, so a
   stalled host fails with a retryable message instead of hanging. A large but
-  steady download is not killed.
+  steady download is not killed. The watchdog is a backstop only: `startEpgParse`
+  posts the `EpgParseRequest` to the worker immediately after installing its
+  reply handlers, because the worker is a passive RPC target and does nothing
+  until it receives that message.
+- **"Stalled while downloading" for a URL you know is valid** — that copy comes
+  from the watchdog, not from the host. A host that answers without
+  `Access-Control-Allow-Origin` (e.g. `iptv-epg.org`) fails fast with the CORS
+  message instead, and a 40 MB guide cannot be pulled through a public CORS
+  proxy — use **Import file** with the downloaded `.xml`/`.xml.gz`.
 - **No data / unmatched channels** — open Settings → Playlists → **Edit EPG**,
   check the match report and map channels manually.
 - **Credentials** — Xtream XMLTV URLs embed `username`/`password`; the UI masks

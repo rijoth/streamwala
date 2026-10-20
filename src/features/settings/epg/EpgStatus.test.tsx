@@ -12,8 +12,22 @@ describe('EpgStatusLine', () => {
     expect(screen.getByText('No guide data yet.')).toBeInTheDocument();
   });
 
-  it('shows download and parse progress', () => {
-    const { rerender } = render(
+  // The panel mounts long after the background scheduler refreshed, so the idle
+  // line must not claim there is no guide data next to an "updated just now"
+  // source card.
+  it('reports the last successful refresh instead of an empty guide', () => {
+    render(
+      <EpgStatusLine
+        status={{ phase: 'idle', bytesReceived: 0, programmesKept: 0 }}
+        lastUpdatedAt={Date.now() - 5 * 60_000}
+      />
+    );
+
+    expect(screen.getByText('Guide last updated 5 min ago')).toBeInTheDocument();
+    expect(screen.queryByText('No guide data yet.')).toBeNull();
+  });
+
+  it('shows download and parse progress', () => {    const { rerender } = render(
       <EpgStatusLine status={{ phase: 'downloading', bytesReceived: 2048, programmesKept: 0 }} />
     );
     expect(screen.getByText(/Downloading/)).toBeInTheDocument();

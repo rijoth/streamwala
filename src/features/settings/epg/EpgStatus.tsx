@@ -23,11 +23,23 @@ export interface EpgStatusLineProps {
   status: EpgStatus;
   error?: string | null;
   onRetry?: () => void;
+  /**
+   * Newest successful refresh across the playlist's sources. The status object
+   * only tracks the current session, so without this the idle state claims
+   * "No guide data yet" right next to a source card that says "updated just
+   * now" (the background scheduler refreshed it before the panel mounted).
+   */
+  lastUpdatedAt?: number;
 }
 
-export const EpgStatusLine: React.FC<EpgStatusLineProps> = ({ status, error, onRetry }) => {
+export const EpgStatusLine: React.FC<EpgStatusLineProps> = ({
+  status,
+  error,
+  onRetry,
+  lastUpdatedAt,
+}) => {
   let icon = 'schedule';
-  let text = 'No guide data yet.';
+  let text = lastUpdatedAt ? `Guide last updated ${relativeTime(lastUpdatedAt)}` : 'No guide data yet.';
   let tone = 'text-[var(--md-sys-color-outline)]';
 
   if (status.phase === 'downloading') {

@@ -229,4 +229,24 @@ describe('toUserStorageMessage (BUG-016)', () => {
     expect(toUserStorageMessage(new Error('boom'))).toBeNull();
     expect(toUserStorageMessage('not an error')).toBeNull();
   });
+
+  // BUG-026: network copy mentions "blocked"/"private" too, so the mapper must
+  // require storage context instead of matching those words on their own.
+  it('leaves network/EPG failures alone', () => {
+    expect(
+      toUserStorageMessage(
+        new Error('The EPG server (iptv-epg.org) blocked the browser request (CORS).')
+      )
+    ).toBeNull();
+    expect(toUserStorageMessage(new Error('Private network access denied by policy'))).toBeNull();
+    expect(
+      toUserStorageMessage(new Error('The guide file is read-only on this device'))
+    ).toBeNull();
+  });
+
+  it('still maps an IndexedDB transaction that reports a blocked upgrade', () => {
+    expect(
+      toUserStorageMessage(new Error('IndexedDB transaction is blocked by another tab'))
+    ).toMatch(/storage is unavailable/i);
+  });
 });

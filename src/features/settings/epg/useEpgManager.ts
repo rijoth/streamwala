@@ -4,7 +4,7 @@ import { createDexieEpgRepository, type EpgRepository } from '../../../services/
 import { refreshEpgSource } from '../../../services/epg/refresh.ts';
 import { detectEpgSources, type EpgSuggestion } from '../../../services/epg/detect.ts';
 import { buildEpgMatchReport } from '../../../services/epg/matchReport.ts';
-import { fetchEpgFile, readStreamText } from '../../../services/epg/fetcher.ts';
+import { fetchEpgFile, EpgFetchError, readStreamText } from '../../../services/epg/fetcher.ts';
 import { toUserStorageMessage } from '../../../services/storage/db.ts';
 
 export type EpgPhase = 'idle' | 'downloading' | 'parsing' | 'ready' | 'failed';
@@ -28,6 +28,17 @@ export interface EpgManagerOptions {
 }
 
 const IDLE_STATUS: EpgStatus = { phase: 'idle', bytesReceived: 0, programmesKept: 0 };
+
+/**
+ * EPG fetch/parse errors are already written for the viewer (CORS, mixed
+ * content, timeout, HTTP), so they must win over the generic storage mapper.
+ * Only storage failures from the persistence half of a refresh are rewritten
+ * (BUG-026: a CORS failure used to surface as "Local storage is unavailable").
+ */
+export function epgErrorMessage(error: unknown): string {
+  if (error instanceof EpgFetchError) return error.message;
+  return toUserStorageMessage(error) ?? (error instanceof Error ? error.message : String(error));
+}
 
 export function useEpgManager(options: EpgManagerOptions) {
   const { playlist, channels, repository, proxyTemplate, retention, onChanged } = options;
@@ -69,7 +80,7 @@ export function useEpgManager(options: EpgManagerOptions) {
   );
 
   const fail = useCallback((err: unknown) => {
-    setError(toUserStorageMessage(err) ?? (err instanceof Error ? err.message : String(err)));
+    setError(epgErrorMessage(err));
   }, []);
 
   const addSource = useCallback(

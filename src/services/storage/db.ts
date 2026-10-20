@@ -157,15 +157,25 @@ export async function getRecentWatchHistory(limit = 20, database: StreamwalaData
 }
 
 /**
+ * A private-mode / blocked-storage failure is only recognisable when the message
+ * is about storage at all. Matching `/blocked|private/` alone mislabelled CORS
+ * and mixed-content failures (BUG-026).
+ */
+const STORAGE_CONTEXT = /indexeddb|idb|dexie|database|storage|transaction/i;
+const STORAGE_ACCESS_PROBLEM = /denied|blocked|private|read-?only|unavailable/i;
+
+/**
  * Maps IDB/private-mode failures to a message that is safe to show in the UI.
  * Returns null for unknown errors so callers can fall back to err.message.
- */
-export function toUserStorageMessage(error: unknown): string | null {
+ */export function toUserStorageMessage(error: unknown): string | null {
   if (!(error instanceof Error)) return null;
   if (error.name === 'QuotaExceededError' || /quota/i.test(error.message)) {
     return 'Device storage is full. Free up space or clear playlists from Settings, then try again.';
   }
-  if (error.name === 'SecurityError' || /denied|blocked|private|readonly/i.test(error.message)) {
+  if (
+    error.name === 'SecurityError' ||
+    (STORAGE_CONTEXT.test(error.message) && STORAGE_ACCESS_PROBLEM.test(error.message))
+  ) {
     return 'Local storage is unavailable (private browsing or blocked). Allow site data storage and try again.';
   }
   return null;

@@ -16,8 +16,7 @@ export const EpgSourceSection: React.FC<EpgSourceSectionProps> = ({ manager, onS
   const [name, setName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const addRemote = async (sourceUrl: string, sourceName?: string) => {
-    const trimmed = sourceUrl.trim();
+  const addRemote = async (sourceUrl: string, sourceName?: string) => {    const trimmed = sourceUrl.trim();
     if (!trimmed) return;
     await manager.addSource({ name: sourceName || trimmed, url: trimmed, kind: 'remote' });
     onSourceAdded?.(trimmed);
@@ -31,6 +30,13 @@ export const EpgSourceSection: React.FC<EpgSourceSectionProps> = ({ manager, onS
         status={manager.status}
         error={manager.error}
         onRetry={() => void manager.refresh()}
+        lastUpdatedAt={manager.sources.reduce<number | undefined>(
+          (newest, source) =>
+            source.lastUpdatedAt && (!newest || source.lastUpdatedAt > newest)
+              ? source.lastUpdatedAt
+              : newest,
+          undefined
+        )}
       />
 
       {manager.suggestions.length > 0 && (

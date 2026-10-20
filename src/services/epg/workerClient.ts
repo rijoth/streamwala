@@ -103,6 +103,24 @@ export function startEpgParse(
     };
   });
 
+  // The worker is a passive RPC target: it waits for this message before it
+  // fetches/parses anything. Posting inside the executor guarantees the reply
+  // handlers above are installed first; without this the worker idles until the
+  // watchdog fails the refresh with a misleading "stalled" error (BUG-025).
+  try {
+    worker.postMessage(request);
+  } catch (error) {
+    settle(() =>
+      rejectFn(
+        new EpgFetchError(
+          'unknown',
+          `The EPG parser could not start: ${error instanceof Error ? error.message : String(error)}`
+        )
+      )
+    );
+    return { promise, cancel() {} };
+  }
+
   armWatchdog();
 
   return {
