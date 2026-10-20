@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { waitForAppReady } from './helpers.ts';
 
 /**
  * Chromium-only D-pad end-to-end coverage. Geometry-dependent navigation is
@@ -125,6 +126,58 @@ test('BACK exits the player back to the app shell', async () => {
 
   await page.keyboard.press('Escape');
   await expect(page.locator('video')).toBeHidden();
+});
+
+/** Colour keys cannot be pressed by name in Playwright; dispatch the TV event. */
+async function pressColorKey(p: Page, key: string, keyCode: number) {
+  await p.evaluate(
+    ({ key, keyCode }) => {
+      const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+      Object.defineProperty(event, 'keyCode', { get: () => keyCode });
+      window.dispatchEvent(event);
+    },
+    { key, keyCode }
+  );
+}
+
+/** Focus-ring owner's channel id and whether its Star icon is filled. */
+function focusedFavourite(p: Page) {
+  return p.evaluate(() => {
+    const el = document.querySelector<HTMLElement>('[data-focused="true"][data-channel-id]');
+    if (!el) return null;
+    const star = el.querySelector('button .material-symbols-rounded');
+    return {
+      id: el.dataset.channelId ?? null,
+      filled: star?.classList.contains('filled') ?? null,
+    };
+  });
+}
+
+test('Red key pins the focused channel instead of leaving the screen', async () => {
+  await page.goto('/');
+  await waitForAppReady(page);
+
+  await page.getByRole('button', { name: 'Live TV' }).click();
+  await expect(page.getByRole('heading', { name: 'All Channels' })).toBeVisible();
+  await page.keyboard.press('ArrowDown'); // category chips -> channel grid
+
+  await expect.poll(async () => (await focusedFavourite(page))?.id).toBeTruthy();
+  const before = await focusedFavourite(page);
+  expect(before?.filled).not.toBeNull();
+
+  await pressColorKey(page, 'Red', 403);
+
+  await expect
+    .poll(async () => (await focusedFavourite(page))?.filled)
+    .toBe(!before?.filled);
+  // The shortcut must act on the card, not navigate to the Favorites screen.
+  await expect(page.getByRole('heading', { name: 'All Channels' })).toBeVisible();
+
+  // Restore the demo dataset for the specs that follow.
+  await pressColorKey(page, 'Red', 403);
+  await expect
+    .poll(async () => (await focusedFavourite(page))?.filled)
+    .toBe(before?.filled);
 });
 
 async function navButtonsFirstClick(p: Page) {

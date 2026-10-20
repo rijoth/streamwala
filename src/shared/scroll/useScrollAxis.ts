@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type React from 'react';
 import { ScrollConfig, resolveScrollConfig } from './config.ts';
 import { clamp, maxOffset, retargetTween, stepTween, TweenState } from './math.ts';
@@ -293,20 +293,28 @@ export function useScrollAxis({ orientation, config }: UseScrollAxisOptions): Sc
 
   useEffect(() => stopTween, [stopTween]);
 
-  return {
-    orientation,
-    viewportRef,
-    contentRef,
-    getOffset: () => offsetRef.current,
-    getContentSize: () => contentSizeRef.current,
-    getViewportSize: () => viewportSizeRef.current,
-    setSizes,
-    setPendingOffset,
-    onSized,
-    isSized: () => sizedRef.current,
-    scrollToOffset,
-    scrollBy,
-    subscribe,
-    isAnimating: () => tweenRef.current !== null,
-  };
+  // Stable identity: consumers key effects on `axis` (`useScrollRestore`,
+  // `useVirtualWindow`). Recreating this object every render re-ran those
+  // effects and restored a stale focus key on any parent state change, e.g.
+  // pinning a favourite with the Red key yanked focus back to the category
+  // chips.
+  return useMemo(
+    () => ({
+      orientation,
+      viewportRef,
+      contentRef,
+      getOffset: () => offsetRef.current,
+      getContentSize: () => contentSizeRef.current,
+      getViewportSize: () => viewportSizeRef.current,
+      setSizes,
+      setPendingOffset,
+      onSized,
+      isSized: () => sizedRef.current,
+      scrollToOffset,
+      scrollBy,
+      subscribe,
+      isAnimating: () => tweenRef.current !== null,
+    }),
+    [orientation, setSizes, setPendingOffset, onSized, scrollToOffset, scrollBy, subscribe]
+  );
 }

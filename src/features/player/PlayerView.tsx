@@ -26,6 +26,8 @@ export interface PlayerViewProps {
   onOpenSettings?: () => void;
   onOpenGuide?: () => void;
   onOpenSearch?: () => void;
+  /** Toggle a channel's favourite state; returns the new state. */
+  onToggleFavorite?: (channelId: string) => Promise<boolean> | boolean | void;
 }
 
 export const PlayerView: React.FC<PlayerViewProps> = ({
@@ -37,6 +39,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
   onOpenSettings,
   onOpenGuide,
   onOpenSearch,
+  onToggleFavorite,
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const playerManagerRef = useRef<PlayerManager | null>(null);
@@ -255,7 +258,16 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
 
     // Color keys
     if (event.action === 'COLOR_RED') {
-      toggleChannelFavorite(channel.id).then(setIsFavorite);
+      // Route through the shell when it provides the callback so the channel
+      // list in App state updates immediately; otherwise fall back to the DB.
+      if (onToggleFavorite) {
+        const result = onToggleFavorite(channel.id);
+        void Promise.resolve(result).then((next) => {
+          setIsFavorite((prev) => (typeof next === 'boolean' ? next : !prev));
+        });
+      } else {
+        void toggleChannelFavorite(channel.id).then(setIsFavorite);
+      }
       return true;
     }
     if (event.action === 'COLOR_GREEN' && onOpenGuide) {
@@ -270,7 +282,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
       onOpenSettings();
       return true;
     }
-  }, [allChannels, channel, playerState.status, zapDigits, showMiniList, showControls, showNerdStats, zapToNext, zapToPrev, resetControlsTimer, onChannelChange, onOpenGuide, onOpenSearch, onOpenSettings]);
+  }, [allChannels, channel, playerState.status, zapDigits, showMiniList, showControls, showNerdStats, zapToNext, zapToPrev, resetControlsTimer, onChannelChange, onOpenGuide, onOpenSearch, onOpenSettings, onToggleFavorite]);
 
   // Aspect ratio class mapper
   let videoObjectFit = 'object-contain';

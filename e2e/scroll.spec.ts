@@ -66,6 +66,13 @@ function focusGeometry(p: Page): Promise<FocusGeometry | null> {
     const el = document.querySelector('[data-focused="true"]') as HTMLElement | null;
     if (!el) return null;
     const r = el.getBoundingClientRect();
+    // The focus style scales the element (`tv-focused` → scale(1.04)); a scaled
+    // box legitimately overhangs its clip rect by a few px. Judge the unscaled
+    // layout box instead, otherwise visibility flips with row offset/viewport.
+    const w = el.offsetWidth || r.width;
+    const h = el.offsetHeight || r.height;
+    const left = r.left + (r.width - w) / 2;
+    const top = r.top + (r.height - h) / 2;
 
     let clip = { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight };
     let parent = el.parentElement;
@@ -83,10 +90,10 @@ function focusGeometry(p: Page): Promise<FocusGeometry | null> {
     const row = el.closest('[data-scroll-row]') as HTMLElement | null;
     const viewport = document.querySelector('[data-scroll-axis="vertical"]') as HTMLElement | null;
     return {
-      left: r.left,
-      top: r.top,
-      right: r.right,
-      bottom: r.bottom,
+      left,
+      top,
+      right: left + w,
+      bottom: top + h,
       clip,
       rowTop: row ? row.getBoundingClientRect().top : null,
       clipHeight: clip.bottom - clip.top,
@@ -263,6 +270,7 @@ test('focused item stays visible at 720p, 1080p and 4K', async () => {
     await page.waitForTimeout(200);
     await page.locator('aside button').nth(1).click(); // Live TV
     await page.waitForTimeout(400);
+
     for (const key of ['ArrowDown', 'ArrowRight', 'ArrowDown', 'ArrowLeft']) {
       await page.keyboard.press(key);
       await expectFocusedFullyVisible(page, `live ${width}x${height} after ${key}`);

@@ -16,9 +16,10 @@ export interface GuideRowProps {
 
 const ProgramCell: React.FC<{
   layout: GuideProgramLayout;
+  channelId: string;
   columnWidth: number;
   onSelect: () => void;
-}> = ({ layout, columnWidth, onSelect }) => {
+}> = ({ layout, channelId, columnWidth, onSelect }) => {
   const { ref, focused } = useFocusable({
     focusKey: `EPG_PROG_${layout.program.id}`,
     onEnterPress: onSelect,
@@ -30,6 +31,7 @@ const ProgramCell: React.FC<{
   return (
     <div
       ref={ref as React.Ref<HTMLDivElement>}
+      data-channel-id={channelId}
       data-scroll-x={layout.x}
       data-scroll-col={Math.floor(layout.x / columnWidth)}
       onClick={onSelect}
@@ -61,6 +63,7 @@ const EmptyCell: React.FC<{
   return (
     <div
       ref={ref as React.Ref<HTMLDivElement>}
+      data-channel-id={channel.id}
       data-scroll-x={0}
       data-scroll-col={0}
       onClick={onSelect}
@@ -96,6 +99,7 @@ export const GuideRow: React.FC<GuideRowProps> = ({
         <ProgramCell
           key={layout.program.id}
           layout={layout}
+          channelId={channel.id}
           columnWidth={columnWidth}
           onSelect={() => onSelectProgram(layout.program)}
         />

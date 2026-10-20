@@ -18,7 +18,7 @@ The `src/shared/input` module intercepts raw keyboard and remote events and conv
 | `CH_DOWN` | ChannelDown (428), PageDown (34) | Previous channel |
 | `INFO` | ContextMenu (93), Info (457), KeyI, KeyM | Toggle nerd stats / Now-Next banner |
 | `DIGIT_0..9` | Key0–Key9 (48–57), Numpad0–9 (96–105) | Number zap buffer with 2s commit |
-| `COLOR_RED` | Tizen/webOS 403, Android `PROG_RED` (Chromium presents it as 403), key `Red`/`ColorF0Red` | Shortcut: Favorites (player: toggle favourite) |
+| `COLOR_RED` | Tizen/webOS 403, Android `PROG_RED` (Chromium presents it as 403), key `Red`/`ColorF0Red` | Toggle favourite of the focused channel (Live TV / Home / Guide / Favorites / Search, player); opens the Favorites screen when focus is not on a channel |
 | `COLOR_GREEN` | Tizen/webOS 404, Android `PROG_GREEN` (presented as 404), key `Green`/`ColorF1Green` | Shortcut: EPG Guide |
 | `COLOR_YELLOW` | Tizen/webOS 405, Android `PROG_YELLOW` (presented as 405), key `Yellow`/`ColorF2Yellow` | Shortcut: Search |
 | `COLOR_BLUE` | Tizen/webOS 406, Android `PROG_BLUE` (presented as 406), key `Blue`/`ColorF3Blue` | Shortcut: Settings |
@@ -26,6 +26,11 @@ The `src/shared/input` module intercepts raw keyboard and remote events and conv
 `STOP`, `FF` and `REWIND` still normalize in `keyCodes.ts`, but no player path
 consumes them: live streams have no seek model. Do not document them as working
 until a seek-capable engine lands.
+
+Favouriting from the remote relies on the focused element exposing
+`data-channel-id`; every channel card and guide cell does. If the focused
+control is not a channel (rail, chips, hero actions) the Red key keeps its
+legacy job of opening Favorites.
 
 Letter keys are **not** colour shortcuts. Typing `r`/`g`/`y`/`b` is plain
 text (and must stay usable in the search field); only the remote keycodes/key

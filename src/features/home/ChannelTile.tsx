@@ -24,6 +24,7 @@ export const ChannelTile: React.FC<ChannelTileProps> = ({ channel, focusKey, ind
       ref={ref as React.Ref<HTMLDivElement>}
       data-scroll-col={index}
       data-scroll-index={index}
+      data-channel-id={channel.id}
       onClick={onSelect}
       style={{ width: HOME_CARD_SIZE }}
       className={`

@@ -74,6 +74,20 @@ function focusPrimaryTarget(destinationId: string): void {
   }
 }
 
+/**
+ * Channel id of the control currently under the focus ring, if any. Root
+ * focusables that represent a channel expose `data-channel-id`, which lets the
+ * Red remote key act on the focused item without every screen wiring its own
+ * shortcut handler.
+ */
+function getFocusedChannelId(): string | null {
+  if (typeof document === 'undefined') return null;
+  const focusedEl = document.querySelector<HTMLElement>(
+    '[data-focused="true"][data-channel-id]'
+  );
+  return focusedEl?.dataset.channelId ?? null;
+}
+
 export default function App() {
   const { settings } = useSettingsStore();
 
@@ -129,6 +143,14 @@ export default function App() {
 
   const { isBooting, isLeaving, refreshData } = useAppBoot(loadDatabase);
 
+  const handleToggleFavorite = useCallback(async (channelId: string): Promise<boolean> => {
+    const isFav = await toggleChannelFavorite(channelId);
+    setChannels((prev) =>
+      prev.map((c) => (c.id === channelId ? { ...c, isFavorite: isFav } : c))
+    );
+    return isFav;
+  }, []);
+
   // Handle color keys shortcuts when not inside video player
   useTvInput((event) => {
     if (playingChannel) return; // Player has its own handlers
@@ -145,6 +167,14 @@ export default function App() {
     }
 
     if (event.action === 'COLOR_RED') {
+      // Pin/unpin the channel under the focus ring. Cards and guide cells carry
+      // `data-channel-id`; when focus is not on a channel (rail, chips, hero
+      // actions) Red keeps its original job as the Favorites shortcut.
+      const focusedChannelId = getFocusedChannelId();
+      if (focusedChannelId) {
+        void handleToggleFavorite(focusedChannelId);
+        return true;
+      }
       setActiveNavId('favorites');
       return true;
     }
@@ -160,7 +190,7 @@ export default function App() {
       setActiveNavId('settings');
       return true;
     }
-  }, [isBooting, playingChannel]);
+  }, [handleToggleFavorite, isBooting, playingChannel]);
 
   // Navigate from the rail. Activating the already-active destination is a
   // no-op that instead moves focus into the current screen's content.
@@ -207,13 +237,6 @@ export default function App() {
       cancelAnimationFrame(raf);
     };
   }, [activeNavId]);
-
-  const handleToggleFavorite = async (channelId: string) => {
-    const isFav = await toggleChannelFavorite(channelId);
-    setChannels((prev) =>
-      prev.map((c) => (c.id === channelId ? { ...c, isFavorite: isFav } : c))
-    );
-  };
 
   // Cold boot: nothing else renders until the boot sequence settles, and the
   // splash stays on top while it fades out (ADR 022).
@@ -344,6 +367,7 @@ export default function App() {
           allChannels={channels}
           allGroups={groups}
           onChannelChange={setPlayingChannel}
+          onToggleFavorite={handleToggleFavorite}
           onClose={() => setPlayingChannel(null)}
           onOpenGuide={() => {
             setPlayingChannel(null);

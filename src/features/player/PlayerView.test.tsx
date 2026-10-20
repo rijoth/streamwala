@@ -54,7 +54,7 @@ const channel: Channel = {
   number: 1,
 };
 
-function renderPlayer() {
+function renderPlayer(onToggleFavorite?: (channelId: string) => Promise<boolean>) {
   return renderWithProviders(
     <PlayerView
       channel={channel}
@@ -62,6 +62,7 @@ function renderPlayer() {
       allGroups={[]}
       onChannelChange={vi.fn()}
       onClose={vi.fn()}
+      onToggleFavorite={onToggleFavorite}
     />
   );
 }
@@ -94,5 +95,12 @@ describe('PlayerView remote transport keys', () => {
     renderPlayer();
     pressKey({ key: 'MediaPlay' });
     expect(playerManager.play).toHaveBeenCalledTimes(1);
+  });
+
+  it('toggles the favourite through the shell callback on the Red key', () => {
+    const onToggleFavorite = vi.fn().mockResolvedValue(true);
+    renderPlayer(onToggleFavorite);
+    pressKey({ key: 'Red' });
+    expect(onToggleFavorite).toHaveBeenCalledWith('ch1');
   });
 });

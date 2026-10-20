@@ -64,8 +64,8 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
               No favorites pinned yet
             </h3>
             <p className="text-sm max-w-sm mt-1 mb-6">
-              Browse channels in Live TV and press the Star button or Red remote key to pin your
-              favorites here.
+              Focus a channel in Live TV, Guide or Search and press the Red remote key — or use the
+              Star button on its card — to pin it here.
             </p>
             <Button variant="filled" icon="live_tv" autoFocus onClick={onGoToLive}>
               Browse Channels
@@ -114,6 +114,7 @@ const FavoriteCard: React.FC<FavoriteCardProps> = ({ channel, onSelect, onToggle
     <div
       ref={ref as React.Ref<HTMLDivElement>}
       onClick={onSelect}
+      data-channel-id={channel.id}
       style={{ minHeight: FAVORITE_ITEM_MIN_HEIGHT }}
       className={`
         tv-focus-target group relative rounded-2xl p-4 flex flex-col items-center text-center cursor-pointer outline-none overflow-hidden

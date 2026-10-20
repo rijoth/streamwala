@@ -122,6 +122,7 @@ const SearchChannelCard: React.FC<SearchChannelCardProps> = ({ channel, onSelect
     <div
       ref={ref as React.Ref<HTMLDivElement>}
       onClick={onSelect}
+      data-channel-id={channel.id}
       style={{ minHeight: SEARCH_ITEM_MIN_HEIGHT }}
       className={`
         tv-focus-target group relative rounded-2xl p-4 flex flex-col items-center text-center cursor-pointer outline-none overflow-hidden
