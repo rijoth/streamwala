@@ -238,6 +238,14 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
       else playerManagerRef.current?.play();
       return true;
     }
+    if (event.action === 'PAUSE') {
+      playerManagerRef.current?.pause();
+      return true;
+    }
+    if (event.action === 'PLAY') {
+      playerManagerRef.current?.play();
+      return true;
+    }
 
     if (event.action === 'INFO') {
       setShowNowNext(true);

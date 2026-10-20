@@ -10,24 +10,38 @@ The `src/shared/input` module intercepts raw keyboard and remote events and conv
 | `NAV_LEFT` | ArrowLeft (37) | Move focus left; from the leftmost content element, enters the navigation rail |
 | `NAV_RIGHT` | ArrowRight (39) | Navigate focus right |
 | `SELECT` | Enter (13), NumpadEnter, DPAD_CENTER, Space (non-input) | Activate focused item |
-| `BACK` | Escape (27), Backspace (outside input), Android Back (4), Tizen (10009), webOS (461) | Close overlay / back navigation |
-| `PLAY_PAUSE` | MediaPlayPause (179), MediaPlay (415), MediaPause (19), KeyK | Toggle stream playback |
-| `STOP` | MediaStop (413) | Stop playback |
-| `SEEK_FWD` | MediaFastForward (417), MediaTrackNext, KeyL | Jump +10s / +30s |
-| `SEEK_REW` | MediaRewind (412), MediaTrackPrevious, KeyJ | Jump -10s / -30s |
+| `BACK` | Escape (27), Backspace (outside input), Tizen (10009), webOS (461); Android BACK arrives through the native `backButton` bridge | Close overlay / back navigation; exits the app when nothing consumed it |
+| `PLAY_PAUSE` | MediaPlayPause (179), KeyK | Toggle stream playback |
+| `PLAY` | MediaPlay (415) | Resume playback (player only) |
+| `PAUSE` | DOM `Pause` key (legacy keyCode 19), MediaPause (127) | Pause playback (player only) |
 | `CH_UP` | ChannelUp (427), PageUp (33) | Next channel |
 | `CH_DOWN` | ChannelDown (428), PageDown (34) | Previous channel |
-| `INFO` | ContextMenu (93), KeyM, KeyI, Info (457), Android Menu (82) | Toggle nerd stats / Now-Next banner |
+| `INFO` | ContextMenu (93), Info (457), KeyI, KeyM | Toggle nerd stats / Now-Next banner |
 | `DIGIT_0..9` | Key0–Key9 (48–57), Numpad0–9 (96–105) | Number zap buffer with 2s commit |
-| `COLOR_RED` | Key 403 / KeyR | Shortcut: Toggle Favorites |
-| `COLOR_GREEN` | Key 404 / KeyG | Shortcut: Open EPG Guide |
-| `COLOR_YELLOW` | Key 405 / KeyY | Shortcut: Open Search |
-| `COLOR_BLUE` | Key 406 / KeyB | Shortcut: Open Settings |
+| `COLOR_RED` | Tizen/webOS 403, Android `PROG_RED` (Chromium presents it as 403), key `Red`/`ColorF0Red` | Shortcut: Favorites (player: toggle favourite) |
+| `COLOR_GREEN` | Tizen/webOS 404, Android `PROG_GREEN` (presented as 404), key `Green`/`ColorF1Green` | Shortcut: EPG Guide |
+| `COLOR_YELLOW` | Tizen/webOS 405, Android `PROG_YELLOW` (presented as 405), key `Yellow`/`ColorF2Yellow` | Shortcut: Search |
+| `COLOR_BLUE` | Tizen/webOS 406, Android `PROG_BLUE` (presented as 406), key `Blue`/`ColorF3Blue` | Shortcut: Settings |
+
+`STOP`, `FF` and `REWIND` still normalize in `keyCodes.ts`, but no player path
+consumes them: live streams have no seek model. Do not document them as working
+until a seek-capable engine lands.
+
+Letter keys are **not** colour shortcuts. Typing `r`/`g`/`y`/`b` is plain
+text (and must stay usable in the search field); only the remote keycodes/key
+names above trigger the colour actions. Android TV's raw `PROG_*` keycodes
+(183-186) must not be mapped directly: 186/187/189 are the legacy keyCodes for
+`;`, `=` and `-`, so mapping them hijacks typing in the URL field. Chromium
+already rewrites the Android PROG keys into 403-406.
+
+The Android `MENU` key (82) is swallowed by the WebView before it reaches the
+page, so INFO must be bound to `i`/`m`/`ContextMenu`/`Info` on Android TV.
+Emulator check: `input keyevent 82` does not toggle diagnostics, `input keyevent
+37` (`i`) does.
 
 ## Remote Focus Guidelines
 - Outer focus ring uses `--md-sys-color-focus-ring` (3px outline or box-shadow + scale 1.05).
 - Visible from 3 meters distance on 1080p and 4K displays.
-- Long press on OK (holding > 600ms) triggers channel context actions (Favorite / Hide / Details).
 - Overscan safe zones: `padding: 32px 48px`.
 
 ## Focus Zones Own Their Children

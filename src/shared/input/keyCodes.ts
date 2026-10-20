@@ -26,7 +26,6 @@ export interface NormalizedKeyEvent {
   rawKey: string;
   keyCode: number;
   digit?: number;
-  isLongPress?: boolean;
 }
 
 /**
@@ -40,6 +39,13 @@ export function normalizeKeyEvent(e: KeyboardEvent): NormalizedKeyEvent | null {
   if ((code >= 48 && code <= 57) || (code >= 96 && code <= 105)) {
     const digit = code >= 96 ? code - 96 : code - 48;
     return { action: 'DIGIT', rawKey: key, keyCode: code, digit };
+  }
+
+  // Pause: the DOM 'Pause' key carries legacy keyCode 19, which the D-pad block
+  // below also accepts for Android TV. The key name disambiguates the two, so
+  // Pause must be handled first or it would normalize to NAV_UP.
+  if (key === 'Pause') {
+    return { action: 'PAUSE', rawKey: key, keyCode: code };
   }
 
   // D-Pad Navigation
@@ -108,7 +114,10 @@ export function normalizeKeyEvent(e: KeyboardEvent): NormalizedKeyEvent | null {
     return { action: 'INFO', rawKey: key, keyCode: code };
   }
 
-  // Smart TV Colored Function Keys
+  // Smart TV Colored Function Keys. Tizen/webOS deliver 403-406 and Chromium
+  // maps Android TV's KEYCODE_PROG_* (183-186) onto those same codes. Do not
+  // also accept raw 183-186 here: 186/187/189 are the legacy keyCodes for `;`,
+  // `=`, `-`, so that mapping would hijack typing in the URL field.
   if (code === 403 || key === 'Red' || key === 'ColorF0Red') {
     return { action: 'COLOR_RED', rawKey: key, keyCode: code };
   }
