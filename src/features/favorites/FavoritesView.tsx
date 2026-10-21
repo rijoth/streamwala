@@ -196,12 +196,15 @@ const FavoriteCard: React.FC<FavoriteCardProps> = ({
         </button>
       </div>
 
-      <div className="w-18 h-18 rounded-2xl bg-[var(--md-sys-color-surface-container-highest)] p-2 flex items-center justify-center mb-2 shrink-0">
+      <div
+        data-logo-plate="2xl"
+        className="w-[var(--logo-size-2xl)] h-[var(--logo-size-2xl)] rounded-2xl bg-[var(--md-sys-color-surface-container-highest)] flex items-center justify-center mb-2 shrink-0"
+      >
         {channel.logo ? (
           <img
             src={channel.logo}
             alt={channel.name}
-            className="w-full h-full object-contain"
+            className="w-[80%] h-[80%] object-contain"
             onError={(e) => {
               (e.target as HTMLElement).style.display = 'none';
             }}

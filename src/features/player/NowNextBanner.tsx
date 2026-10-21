@@ -64,11 +64,12 @@ export const NowNextBanner: React.FC<NowNextBannerProps> = ({
               <img
                 src={channel.logo}
                 alt={channel.name}
-                className="w-14 h-14 object-contain rounded-xl bg-white/5 p-1 border border-white/10"
+                data-logo-plate="lg"
+                className="w-[var(--logo-size-lg)] h-[var(--logo-size-lg)] object-contain rounded-xl bg-white/5 p-1 border border-white/10"
                 onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
               />
             ) : (
-              <div className="w-14 h-14 rounded-xl bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)] flex items-center justify-center font-bold text-xl">
+              <div className="w-[var(--logo-size-lg)] h-[var(--logo-size-lg)] rounded-xl bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)] flex items-center justify-center font-bold text-xl">
                 {channel.name.slice(0, 2).toUpperCase()}
               </div>
             )}

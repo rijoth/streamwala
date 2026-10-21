@@ -280,10 +280,11 @@ export const EpgGuideView: React.FC<EpgGuideViewProps> = ({
                           <img
                             src={channel.logo}
                             alt={channel.name}
-                            className="w-7 h-7 object-contain rounded shrink-0"
+                            data-logo-plate="xs"
+                            className="w-[var(--logo-size-xs)] h-[var(--logo-size-xs)] object-contain rounded shrink-0"
                           />
                         ) : (
-                          <div className="w-7 h-7 rounded bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)] flex items-center justify-center text-xs font-bold shrink-0">
+                          <div className="w-[var(--logo-size-xs)] h-[var(--logo-size-xs)] rounded bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)] flex items-center justify-center text-xs font-bold shrink-0">
                             {channel.name.slice(0, 2)}
                           </div>
                         )}

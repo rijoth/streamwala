@@ -193,3 +193,87 @@ describe('focus geometry tokens', () => {
     expect(transition).not.toContain('background-color');
   });
 });
+
+/**
+ * Channel logo plates are the one geometry family authored in `px * --ui-scale`
+ * rather than rem (ADR 034). Bitmap logo art has fixed optical weight, so it has
+ * to follow the viewer's TV-distance setting; the card around it stays rem-sized
+ * because its text must track the root font size (BUG-022). These assertions
+ * pin all three properties that makes: the token exists in `:root` only, it is
+ * a px × scale product (never rem, never a bare px, never a missing `calc`),
+ * and the family stays monotonic so `xs` cannot silently overtake `lg`.
+ */
+describe('logo scale', () => {
+  const SCALE_ORDER = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', 'hero'] as const;
+  const PX_X_SCALE = /^calc\(\d+px \* var\(--ui-scale\)\)$/;
+
+  it('declares every --logo-size-* once, in :root', () => {
+    for (const name of SCALE_ORDER) {
+      expect(rootTokens.has(`--logo-size-${name}`), `--logo-size-${name}`).toBe(true);
+      // Theme blocks carry colour only (ADR 012); a logo size must not fork.
+      for (const theme of THEMES.filter((entry) => entry.selector !== ':root')) {
+        expect(
+          declarations(themeBlock(theme.selector)).has(`--logo-size-${name}`),
+          `--logo-size-${name} leaked into ${theme.selector}`
+        ).toBe(false);
+      }
+    }
+  });
+
+  it('is authored as px * --ui-scale so it follows the TV UI scale', () => {
+    for (const name of SCALE_ORDER) {
+      expect(rootTokens.get(`--logo-size-${name}`), `--logo-size-${name}`).toMatch(PX_X_SCALE);
+    }
+  });
+
+  it('grows monotonically from the EPG column to the hero watermark', () => {
+    const bases = SCALE_ORDER.map((name) =>
+      Number(rootTokens.get(`--logo-size-${name}`)!.match(/calc\((\d+)px/)![1])
+    );
+    for (let i = 1; i < bases.length; i += 1) {
+      expect(bases[i], `${SCALE_ORDER[i]} must exceed ${SCALE_ORDER[i - 1]}`).toBeGreaterThan(
+        bases[i - 1]
+      );
+    }
+    // The documented base values; a silent retune of the family fails here.
+    expect(bases).toEqual([24, 32, 40, 48, 56, 64, 256]);
+  });
+});
+
+/**
+ * Every surface that paints a channel logo must route through the token family.
+ * The Playwright spec (`e2e/logo-size.spec.ts`) proves the geometry of the
+ * surfaces a D-pad run reaches; this is the cheap complement that also covers
+ * the surfaces that only appear inside a player overlay or a side sheet, and it
+ * fails if a legacy hard-coded square is ever reintroduced next to the token.
+ */
+describe('logo plate call sites', () => {
+  const SURFACES = [
+    { file: 'src/features/live-tv/ChannelCards.tsx', tokens: ['2xl', 'md'], legacy: ['w-20 h-20', 'w-11 h-11'] },
+    { file: 'src/features/favorites/FavoritesView.tsx', tokens: ['2xl'], legacy: ['w-18 h-18'] },
+    { file: 'src/features/home/ChannelTile.tsx', tokens: ['xl'], legacy: ['w-16 h-16'] },
+    { file: 'src/features/search/SearchResultsGrid.tsx', tokens: ['xl'], legacy: ['w-16 h-16'] },
+    { file: 'src/features/home/HeroSection.tsx', tokens: ['hero'], legacy: ['w-64 h-64'] },
+    { file: 'src/features/player/NowNextBanner.tsx', tokens: ['lg'], legacy: ['w-14 h-14'] },
+    { file: 'src/features/player/MiniChannelOverlay.tsx', tokens: ['sm'], legacy: ['w-9 h-9'] },
+    { file: 'src/features/guide/ProgramDetailsSheet.tsx', tokens: ['sm'], legacy: ['w-10 h-10'] },
+    { file: 'src/features/guide/EpgGuideView.tsx', tokens: ['xs'], legacy: ['w-7 h-7'] },
+  ] as const;
+
+  it.each(SURFACES)('$file sizes its logo from --logo-size-*', ({ file, tokens, legacy }) => {
+    const source = readFileSync(path.resolve(process.cwd(), file), 'utf8');
+    for (const token of tokens) {
+      expect(source, `${file} must use --logo-size-${token}`).toContain(
+        `var(--logo-size-${token})`
+      );
+      expect(source, `${file} must tag its plate for the geometry spec`).toContain(
+        `data-logo-plate="${token}"`
+      );
+    }
+    for (const size of legacy) {
+      expect(source, `${file} still carries the hard-coded square "${size}"`).not.toContain(
+        size
+      );
+    }
+  });
+});

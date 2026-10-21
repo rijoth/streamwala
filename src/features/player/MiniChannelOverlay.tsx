@@ -151,11 +151,12 @@ const MiniChannelItem: React.FC<MiniChannelItemProps> = ({
         <img
           src={channel.logo}
           alt={channel.name}
-          className="w-9 h-9 object-contain rounded-lg bg-black/20 p-0.5 shrink-0"
+          data-logo-plate="sm"
+          className="w-[var(--logo-size-sm)] h-[var(--logo-size-sm)] object-contain rounded-lg bg-black/20 p-0.5 shrink-0"
           onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
         />
       ) : (
-        <div className="w-9 h-9 rounded-lg bg-[var(--md-sys-color-surface-container-highest)] flex items-center justify-center text-xs font-bold shrink-0">
+        <div className="w-[var(--logo-size-sm)] h-[var(--logo-size-sm)] rounded-lg bg-[var(--md-sys-color-surface-container-highest)] flex items-center justify-center text-xs font-bold shrink-0">
           {channel.name.slice(0, 2).toUpperCase()}
         </div>
       )}

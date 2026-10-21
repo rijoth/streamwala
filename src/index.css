@@ -122,6 +122,18 @@
   --category-rail-width: calc(256px * var(--ui-scale));
   --category-item-height: calc(56px * var(--ui-scale));
 
+  /* Channel logo plates. Authored in px * --ui-scale like the rails, not in rem:
+     logo art has fixed optical weight and must follow the TV distance setting,
+     while card heights stay rem so text keeps tracking font size (BUG-022).
+     The inner image is 80% of the plate, so the plate alone drives logo size. */
+  --logo-size-xs: calc(24px * var(--ui-scale)); /* EPG channel column */
+  --logo-size-sm: calc(32px * var(--ui-scale)); /* mini overlay, program sheet */
+  --logo-size-md: calc(40px * var(--ui-scale)); /* live-tv list row */
+  --logo-size-lg: calc(48px * var(--ui-scale)); /* now/next banner */
+  --logo-size-xl: calc(56px * var(--ui-scale)); /* home tile, search grid */
+  --logo-size-2xl: calc(64px * var(--ui-scale)); /* live grid, favourites */
+  --logo-size-hero: calc(256px * var(--ui-scale)); /* hero watermark (decorative) */
+
   /* Boot splash (ADR 022). 35vmin is 0.35 of the shorter viewport side: the
      bottom of the native splash's 0.35-0.54 range, matching its densest TV
      bucket (drawable-land-xxxhdpi, 0.352) so the mark does not resize when the

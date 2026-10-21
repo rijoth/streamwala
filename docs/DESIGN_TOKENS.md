@@ -89,6 +89,37 @@ Changing `settings.uiScale` rewrites `--ui-scale`; everything derived from it
 Scale Factor row offers 60%, 70%, 80%, 90%, 100%, 110% and 125%; the accepted
 range is 0.6–1.5 (`SettingsSchema.uiScale`).
 
+## Logo geometry (`--logo-size-*`)
+
+Channel logo plates are the one geometry family authored as `px × --ui-scale`
+rather than in rem (ADR 034). Bitmap logo art has a fixed optical weight, so it
+has to follow the viewer's TV-distance setting; the card around it stays
+rem-sized because its text must track the root font size (ADR 017 / BUG-022).
+
+| Token | Value | Surface |
+|---|---|---|
+| `--logo-size-xs` | `calc(24px * var(--ui-scale))` | EPG channel column |
+| `--logo-size-sm` | `calc(32px * var(--ui-scale))` | player mini overlay, program details sheet |
+| `--logo-size-md` | `calc(40px * var(--ui-scale))` | Live TV list row |
+| `--logo-size-lg` | `calc(48px * var(--ui-scale))` | player now/next banner |
+| `--logo-size-xl` | `calc(56px * var(--ui-scale))` | Home channel tile, Home search grid |
+| `--logo-size-2xl` | `calc(64px * var(--ui-scale))` | Live TV grid card, Favorites card |
+| `--logo-size-hero` | `calc(256px * var(--ui-scale))` | Home hero watermark (decorative) |
+
+Two rules keep the family honest:
+
+1. **The plate is `px × --ui-scale`, never rem.** A rem plate would shrink
+   when a viewer lowers the font size for a reason that has nothing to do with
+   the distance they sit at.
+2. **The image is 80% of the plate**, never `w-full` plus rem padding — this
+   reproduces the original 64/80 and 36/44 art ratios without letting a rem
+   `p-2` eat a px-authored plate at a large root font size.
+
+Plates carry `data-logo-plate="<token>"` so `e2e/logo-size.spec.ts` can measure
+them per surface at `--ui-scale` 1 and 1.5;
+`src/shared/ui/designTokens.test.ts` pins the token shape, the ordering
+(`xs < sm < md < lg < xl < 2xl < hero`) and the call sites.
+
 ## Brand mark
 
 `scripts/android-assets.py` is the single source of the mark. It is generated,

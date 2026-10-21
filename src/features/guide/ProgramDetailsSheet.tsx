@@ -46,7 +46,12 @@ export const ProgramDetailsSheet: React.FC<ProgramDetailsSheetProps> = ({
         <div className="flex flex-col gap-4 text-sm">
           <div className="flex items-center gap-3 p-3 rounded-2xl bg-[var(--md-sys-color-surface-container-high)]">
             {channel.logo && (
-              <img src={channel.logo} alt={channel.name} className="w-10 h-10 object-contain rounded-lg" />
+              <img
+                src={channel.logo}
+                alt={channel.name}
+                data-logo-plate="sm"
+                className="w-[var(--logo-size-sm)] h-[var(--logo-size-sm)] object-contain rounded-lg"
+              />
             )}
             <div>
               <h4 className="font-bold text-base">{channel.name}</h4>

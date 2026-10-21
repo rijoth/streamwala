@@ -4,6 +4,7 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '../../test/renderWithProviders.tsx';
 import { ChannelBrowser } from './ChannelBrowser.tsx';
+import { ChannelGridCard, ChannelListItem } from './ChannelCards.tsx';
 import type { Channel, Group } from '../../domain/types.ts';
 
 function makeChannel(id: string, name: string, groupId: string, groupName: string): Channel {
@@ -148,5 +149,80 @@ describe('ChannelBrowser category rail', () => {
 
     await user.click(within(screen.getByTestId('category-rail')).getByRole('button', { name: /News/ }));
     expect(onSelectGroup).toHaveBeenCalledWith(NEWS);
+  });
+});
+
+/**
+ * Logo plates are token-driven and the art is 80% of the plate (ADR 034).
+ * jsdom cannot measure geometry, so this asserts the contract — the token class
+ * on the plate, the inset class on the image — and leaves the pixels to
+ * `e2e/logo-size.spec.ts`.
+ */
+describe('channel logo plates', () => {
+  const logoChannel: Channel = {
+    ...makeChannel('cl1', 'Logo One', NEWS, 'News'),
+    logo: 'https://example.invalid/logo.svg',
+  };
+  const noLogoChannel = makeChannel('cl2', 'Gamma Sports', SPORTS, 'Sports');
+
+  it('sizes the grid plate from --logo-size-2xl and the art at 80% of it', () => {
+    const { container } = renderWithProviders(
+      <ChannelGridCard
+        channel={logoChannel}
+        index={0}
+        focusKey="CARD_TEST"
+        onSelect={noop}
+        onToggleFavorite={noop}
+      />
+    );
+
+    const plate = container.querySelector('[data-logo-plate="2xl"]') as HTMLElement | null;
+    expect(plate).not.toBeNull();
+    expect(plate!.className).toContain('w-[var(--logo-size-2xl)]');
+    expect(plate!.className).toContain('h-[var(--logo-size-2xl)]');
+    // Rem padding on a px-authored plate would change the art ratio.
+    expect(plate!.className).not.toMatch(/\bp-\d/);
+
+    const img = plate!.querySelector('img') as HTMLImageElement;
+    expect(img).not.toBeNull();
+    expect(img.className).toContain('w-[80%]');
+    expect(img.className).toContain('h-[80%]');
+    expect(img.className).toContain('object-contain');
+  });
+
+  it('sizes the list plate from --logo-size-md', () => {
+    const { container } = renderWithProviders(
+      <ChannelListItem
+        channel={logoChannel}
+        index={0}
+        focusKey="ROW_TEST"
+        onSelect={noop}
+        onToggleFavorite={noop}
+      />
+    );
+
+    const plate = container.querySelector('[data-logo-plate="md"]') as HTMLElement | null;
+    expect(plate).not.toBeNull();
+    expect(plate!.className).toContain('w-[var(--logo-size-md)]');
+    expect(plate!.className).toContain('h-[var(--logo-size-md)]');
+    const img = plate!.querySelector('img') as HTMLImageElement;
+    expect(img.className).toContain('w-[80%]');
+  });
+
+  it('keeps the initials fallback inside the token plate when there is no logo', () => {
+    const { container } = renderWithProviders(
+      <ChannelGridCard
+        channel={noLogoChannel}
+        index={0}
+        focusKey="CARD_NO_LOGO"
+        onSelect={noop}
+        onToggleFavorite={noop}
+      />
+    );
+
+    const plate = container.querySelector('[data-logo-plate="2xl"]') as HTMLElement | null;
+    expect(plate).not.toBeNull();
+    expect(plate!.querySelector('img')).toBeNull();
+    expect(plate!.textContent).toBe('GA');
   });
 });

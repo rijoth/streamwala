@@ -63,12 +63,15 @@ export const ChannelGridCard: React.FC<ChannelItemProps> = ({
         </button>
       </div>
 
-      <div className="w-20 h-20 mb-3 flex items-center justify-center p-2 rounded-2xl bg-[var(--md-sys-color-surface-container-highest)] shrink-0">
+      <div
+        data-logo-plate="2xl"
+        className="w-[var(--logo-size-2xl)] h-[var(--logo-size-2xl)] mb-3 flex items-center justify-center rounded-2xl bg-[var(--md-sys-color-surface-container-highest)] shrink-0"
+      >
         {channel.logo ? (
           <img
             src={channel.logo}
             alt={channel.name}
-            className="w-full h-full object-contain"
+            className="w-[80%] h-[80%] object-contain"
             onError={(e) => {
               (e.target as HTMLElement).style.display = 'none';
             }}
@@ -118,12 +121,15 @@ export const ChannelListItem: React.FC<ChannelItemProps> = ({
         {typeof channel.number === 'number' && !Number.isNaN(channel.number) ? channel.number : '•'}
       </span>
 
-      <div className="w-11 h-11 rounded-xl bg-[var(--md-sys-color-surface-container-highest)] p-1 flex items-center justify-center shrink-0">
+      <div
+        data-logo-plate="md"
+        className="w-[var(--logo-size-md)] h-[var(--logo-size-md)] rounded-xl bg-[var(--md-sys-color-surface-container-highest)] flex items-center justify-center shrink-0"
+      >
         {channel.logo ? (
           <img
             src={channel.logo}
             alt={channel.name}
-            className="w-full h-full object-contain"
+            className="w-[80%] h-[80%] object-contain"
             onError={(e) => {
               (e.target as HTMLElement).style.display = 'none';
             }}

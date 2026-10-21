@@ -33,12 +33,15 @@ export const ChannelTile: React.FC<ChannelTileProps> = ({ channel, focusKey, ind
         ${focused ? 'tv-focused z-10' : ''}
       `}
     >
-      <div className="w-16 h-16 rounded-xl bg-[var(--md-sys-color-surface-container-highest)] p-1 flex items-center justify-center mb-2">
+      <div
+        data-logo-plate="xl"
+        className="w-[var(--logo-size-xl)] h-[var(--logo-size-xl)] rounded-xl bg-[var(--md-sys-color-surface-container-highest)] flex items-center justify-center mb-2"
+      >
         {channel.logo ? (
           <img
             src={channel.logo}
             alt={channel.name}
-            className="w-full h-full object-contain"
+            className="w-[80%] h-[80%] object-contain"
             onError={(e) => {
               (e.target as HTMLElement).style.display = 'none';
             }}

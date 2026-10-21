@@ -35,7 +35,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ channel, expanded, onW
         }`}
       >
         {channel.logo ? (
-          <img src={channel.logo} alt="" className="w-64 h-64 object-contain filter grayscale" />
+          <img
+            src={channel.logo}
+            alt=""
+            data-logo-plate="hero"
+            className="w-[var(--logo-size-hero)] h-[var(--logo-size-hero)] object-contain filter grayscale"
+          />
         ) : (
           <Icon name="live_tv" size={140} />
         )}
