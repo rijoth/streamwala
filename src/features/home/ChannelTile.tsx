@@ -30,7 +30,7 @@ export const ChannelTile: React.FC<ChannelTileProps> = ({ channel, focusKey, ind
       className={`
         tv-focus-target shrink-0 p-4 rounded-2xl bg-[var(--md-sys-color-surface-container)] border border-[var(--md-sys-color-outline-variant)]
         flex flex-col items-center text-center cursor-pointer outline-none
-        ${focused ? 'tv-focused ring-3 ring-[var(--md-sys-color-focus-ring)] !bg-[var(--md-sys-color-primary-container)] !border-[var(--md-sys-color-primary)] z-10' : ''}
+        ${focused ? 'tv-focused !bg-[var(--md-sys-color-primary-container)] !border-[var(--md-sys-color-primary)] z-10' : ''}
       `}
     >
       <div className="w-16 h-16 rounded-xl bg-[var(--md-sys-color-surface-container-highest)] p-1 flex items-center justify-center mb-2">
@@ -91,7 +91,7 @@ export const CategoryTile: React.FC<CategoryTileProps> = ({ group, focusKey, ind
       className={`
         tv-focus-target p-4 rounded-2xl bg-[var(--md-sys-color-surface-container)] border border-[var(--md-sys-color-outline-variant)]
         cursor-pointer outline-none flex items-center justify-between
-        ${focused ? 'tv-focused ring-3 ring-[var(--md-sys-color-focus-ring)] !bg-[var(--md-sys-color-primary-container)]' : ''}
+        ${focused ? 'tv-focused !bg-[var(--md-sys-color-primary-container)]' : ''}
       `}
     >
       <div className="truncate">

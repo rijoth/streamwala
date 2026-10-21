@@ -45,7 +45,26 @@ Emulator check: `input keyevent 82` does not toggle diagnostics, `input keyevent
 37` (`i`) does.
 
 ## Remote Focus Guidelines
-- Outer focus ring uses `--md-sys-color-focus-ring` (3px outline or box-shadow + scale 1.05).
+- Focus styling is owned by two unlayered classes in `src/index.css`: every
+  D-pad stop carries `tv-focus-target` (the 140ms transition) and gets
+  `tv-focused` while focused. Tailwind `ring-*`/`scale-*` utilities on the same
+  element are dead — the unlayered rules win — so never add them.
+- `.tv-focused` scales by `--focus-scale` (1.05) and paints three shadow layers:
+  a 3px `--focus-ring-width` ring in `--md-sys-color-focus-ring`, a tight
+  contact shadow and a wide 28px cast shadow. The elevation is what makes the
+  focused card read as lifted at 3 metres; the ring alone is too thin.
+- Small targets (virtual-keyboard keys) opt into `--focus-scale-key` (1.08) via
+  `.tv-key`, because a 48px key at 1.05 is not distinguishable at distance.
+- Targets whose width is not bounded (the `w-full` inline search fields, the
+  EPG programme cells) carry `.tv-flat`: no scale, but the same ring and
+  elevation. Their overhang grows with the element, so no fixed
+  `--focus-ring-pad` can contain it.
+- `--focus-ring-pad` (12px) is the leading/trailing padding every scroll
+  viewport reserves so the scaled box plus ring is never clipped by an
+  `overflow: clip` ancestor. It is sized for `w <= 319px` at 1.05 and stays
+  under the 16px grid gap, which is why the scale is 1.05 and not 1.08.
+- `prefers-reduced-motion: reduce` drops the transition only: the scale and the
+  ring are a size/contrast cue, not motion, and stay visible.
 - Visible from 3 meters distance on 1080p and 4K displays.
 - Overscan safe zones: `padding: 32px 48px`.
 

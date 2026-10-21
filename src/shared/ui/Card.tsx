@@ -60,8 +60,8 @@ export const Card: React.FC<CardProps> = ({
       onClick={isInteractive ? onClick : undefined}
       className={`
         ${isInteractive ? 'tv-focus-target cursor-pointer' : ''}
-        relative rounded-2xl transition-all duration-150 overflow-hidden outline-none
-        ${focused && isInteractive ? 'tv-focused ring-4 ring-[var(--md-sys-color-focus-ring)]' : ''}
+        relative rounded-2xl overflow-hidden outline-none
+        ${focused && isInteractive ? 'tv-focused' : ''}
         ${variantClasses}
         ${className}
       `}

@@ -141,7 +141,7 @@ const MiniChannelItem: React.FC<MiniChannelItemProps> = ({
             ? 'bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)] font-semibold'
             : 'hover:bg-[var(--md-sys-color-surface-container-high)] text-[var(--md-sys-color-on-surface)]'
         }
-        ${focused ? 'tv-focused ring-3 ring-[var(--md-sys-color-focus-ring)] scale-102 !bg-[var(--md-sys-color-primary)] !text-[var(--md-sys-color-on-primary)] z-10' : ''}
+        ${focused ? 'tv-focused !bg-[var(--md-sys-color-primary)] !text-[var(--md-sys-color-on-primary)] z-10' : ''}
       `}
     >
       <span className="font-mono text-xs w-8 text-center text-[var(--md-sys-color-outline)] font-bold">

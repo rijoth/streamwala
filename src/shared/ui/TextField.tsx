@@ -89,10 +89,10 @@ export const TextField: React.FC<TextFieldProps> = ({
         <div
           ref={ref as React.Ref<HTMLDivElement>}
           className={`
-            tv-focus-target relative flex items-center gap-2 px-3 py-2 rounded-xl
-            bg-[var(--md-sys-color-surface-container)] border transition-all duration-150
+            tv-focus-target tv-flat relative flex items-center gap-2 px-3 py-2 rounded-xl
+            bg-[var(--md-sys-color-surface-container)] border
             ${error ? 'border-[var(--md-sys-color-error)]' : 'border-[var(--md-sys-color-outline-variant)]'}
-            ${focused ? 'tv-focused ring-3 ring-[var(--md-sys-color-focus-ring)] !bg-[var(--md-sys-color-surface-container-high)]' : ''}
+            ${focused ? 'tv-focused !bg-[var(--md-sys-color-surface-container-high)]' : ''}
           `}
         >
           {icon && (
@@ -171,10 +171,10 @@ export const TextField: React.FC<TextFieldProps> = ({
       <div
         ref={ref as React.Ref<HTMLDivElement>}
         className={`
-          tv-focus-target relative flex items-center gap-3 px-4 py-3 rounded-2xl
-          bg-[var(--md-sys-color-surface-container)] border transition-all duration-150
+          tv-focus-target tv-flat relative flex items-center gap-3 px-4 py-3 rounded-2xl
+          bg-[var(--md-sys-color-surface-container)] border transition-colors duration-150
           ${error ? 'border-[var(--md-sys-color-error)]' : 'border-[var(--md-sys-color-outline-variant)]'}
-          ${focused ? 'tv-focused ring-3 ring-[var(--md-sys-color-focus-ring)] !bg-[var(--md-sys-color-surface-container-high)]' : ''}
+          ${focused ? 'tv-focused !bg-[var(--md-sys-color-surface-container-high)]' : ''}
         `}
       >
         {icon && (

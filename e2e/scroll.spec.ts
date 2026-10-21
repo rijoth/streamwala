@@ -66,14 +66,15 @@ function focusGeometry(p: Page): Promise<FocusGeometry | null> {
   return p.evaluate(() => {
     const el = document.querySelector('[data-focused="true"]') as HTMLElement | null;
     if (!el) return null;
+    // `getBoundingClientRect()` already includes the focus `scale()` transform,
+    // so this is the *painted* box. Judging the scaled box (instead of
+    // de-scaling with `offsetWidth`) is what makes a too-small
+    // `--focus-ring-pad` fail this spec instead of silently clipping the ring.
     const r = el.getBoundingClientRect();
-    // The focus style scales the element (`tv-focused` → scale(1.04)); a scaled
-    // box legitimately overhangs its clip rect by a few px. Judge the unscaled
-    // layout box instead, otherwise visibility flips with row offset/viewport.
-    const w = el.offsetWidth || r.width;
-    const h = el.offsetHeight || r.height;
-    const left = r.left + (r.width - w) / 2;
-    const top = r.top + (r.height - h) / 2;
+    const left = r.left;
+    const top = r.top;
+    const w = r.width;
+    const h = r.height;
 
     let clip = { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight };
     let parent = el.parentElement;
@@ -118,6 +119,9 @@ async function expectFocusedFullyVisible(p: Page, label: string) {
       async () => {
         const geo = await focusGeometry(p);
         if (!geo) return 'no-focus';
+        // The box-shadow ring is painted outside the border box and scales with
+        // it: 3px * 1.05 ≈ 3.15px. `--focus-ring-pad` (12px) must cover the
+        // scale overhang plus this ring.
         const ringPad = 4;
         const inside =
           geo.left - ringPad >= geo.clip.left - 2 &&

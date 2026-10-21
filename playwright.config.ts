@@ -16,6 +16,10 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:3000',
     trace: 'retain-on-failure',
+    // Pin the default so a machine-level OS motion setting cannot change what a
+    // focus-style assertion sees; `test.use({ reducedMotion: 'reduce' })` opts
+    // individual specs into the reduced-motion policy.
+    reducedMotion: 'no-preference',
   },
   projects: [
     {

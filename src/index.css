@@ -45,9 +45,19 @@
   --tv-safe-x: 48px;
   --tv-safe-y: 32px;
 
-  /* Leading/trailing padding that stops the 3px focus ring + 1.04 scale from
-     being clipped by an overflow container. */
-  --focus-ring-pad: 10px;
+  /* Focus geometry. The overhang per side of a scaled focus target is
+     w*(scale-1)/2 + ringWidth*scale, so 1.05 needs 0.025w + 3.15px:
+     a 212px card overhangs 8.45px, a 210px tile 8.40px.
+     --focus-ring-pad is the leading/trailing padding that stops the ring and
+     the scale from being clipped by an overflow container. It is sized for the
+     widest target that sits in a clipping container (w <= 319px at scale 1.05)
+     and stays well under the 16px grid gap, so adjacent cards never overlap. */
+  --focus-ring-width: 3px;
+  --focus-scale: 1.05;
+  /* Small targets (virtual-keyboard keys, ~48px) need more scale to read at 3m;
+     the overhang stays ~4.2px, which fits the same pad. */
+  --focus-scale-key: 1.08;
+  --focus-ring-pad: 12px;
 
   /* UI Scaling Factor */
   --ui-scale: 1;
@@ -140,7 +150,10 @@ html.theme-light {
 
 /* Softer drop shadow so the focus ring stays readable on light surfaces. */
 html.theme-light .tv-focused {
-  box-shadow: 0 0 0 3px var(--md-sys-color-focus-ring), 0 8px 24px rgba(0, 0, 0, 0.25);
+  box-shadow:
+    0 0 0 var(--focus-ring-width) var(--md-sys-color-focus-ring),
+    0 2px 4px rgba(0, 0, 0, 0.12),
+    0 12px 28px rgba(0, 0, 0, 0.22);
 }
 
 /* AMOLED Black theme variant */
@@ -212,9 +225,29 @@ textarea,
 }
 
 .tv-focused {
-  transform: scale(1.04);
-  box-shadow: 0 0 0 3px var(--md-sys-color-focus-ring), 0 8px 24px rgba(0, 0, 0, 0.65);
+  transform: scale(var(--focus-scale));
+  /* Ring + two-layer elevation: a tight contact shadow and a wide cast shadow,
+     so the focused card reads as lifted, not just outlined, at 3 metres. */
+  box-shadow:
+    0 0 0 var(--focus-ring-width) var(--md-sys-color-focus-ring),
+    0 2px 4px rgba(0, 0, 0, 0.35),
+    0 12px 28px rgba(0, 0, 0, 0.65);
   z-index: 20;
+}
+
+/* Small targets keep a larger scale (see --focus-scale-key). */
+.tv-focused.tv-key {
+  transform: scale(var(--focus-scale-key));
+}
+
+/*
+ * Targets whose width is not bounded (the `w-full` inline search fields, the EPG
+ * programme cells) must not scale: the overhang `w*(scale-1)/2` grows with the
+ * element, so no fixed --focus-ring-pad can keep it unclipped. They keep the
+ * ring and the elevation, which are the cues that survive any width.
+ */
+.tv-focused.tv-flat {
+  transform: none;
 }
 
 /* Subtle focus without heavy scale for inline list rows or nav items */
@@ -247,6 +280,12 @@ textarea,
   animation: brand-pulse 1.6s ease-in-out infinite;
 }
 
+/*
+ * Reduced motion drops the 140ms focus interpolation but keeps the static
+ * scale and elevation: a larger, brighter box is a size/contrast cue, not
+ * motion, and the 3px ring alone is hard to resolve at 3 metres. One global
+ * policy, so no component needs its own `motion-reduce:` escape hatch.
+ */
 @media (prefers-reduced-motion: reduce) {
   .app-splash {
     transition: none;
@@ -254,6 +293,12 @@ textarea,
 
   .app-splash-mark {
     animation: none;
+  }
+
+  .tv-focus-target,
+  .tv-focused {
+    transition: none !important;
+    animation: none !important;
   }
 }
 

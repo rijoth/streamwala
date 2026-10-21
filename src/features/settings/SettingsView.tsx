@@ -47,7 +47,7 @@ const FocusableTile: React.FC<FocusableTileProps> = ({
       type="button"
       onClick={onPress}
       className={`
-        tv-focus-target cursor-pointer outline-none transition-all
+        tv-focus-target cursor-pointer outline-none
         ${focused ? 'tv-focused' : ''}
         ${className}
       `}
@@ -101,7 +101,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
       {/* Tabs Row */}
       <div className="flex items-center gap-2 pb-4 border-b border-[var(--md-sys-color-outline-variant)]">
-        <FocusZone focusKey="SETTINGS_TABS" ownsChildren className="flex items-center gap-2 overflow-x-auto whitespace-nowrap">
+        <FocusZone focusKey="SETTINGS_TABS" ownsChildren className="flex items-center gap-2 overflow-x-auto whitespace-nowrap px-[var(--focus-ring-pad)] -mx-[var(--focus-ring-pad)] py-[var(--focus-ring-pad)] -my-[var(--focus-ring-pad)]">
           {[
             { id: 'appearance', label: 'Appearance & TV Safe Area', icon: 'palette' },
             { id: 'playback', label: 'Playback & Engines', icon: 'play_circle' },

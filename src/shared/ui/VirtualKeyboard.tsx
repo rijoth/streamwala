@@ -167,10 +167,10 @@ const KeyButton: React.FC<KeyButtonProps> = ({ label, icon, onClick, className =
       type="button"
       onClick={onClick}
       className={`
-        tv-focus-target rounded-xl bg-[var(--md-sys-color-surface-container)] text-[var(--md-sys-color-on-surface)]
+        tv-focus-target tv-key rounded-xl bg-[var(--md-sys-color-surface-container)] text-[var(--md-sys-color-on-surface)]
         border border-[var(--md-sys-color-outline-variant)] select-none cursor-pointer flex items-center justify-center gap-1.5
-        transition-all duration-100 outline-none
-        ${focused ? 'tv-focused ring-3 ring-[var(--md-sys-color-focus-ring)] scale-110 !bg-[var(--md-sys-color-primary-container)] !text-[var(--md-sys-color-on-primary-container)] z-10' : ''}
+        outline-none
+        ${focused ? 'tv-focused !bg-[var(--md-sys-color-primary-container)] !text-[var(--md-sys-color-on-primary-container)] z-10' : ''}
         ${className}
       `}
     >

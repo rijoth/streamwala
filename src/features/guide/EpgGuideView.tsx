@@ -8,6 +8,7 @@ import { Icon } from '../../shared/icons/index.ts';
 import {
   VirtualGrid,
   clamp,
+  focusRingClipStyle,
   maxOffset,
   useFocusedItemIndex,
   useGridScroller,
@@ -239,13 +240,23 @@ export const EpgGuideView: React.FC<EpgGuideViewProps> = ({
             </div>
 
             <FocusZone focusKey="EPG_GRID" ownsChildren className="flex-1 min-w-0">
-              <div ref={hAxis.viewportRef} data-scroll-axis="horizontal" className="relative h-full overflow-hidden">
+              <div
+                ref={hAxis.viewportRef}
+                data-scroll-axis="horizontal"
+                className="relative h-full overflow-hidden"
+                style={focusRingClipStyle}
+              >
                 <div
                   ref={hAxis.contentRef}
                   className="relative h-full will-change-transform"
                   style={{ width: timelineWidth }}
                 >
-                  <div ref={vScroller.axis.viewportRef} data-scroll-axis="vertical" className="h-full overflow-hidden">
+                  <div
+                    ref={vScroller.axis.viewportRef}
+                    data-scroll-axis="vertical"
+                    className="h-full overflow-hidden"
+                    style={focusRingClipStyle}
+                  >
                     <VirtualGrid<Channel>
                       axis={vScroller.axis}
                       items={channels}

@@ -52,6 +52,24 @@ Each guardrail below prevents a bug class found in the audit (see
   including OK activation. This is what catches a screen that is technically
   "navigable" but silently stops on non-interactive containers (the previous
   test only checked `document.activeElement`, which a click leaves on the rail).
+- **Focus appearance guardrail:** existence is not enough — a stop can carry
+  `tv-focus-target` and still look unfocused. `e2e/focus-visuals.spec.ts` reads
+  `getComputedStyle` on the cursor for the rail, a Home card, the Live TV grid,
+  a Settings tab/button/text field, a virtual-keyboard key and an EPG cell, and
+  asserts the computed scale (`--focus-scale` 1.05, `--focus-scale-key` 1.08 for
+  keys, `.tv-flat` = no scale for width-derived targets), the 3px ring in
+  `--md-sys-color-focus-ring`, at least two elevation
+  layers, `z-index: 20`, that the scaled box stays inside its clip region, that
+  the scale is released when focus moves on, and that
+  `prefers-reduced-motion: reduce` keeps the cue with a `0s` transition. It is
+  also what makes a dead Tailwind `ring-*`/`scale-*` utility (the unlayered
+  `.tv-focused` rule wins, so such utilities are no-ops) fail instead of
+  silently doing nothing. `src/shared/ui/focusStyling.test.tsx` holds the jsdom
+  half of the same contract: which class lands on the focused `Button`/`Card`/
+  `TextField`, and that no focus target re-adds a `ring-*`/`scale-*` utility. A
+  final sweep walks every top-level screen and requires the painted focus box
+  (`getBoundingClientRect()` + ring) to stay inside its clipping ancestor, so a
+  new full-width focusable that forgets `.tv-flat` fails.
 - **Splash guardrail (ADR 022):** a warm reload paints Home while the boot
   splash still owns input, so D-pad keys pressed in that window are dropped and
   focus silently stays where the previous spec left it. Specs that act on the

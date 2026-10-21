@@ -37,9 +37,9 @@ const ProgramCell: React.FC<{
       onClick={onSelect}
       style={{ position: 'absolute', left: layout.x, width: layout.width, top: 0, bottom: 0 }}
       className={`
-        tv-focus-target flex flex-col justify-center gap-0.5 px-2 border-r border-[var(--md-sys-color-outline-variant)]
+        tv-focus-target tv-flat flex flex-col justify-center gap-0.5 px-2 border-r border-[var(--md-sys-color-outline-variant)]
         cursor-pointer outline-none overflow-hidden
-        ${focused ? 'tv-focused ring-3 ring-[var(--md-sys-color-focus-ring)] !bg-[var(--md-sys-color-primary-container)] !text-[var(--md-sys-color-on-primary-container)] z-10' : ''}
+        ${focused ? 'tv-focused !bg-[var(--md-sys-color-primary-container)] !text-[var(--md-sys-color-on-primary-container)] z-10' : ''}
       `}
     >
       <div className="text-xs font-semibold truncate leading-tight">{layout.program.title}</div>
@@ -69,9 +69,9 @@ const EmptyCell: React.FC<{
       onClick={onSelect}
       style={{ position: 'absolute', left: 0, width: columnWidth * 2, top: 0, bottom: 0 }}
       className={`
-        tv-focus-target flex items-center px-3 text-xs text-[var(--md-sys-color-outline)]
+        tv-focus-target tv-flat flex items-center px-3 text-xs text-[var(--md-sys-color-outline)]
         cursor-pointer outline-none overflow-hidden
-        ${focused ? 'tv-focused ring-3 ring-[var(--md-sys-color-focus-ring)] !bg-[var(--md-sys-color-primary-container)]' : ''}
+        ${focused ? 'tv-focused !bg-[var(--md-sys-color-primary-container)]' : ''}
       `}
     >
       No program information

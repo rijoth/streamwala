@@ -68,9 +68,9 @@ export const Button: React.FC<ButtonProps> = ({
       onClick={onClick}
       className={`
         tv-focus-target relative inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-base font-medium
-        transition-all duration-150 select-none cursor-pointer outline-none shrink-0
+        select-none cursor-pointer outline-none shrink-0
         ${disabled ? 'opacity-40 pointer-events-none' : ''}
-        ${focused ? 'tv-focused ring-4 ring-[var(--md-sys-color-primary)]' : ''}
+        ${focused ? 'tv-focused' : ''}
         ${variantClasses}
         ${className}
       `}

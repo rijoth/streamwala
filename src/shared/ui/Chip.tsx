@@ -35,13 +35,13 @@ export const Chip: React.FC<ChipProps> = ({
       onClick={onClick}
       className={`
         tv-focus-target inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium
-        transition-all duration-150 cursor-pointer outline-none shrink-0 border
+        cursor-pointer outline-none shrink-0 border
         ${
           selected
             ? 'bg-[var(--md-sys-color-primary-container)] border-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary-container)]'
             : 'bg-[var(--md-sys-color-surface-container-low)] border-[var(--md-sys-color-outline-variant)] text-[var(--md-sys-color-on-surface-variant)] hover:bg-[var(--md-sys-color-surface-container)]'
         }
-        ${focused ? 'tv-focused ring-3 ring-[var(--md-sys-color-focus-ring)] scale-105' : ''}
+        ${focused ? 'tv-focused' : ''}
         ${className}
       `}
     >

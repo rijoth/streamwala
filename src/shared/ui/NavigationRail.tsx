@@ -168,11 +168,10 @@ const NavRailItem: React.FC<NavRailItemProps> = ({
       className={`
         tv-focus-target tv-rail-item relative shrink-0 flex items-center justify-center rounded-full outline-none
         w-[var(--rail-item-size)] h-[var(--rail-item-size)]
-        transition-transform duration-150 ease-out motion-reduce:transition-none
         ${isActive
           ? 'bg-[var(--md-sys-color-secondary-container)] text-[var(--md-sys-color-on-secondary-container)]'
           : 'text-[var(--md-sys-color-on-surface-variant)] hover:bg-[var(--md-sys-color-surface-container-high)]'}
-        ${focused ? 'scale-[1.06] ring-[3px] ring-[var(--md-sys-color-primary)] z-20 motion-reduce:scale-100' : ''}
+        ${focused ? 'tv-focused z-20' : ''}
       `}
     >
       <Icon name={item.icon} size="var(--rail-icon-size)" filled={isActive} />
