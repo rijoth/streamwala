@@ -54,6 +54,21 @@ describe('NavigationRail', () => {
     ).toBeGreaterThan(0);
   });
 
+  it('uses the generated app mark as the rail brand, not a generic icon', () => {
+    renderWithProviders(<RailHarness />);
+
+    const brand = screen.getByTestId('rail-brand-mark');
+    expect(brand).toHaveAttribute('aria-hidden', 'true');
+
+    const mark = brand.querySelector('img');
+    expect(mark).not.toBeNull();
+    expect(mark).toHaveAttribute('alt', '');
+    // Vite inlines the SVG as a data URI under Vitest and emits a file URL in
+    // the production build, so accept either form of the generated mark.
+    expect(mark?.getAttribute('src')).toMatch(/^(data:image\/svg\+xml|.*streamwala-mark.*\.svg)/);
+    expect(brand.querySelector('.material-symbols-rounded')).toBeNull();
+  });
+
   it('marks the active destination with aria-current="page"', () => {
     const { rerender } = renderWithProviders(<RailHarness activeId="home" />);
     expect(screen.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page');

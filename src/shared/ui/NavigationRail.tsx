@@ -10,6 +10,7 @@ import {
 } from '../focus/index.ts';
 import { pushBackHandler } from '../input/index.ts';
 import { Icon } from '../icons/index.ts';
+import markUrl from './brand/streamwala-mark.svg';
 
 export interface NavDestination {
   id: string;
@@ -86,12 +87,15 @@ export const NavigationRail: React.FC<NavigationRailProps> = ({
       className="relative shrink-0 h-full w-[var(--rail-width)] flex flex-col items-center justify-between py-6
         bg-[var(--md-sys-color-surface-container)] border-r border-[var(--md-sys-color-outline-variant)]"
     >
-      {/* Brand mark only — decorative and non-focusable. */}
+      {/* Brand mark only — decorative and non-focusable. The generated mark
+          (ADR 021) is the same shape as the launcher icon, splash and TV banner,
+          so the rail never shows a second, generic logo. */}
       <div
         aria-hidden="true"
-        className="w-12 h-12 rounded-2xl bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)] flex items-center justify-center shrink-0"
+        data-testid="rail-brand-mark"
+        className="w-12 h-12 rounded-2xl overflow-hidden shrink-0"
       >
-        <Icon name="live_tv" size={26} />
+        <img src={markUrl} alt="" className="block w-full h-full" />
       </div>
 
       {/* Destination group, vertically centred. FocusScope makes the items
