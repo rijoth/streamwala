@@ -2,7 +2,7 @@
 #
 # Capture real in-app screenshots for the Google Play listing.
 #
-#   scripts/play-screenshots.sh mobile        # -> images/phoneScreenshots/
+#   scripts/play-screenshots.sh mobile        # -> images/tenInchScreenshots/
 #   scripts/play-screenshots.sh tv --serial 192.168.1.40:5555
 #
 # Play rejects device frames, mockups and anything that is not the running app,
@@ -16,9 +16,11 @@
 # shade, and start from the demo playlist so no real provider URL, username or
 # channel name from a private account ends up in the store listing.
 #
-# Play minimums: two phone screenshots, one TV screenshot. Recommended for
-# promotional placement: four 16:9 landscape (1920x1080) or 9:16 portrait
-# (1080x1920) captures per device type.
+# Play minimums: two tablet screenshots, one TV screenshot. The `mobile`
+# listing is tablet-only (sw600dp+, see android/app/src/main/AndroidManifest.xml),
+# so it has no phone screenshots at all; capture on a 10" tablet at 1920x1200 or
+# 2560x1600. Recommended for promotional placement: four 16:9 landscape captures
+# per device type.
 
 set -euo pipefail
 
@@ -72,7 +74,7 @@ COUNT="${COUNT:-4}"
 if [[ "$FLAVOR" == "tv" ]]; then
   TARGET_DIR="$IMAGES_DIR/tvScreenshots"
 else
-  TARGET_DIR="$IMAGES_DIR/phoneScreenshots"
+  TARGET_DIR="$IMAGES_DIR/tenInchScreenshots"
 fi
 
 command -v adb >/dev/null 2>&1 || die "adb is not on PATH (install platform-tools)"

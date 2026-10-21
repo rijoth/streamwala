@@ -6,7 +6,7 @@ Gradle product flavors:
 
 | Artifact | Application id | Form factor target |
 | --- | --- | --- |
-| `streamwala-mobile-*.apk` | `tv.streamwala.iptv` | Phones / tablets (touch, portrait allowed) |
+| `streamwala-mobile-*.apk` | `tv.streamwala.iptv` | Tablets only (600dp+ smallest width, touch, portrait allowed) |
 | `streamwala-tv-*.apk` | `tv.streamwala.iptv.tv` | Android TV, Google TV, Fire TV (leanback, landscape, D-pad only) |
 
 Different application ids mean a box can have both APKs installed side by side.
@@ -149,9 +149,16 @@ press pops exactly one overlay layer (ADR 008 / BUG-002); with an empty stack
 the app exits.
 
 Per-flavor manifest differences live in `manifestPlaceholders`
-(`leanbackRequired`, `touchscreenRequired`, `screenOrientation`) plus the
+(`leanbackRequired`, `touchscreenRequired`, `smallScreensSupported`,
+`normalScreensSupported`, `smallestWidthDp`, `screenOrientation`) plus the
 `android/app/src/tv/AndroidManifest.xml` overlay, which adds the
 `LEANBACK_LAUNCHER` category, the TV theme and forced landscape.
+
+The `mobile` flavor is **tablet-only** (ADR 033): it supports only the `large`
+and `xlarge` screen classes and requires `requiresSmallestWidthDp=600`, so
+Google Play never offers it to phones (`normal`) or Wear OS watches (`small`).
+The `tv` flavor keeps every screen class and `0` because leanback-required
+already restricts it to TV hardware.
 
 ## 6. Verification
 
@@ -159,6 +166,10 @@ Per-flavor manifest differences live in `manifestPlaceholders`
 # Manifest correctness
 ANDROID_HOME/build-tools/35.0.0/aapt2 dump badging \
   android/app/build/outputs/apk/tv/release/streamwala-tv-release.apk | grep -E "package|launchable|leanback|uses-feature"
+
+# Form-factor gates (tablet width minimum, TV leanback)
+ANDROID_HOME/build-tools/35.0.0/aapt2 dump xmltree --file AndroidManifest.xml \
+  android/app/build/outputs/apk/mobile/release/streamwala-mobile-release.apk | grep supports-screens -A1
 
 # Signature
 ANDROID_HOME/build-tools/35.0.0/apksigner verify --print-certs <apk>
@@ -177,9 +188,12 @@ leanback-launchable-activity: name='tv.streamwala.iptv.MainActivity' …
 ```
 
 The mobile APK must show neither a leanback launcher nor
-`uses-feature: name='android.software.leanback'`, and must require the
-touchscreen instead. `.github/workflows/release.yml` asserts all of these with
-`aapt2`, plus the tag's `versionCode`/`versionName`, before it publishes.
+`uses-feature: name='android.software.leanback'`, must require the touchscreen
+instead, and must declare `supports-screens: 'large' 'xlarge'` with
+`requiresSmallestWidthDp=600` so Play cannot offer it to phones or watches.
+`.github/workflows/release.yml` asserts all of these with `aapt2` (`dump
+badging` plus `dump xmltree`), plus the tag's `versionCode`/`versionName`,
+before it publishes.
 
 D-pad geometry is still covered by `e2e/dpad.spec.ts` for the web surface. jsdom
 cannot prove device focus behaviour, so device-level checks are instrumented

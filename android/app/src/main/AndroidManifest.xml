@@ -14,6 +14,32 @@
         android:name="android.hardware.touchscreen"
         android:required="${touchscreenRequired}" />
 
+    <!--
+      Second form-factor gate, resolved per product flavor like the two above:
+        mobile (tablets only) -> smallScreens=false, normalScreens=false,
+                                 requiresSmallestWidthDp = 600
+        tv                    -> all size classes, requiresSmallestWidthDp = 0
+
+      Google Play filters distribution on `<supports-screens>`, so a device that
+      falls outside these declarations is never offered the bundle. Phones are
+      the "normal" size class and Wear OS watches are "small", so the mobile
+      flavor supports only "large" (7" tablets, sw600dp) and "xlarge" (10"
+      tablets, sw720dp) while the TV flavor keeps advertising every size class
+      alongside leanback-required.
+
+      Both mechanisms are declared on purpose: the size classes are what Play's
+      documented filter works on ("Filters on Google Play", `<supports-screens>`),
+      and requiresSmallestWidthDp is the modern sw600dp gate that keeps a
+      large-classed handset out (Google's own note on the attribute warns that it
+      is a filtering hint, not a runtime rule, so it cannot stand alone).
+    -->
+    <supports-screens
+        android:smallScreens="${smallScreensSupported}"
+        android:normalScreens="${normalScreensSupported}"
+        android:largeScreens="true"
+        android:xlargeScreens="true"
+        android:requiresSmallestWidthDp="${smallestWidthDp}" />
+
     <application
         android:allowBackup="true"
         android:banner="@drawable/tv_banner"

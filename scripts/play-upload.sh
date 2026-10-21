@@ -8,7 +8,7 @@
 #   scripts/play-upload.sh tv --dry-run               # show what would run
 #
 # The store copy lives once, in android/fastlane/metadata/android/en-US, and this
-# script stages the flavor-specific subset (phone screenshots for `mobile`, the
+# script stages the flavor-specific subset (10" tablet screenshots for `mobile`, the
 # TV banner and TV screenshots for `tv`) into a temporary metadata tree before
 # invoking supply. That is what keeps two Play listings from drifting: the text
 # and the icon have exactly one source, and only the device-specific images are
@@ -212,9 +212,9 @@ if [[ "$FLAVOR" == "tv" ]]; then
     note "warning: no TV screenshots staged; Play will not publish a TV listing without one"
   fi
 else
-  shots="$(copy_shots "$IMAGES_DIR/phoneScreenshots" phoneScreenshots)"
+  shots="$(copy_shots "$IMAGES_DIR/tenInchScreenshots" tenInchScreenshots)"
   if [[ "$shots" -lt 2 ]]; then
-    note "warning: only $shots phone screenshot(s) staged; Play requires at least two"
+    note "warning: only $shots tablet screenshot(s) staged; Play requires at least two for the tablet form factor"
   fi
 fi
 

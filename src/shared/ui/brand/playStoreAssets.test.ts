@@ -129,7 +129,7 @@ describe('Play store graphics', () => {
   });
 
   it('keeps a home for screenshots, which Play cannot take for us', () => {
-    for (const folder of ['phoneScreenshots', 'tvScreenshots']) {
+    for (const folder of ['tenInchScreenshots', 'tvScreenshots']) {
       expect(
         statSync(path.join(ROOT, IMAGES, folder)).isDirectory(),
         `${IMAGES}/${folder} must exist so scripts/play-screenshots.sh has a target`,

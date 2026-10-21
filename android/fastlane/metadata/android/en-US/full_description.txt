@@ -1,4 +1,4 @@
-Streamwala is a client-side IPTV player built for the couch. It is designed around the remote: every screen is reachable with the D-pad, every action is one OK press, and text entry happens on an on-screen keyboard you drive with the arrow keys. The phone build adds a soft keyboard for the same fields.
+Streamwala is a client-side IPTV player built for the couch. It is designed around the remote: every screen is reachable with the D-pad, every action is one OK press, and text entry happens on an on-screen keyboard you drive with the arrow keys. The tablet build adds a soft keyboard for the same fields.
 
 LIVE TV
 - Your own channel list, groups and favourites, in a grid or a list
@@ -32,4 +32,4 @@ WHAT IT DOES NOT DO
 - Streamwala ships no channels, playlists or guide data. You bring your own M3U or M3U8 playlist, Xtream Codes account or XMLTV guide, and you are responsible for having the right to watch what you add. The demo list that ships with the app is public test streams and open movie clips only.
 - No recording, no VOD catalogue and no series browser yet.
 
-Streamwala comes in two builds: this listing for phones and tablets, and a separate Streamwala TV app for Android TV and Google TV with a leanback launcher and a landscape-only layout. Both are the same player, packaged for their own form factor.
+Streamwala comes in two builds: this listing for Android tablets (7 inches and up), and a separate Streamwala TV app for Android TV and Google TV with a leanback launcher and a landscape-only layout. Both are the same player, packaged for their own form factor.

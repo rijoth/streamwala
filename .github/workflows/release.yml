@@ -93,9 +93,9 @@ jobs:
             printf '### Downloads\n\n'
             printf '| Target | Asset |\n| --- | --- |\n'
             printf '| Web (any browser, 10-foot UI) | streamwala-web-v%s.zip |\n' "$version"
-            printf '| Android phone / tablet | streamwala-mobile-v%s.apk |\n' "$version"
+            printf '| Android tablet (no phones) | streamwala-mobile-v%s.apk |\n' "$version"
             printf '| Android TV / Google TV / Fire TV | streamwala-tv-v%s.apk |\n' "$version"
-            printf '| Google Play (mobile) | streamwala-mobile-v%s.aab |\n' "$version"
+            printf '| Google Play (tablet) | streamwala-mobile-v%s.aab |\n' "$version"
             printf '| Google Play (TV) | streamwala-tv-v%s.aab |\n' "$version"
             printf '\nBoth APKs and both AABs are signed with the same release key, and SHA256SUMS.txt covers every asset above.\n\n'
             printf 'Web: unzip and serve the folder over HTTPS. The app is 100%% client-side, so opening index.html from file:// will not work.\n\n'
@@ -334,6 +334,20 @@ jobs:
           if grep -q "uses-feature: name='android.software.leanback'" <<<"$mobile_badging"; then
             fail "mobile APK requires android.software.leanback"
           fi
+
+          # The mobile APK is tablet-only: only the "large" and "xlarge" screen
+          # classes plus a 600dp minimum width, so Play stops offering the bundle
+          # to phones ("normal") and Wear OS watches ("small"). The TV APK keeps
+          # every screen class and declares no width gate.
+          mobile_tree="$("$BT/aapt2" dump xmltree --file AndroidManifest.xml "$mobile_apk")"
+          tv_tree="$("$BT/aapt2" dump xmltree --file AndroidManifest.xml "$tv_apk")"
+          grep -q "supports-screens: 'large' 'xlarge'" <<<"$mobile_badging" || fail "mobile APK does not restrict itself to the large/xlarge screen classes"
+          if grep -qE "supports-screens:.*'(small|normal)'" <<<"$mobile_badging"; then
+            fail "mobile APK still advertises small/normal screens (phones and watches would get it)"
+          fi
+          grep -qE 'requiresSmallestWidthDp[^=]*=600' <<<"$mobile_tree" || fail "mobile APK does not declare requiresSmallestWidthDp=600"
+          grep -q "supports-screens: 'small' 'normal' 'large' 'xlarge'" <<<"$tv_badging" || fail "TV APK lost a screen class"
+          grep -qE 'requiresSmallestWidthDp[^=]*=0' <<<"$tv_tree" || fail "TV APK declares a smallest-width gate (leanback alone should filter it)"
 
           tv_package="$(grep -m1 '^package:' <<<"$tv_badging")"
           mobile_package="$(grep -m1 '^package:' <<<"$mobile_badging")"

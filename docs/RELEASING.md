@@ -57,7 +57,7 @@ Assets attached to the release:
 
 ```
 streamwala-web-vX.Y.Z.zip      static bundle, unzip and serve over HTTPS
-streamwala-mobile-vX.Y.Z.apk   tv.streamwala.iptv     (phone / tablet)
+streamwala-mobile-vX.Y.Z.apk   tv.streamwala.iptv     (tablets only, sw600dp+)
 streamwala-tv-vX.Y.Z.apk       tv.streamwala.iptv.tv  (Android TV / Google TV / Fire TV)
 streamwala-mobile-vX.Y.Z.aab   Google Play, mobile flavour
 streamwala-tv-vX.Y.Z.aab       Google Play, TV flavour

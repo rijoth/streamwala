@@ -115,7 +115,7 @@ def write_screenshot_folders() -> None:
     `.gitkeep` keeps the tree in git so the capture script has somewhere to
     write and the layout is obvious to a contributor reading the repository.
     """
-    for name in ("phoneScreenshots", "tvScreenshots"):
+    for name in ("tenInchScreenshots", "tvScreenshots"):
         folder = IMAGES / name
         folder.mkdir(parents=True, exist_ok=True)
         keep = folder / ".gitkeep"

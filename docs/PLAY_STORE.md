@@ -4,13 +4,20 @@ Two installable apps, two Play listings, one shared player:
 
 | Play listing | Package (`applicationId`) | Gradle flavor | Format |
 | --- | --- | --- | --- |
-| Streamwala | `tv.streamwala.iptv` | `mobile` | phone / tablet, touch, portrait allowed |
+| Streamwala | `tv.streamwala.iptv` | `mobile` | **tablets only** (sw600dp+, i.e. 7" and up), touch, portrait allowed |
 | Streamwala TV | `tv.streamwala.iptv.tv` | `tv` | Android TV / Google TV, leanback, landscape only |
 
 Different package names mean Play treats them as separate apps: separate
 listing, separate content rating, separate data safety form, separate review.
 They share the store copy in `android/fastlane/metadata/android/en-US/` so the
 two listings cannot drift apart; only the device-specific images differ.
+
+**Neither listing is offered to phones or watches.** The enforcement is in the
+manifest, not in the console (see §1, "Form-factor gates"): the `tv` bundle
+requires `android.software.leanback`, and the `mobile` bundle supports only the
+`large`/`xlarge` screen classes with a 600dp minimum width. Nothing has to be excluded by hand in the device catalog for
+these two device classes to be gone, and the release workflow fails if either
+declaration disappears.
 
 `docs/ANDROID.md` covers building and verifying the artifacts themselves. This
 page is the store-side checklist: what Play requires, where each answer lives in
@@ -21,14 +28,16 @@ this repository, and the exact commands that upload it.
 | Requirement | Where | Status |
 | --- | --- | --- |
 | Target API 35+ for new apps (34+ for Android TV) | `android/variables.gradle` (`targetSdkVersion = 35`) | ok |
+| Min SDK 24+ (Play automatic protection) | `android/variables.gradle` (`minSdkVersion = 24`) | ok |
 | Signed Android App Bundle (AAB), not APK | `npm run android:bundle` -> `android/app/build/outputs/bundle/{mobile,tv}Release/*.aab` | ok |
 | Play App Signing | enrolled on the first AAB upload; `android/aether-release.jks` is the **upload** key | ok |
 | App icon 512x512, 32-bit PNG, <= 1024 KB | `android/fastlane/metadata/android/en-US/images/icon.png` (generated) | ok |
 | Feature graphic 1024x500, 24-bit PNG | `.../images/featureGraphic.png` (generated) | ok |
-| >= 2 screenshots, 320-3840 px, long side <= 2x short side, no alpha | `.../images/phoneScreenshots/` | **capture before publishing** |
+| >= 2 screenshots, 320-3840 px, long side <= 2x short side, no alpha | `.../images/tenInchScreenshots/` (tablet captures) | **capture before publishing** |
 | TV banner 1280x720 | `.../images/tvBanner.png` (generated) | ok |
 | >= 1 Android TV screenshot | `.../images/tvScreenshots/` | **capture before publishing** |
-| Leanback launcher, touchscreen not required, landscape | `android/app/src/tv/AndroidManifest.xml` + `manifestPlaceholders` | ok |
+| TV: leanback launcher, touchscreen not required, landscape | `android/app/src/tv/AndroidManifest.xml` + `manifestPlaceholders` | ok |
+| Tablet: `large`/`xlarge` screen classes only, 600dp minimum width, touchscreen required, no leanback | `android/app/src/main/AndroidManifest.xml` (`<supports-screens>`) | ok |
 | Android TV home banner 320x180 | `android/app/src/main/res/drawable-nodpi/tv_banner.png` (generated) | ok |
 | Privacy policy URL | `docs/PRIVACY.md` — must be publicly hosted (see §2) | **host before publishing** |
 | Data safety, content rating, target audience | Play Console forms — answers in §4 | console |
@@ -48,10 +57,10 @@ them is exceeded):
 
 | File | Limit | Current |
 | --- | --- | --- |
-| `title.txt` | 30 chars | `Streamwala IPTV Player` (phones/tablets) |
+| `title.txt` | 30 chars | `Streamwala IPTV Player` (tablet listing) |
 | `title.tv.txt` | 30 chars | `Streamwala IPTV Player for TV` (TV listing override) |
-| `short_description.txt` | 80 chars | 75 |
-| `full_description.txt` | 4000 chars | 2265 |
+| `short_description.txt` | 80 chars | 76 |
+| `full_description.txt` | 4000 chars | 2286 |
 
 Play's metadata policy also bans "best"/"#1"/"free"/"download now" language and
 price or ranking claims; the current copy avoids all of it.
@@ -75,7 +84,7 @@ with no rounded corners baked in.
 The feature graphic is currently the mark on the brand backdrop. Play *highly
 recommends* a graphic that shows the app experience rather than repeating the
 icon, so before a production launch replace it with a composed capture (real
-screenshot, not a mockup) once the phone screenshots exist.
+screenshot, not a mockup) once the tablet screenshots exist.
 
 ### Screenshots
 
@@ -85,9 +94,15 @@ the running app, so these can only come from a device:
 ```bash
 npm run android:debug
 bash scripts/android-gradle.sh installMobileDebug      # or installTvDebug
-scripts/play-screenshots.sh mobile --count 4           # 1080x1920 portrait emulator
+scripts/play-screenshots.sh mobile --count 4           # tablet emulator, 1920x1200
 scripts/play-screenshots.sh tv --count 4 --serial 192.168.1.40:5555
 ```
+
+The `mobile` listing is tablet-only, so its captures go to
+`images/tenInchScreenshots/` and there are deliberately no phone screenshots to
+stage. Capture on a 7" or 10" tablet AVD (1920x1200 or 2560x1600 landscape,
+or 1200x1920 portrait) — a phone-sized capture would advertise a form factor
+Play no longer serves.
 
 The script captures over `adb exec-out screencap`, enforces Play's dimension
 rules, and flattens each capture to 24-bit PNG (no alpha) into the right
@@ -99,8 +114,9 @@ stream URL, and a screenshot is a public document. Clear the notification shade
 and any dialogs (Play asks for full battery/Wi-Fi icons and no personal
 notifications).
 
-Recommended: 4 captures each, 16:9 landscape at 1920x1080 for TV, 9:16 portrait
-at 1080x1920 for phones, showing onboarding, Live TV, the Guide and the player.
+Recommended: 4 captures each — 16:9 landscape at 1920x1080 for TV, 1920x1200
+landscape (or 1200x1920 portrait) on the tablet — showing onboarding, Live TV,
+the Guide and the player.
 
 ### Privacy policy
 
@@ -138,7 +154,11 @@ lets Android include the app database in the user's own device backup.
      (`docs/ANDROID.md` §4, `docs/RELEASING.md` §4).
    - Never opt out of Play App Signing; you cannot re-enroll with the same key.
 4. **Store listing** — paste the copy from the `*.txt` files, upload the
-   generated graphics, then add the captures.
+   generated graphics, then add the captures. For the `mobile` listing Play's
+   *Phone* screenshot section stays empty on purpose: the bundle declares a
+   600dp minimum width, so no phone can install it and phone captures would
+   describe a device class the app does not serve. Fill the *10-inch tablet*
+   section from `images/tenInchScreenshots/` instead.
 5. **App access** — choose "All functionality is available without special
    access" and paste reviewer instructions:
    `Open the app, choose "Get Started", then "Demo Playlist". The demo uses
@@ -156,6 +176,27 @@ lets Android include the app database in the user's own device backup.
     devices, even though the manifest is leanback-required.
 11. **Category** — *Video Players & Editors*; tags: IPTV, M3U, EPG, HLS.
 12. **Government / financial / health declarations** — all "No".
+
+### Verifying the device restriction in the console
+
+The manifest already does the filtering, but check it once per listing after the
+first AAB upload: *Reach and devices* -> **Device catalog** -> *Supported
+devices*. Expected results:
+
+| Listing | Supported device groups |
+| --- | --- |
+| Streamwala (tablet) | tablet models with a 600dp+ smallest width; **no** phone, **no** Wear OS, **no** TV |
+| Streamwala TV | Android TV / Google TV / Fire TV models; **no** phone, **no** tablet, **no** Wear OS |
+
+If a phone or watch still appears as supported, the AAB is stale — check
+`aapt2 dump badging` for `uses-feature: android.software.leanback` (TV) or
+`requiresSmallestWidthDp=600` (tablet) before touching the device catalog. The
+device catalog is the wrong place to fix a manifest mistake: an exclusion list
+is per-app and hand-maintained, while the manifest filter is verified by CI.
+
+Do not add Wear OS or phone form-factor sections to either listing. A form
+factor section is an opt-in that advertises the app to that device class; an
+empty one is the correct state here.
 
 ## 4. Callback: the declaration forms
 
@@ -277,6 +318,10 @@ Before pressing *Send for review*:
 - [ ] Data safety and content rating match §4.
 - [ ] The `tv` listing has the TV form factor section filled in (banner +
       screenshot), or TV devices will never see it.
+- [ ] The `mobile` listing shows **no** phone screenshots and its tablet
+      screenshots come from a 600dp+ device.
+- [ ] Device catalog shows phones and Wear OS watches as unsupported on both
+      listings (§3, "Verifying the device restriction").
 - [ ] Reviewer instructions point at the demo playlist.
 - [ ] For the TV app: BACK returns to the launcher, focus is visible on every
       screen, and no UI requires touch (`docs/ANDROID.md` §6).
@@ -289,6 +334,7 @@ Before pressing *Send for review*:
 | "Your APK or bundle uses a target SDK version that is too low" | stale `variables.gradle` | raise `targetSdkVersion`; rerun the device checks |
 | "Broken functionality" | reviewer could not get past onboarding | improve the "App access" instructions so the demo path is the first thing they read |
 | "Missing TV screenshot / banner" | TV form factor section incomplete | upload `tvBanner.png` and the TV captures |
+| Listing offers the app to phones / watches | AAB built before the width gate, or a form-factor section was added by mistake | check badging (`supports-screens: 'large' 'xlarge'` + `requiresSmallestWidthDp=600` for tablet, `android.software.leanback` for TV), rebuild with `npm run android:bundle`, remove the form-factor section |
 | "Facilitating unauthorised access" | listing language or screenshots implied free premium TV | remove the implication, restate the user-supplied-source position, keep the demo clean |
 | "Prominent disclosure / permissions" | a new permission was added without justification | declare it in the data safety form and the listing; or drop it |
 

@@ -42,12 +42,13 @@ android {
     }
     /**
      * Two installable artifacts from one web bundle:
-     *  - mobile : touch devices, portrait allowed, LEANBACK marked unsupported
+     *  - mobile : TABLETS ONLY (sw600dp+), touch, portrait allowed, LEANBACK
+     *             marked unsupported
      *  - tv     : Android TV / Google TV / Fire TV, leanback launcher, landscape,
      *             touchscreen not required, larger TV banner
      *
-     * The leanback/touchscreen/screenOrientation values flow into
-     * src/main/AndroidManifest.xml through manifest placeholders.
+     * The leanback/touchscreen/smallestWidthDp/screenOrientation values flow
+     * into src/main/AndroidManifest.xml through manifest placeholders.
      */
     flavorDimensions "formFactor"
     productFlavors {
@@ -59,9 +60,15 @@ android {
             // input raises the soft keyboard (IME). See BUG-018 / MainActivity.
             resValue "bool", "streamwala_touch_device", "true"
             manifestPlaceholders = [
-                leanbackRequired  : "false",
-                touchscreenRequired: "true",
-                screenOrientation : "unspecified"
+                leanbackRequired        : "false",
+                touchscreenRequired     : "true",
+                // Tablet-only: Play drops "small" (watches) and "normal"
+                // (phones) screen classes, and sw600dp is the 7" breakpoint.
+                // See android/app/src/main/AndroidManifest.xml.
+                smallScreensSupported   : "false",
+                normalScreensSupported  : "false",
+                smallestWidthDp         : "600",
+                screenOrientation       : "unspecified"
             ]
         }
         tv {
@@ -72,9 +79,15 @@ android {
             // ownership stays deterministic. See BUG-018 / MainActivity.
             resValue "bool", "streamwala_touch_device", "false"
             manifestPlaceholders = [
-                leanbackRequired  : "true",
-                touchscreenRequired: "false",
-                screenOrientation : "landscape"
+                leanbackRequired        : "true",
+                touchscreenRequired     : "false",
+                // No screen gate: leanback-required already keeps this bundle
+                // off phones, tablets and watches, and a size floor here could
+                // exclude TV boxes that report an unusual width.
+                smallScreensSupported   : "true",
+                normalScreensSupported  : "true",
+                smallestWidthDp         : "0",
+                screenOrientation       : "landscape"
             ]
         }
     }

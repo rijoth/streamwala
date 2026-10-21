@@ -3,7 +3,7 @@
 Last updated: 21 October 2026
 
 Streamwala is a client-side IPTV player published by Rijo Thomas, an individual
-developer. This policy covers the Streamwala app for phones and tablets
+developer. This policy covers the Streamwala app for Android tablets
 (`tv.streamwala.iptv`), the Streamwala TV app for Android TV and Google TV
 (`tv.streamwala.iptv.tv`), and the Streamwala web app.
 

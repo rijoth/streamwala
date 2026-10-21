@@ -17,7 +17,7 @@ import com.getcapacitor.BridgeActivity;
  *
  * Responsibilities kept deliberately thin — the web layer owns navigation,
  * focus and playback. The shell only supplies what a browser page cannot:
- *  - immersive fullscreen (no status/nav bars on TV or phone)
+ *  - immersive fullscreen (no status/nav bars on TV or tablet)
  *  - screen kept awake while a stream is playing
  *  - WebView playback settings required for hls.js / mpegts.js autoplay and
  *    hardware-accelerated video
@@ -52,7 +52,7 @@ public class MainActivity extends BridgeActivity {
       // A View that is not focusable in touch mode cannot take focus from a
       // tap, so the WebView never connects to the IME and Android never raises
       // the soft keyboard when the user taps a text input. That is correct on
-      // TV (no touch, D-pad owns focus) but breaks every text field on phones.
+      // TV (no touch, D-pad owns focus) but breaks every text field on tablets.
       // The flavor supplies `streamwala_touch_device` so both form factors behave.
       // Regression: BUG-018, guarded by androidTest/MainActivityImeTest.
       boolean touchDevice = getResources().getBoolean(R.bool.streamwala_touch_device);
