@@ -146,3 +146,28 @@ A tag with a suffix (`v1.2.3-rc.1`) is published as a GitHub pre-release, so it
 never becomes "Latest". The workflow runs exactly the same, which is the point:
 the artifact you test in an `-rc` is the artifact you get in the final release if
 the code does not change.
+
+## 6. Google Play
+
+A GitHub Release is not a Play release. The tag pipeline builds and verifies both
+AABs, but a human submits them, and each package is its own Play listing
+(`tv.streamwala.iptv` and `tv.streamwala.iptv.tv`). `docs/PLAY_STORE.md` holds
+the full store-side checklist (listing copy, graphics, screenshots, privacy
+policy URL, data safety, content rating, TV form factor).
+
+After the pipeline publishes the release artifacts:
+
+```bash
+npm run android:bundle                        # or use the AABs from the release
+scripts/play-upload.sh mobile --track internal
+scripts/play-upload.sh tv --track internal
+```
+
+`scripts/play-upload.sh` re-derives `versionName`/`versionCode` from the same tag
+with the same packing as this pipeline, stages the shared store copy plus the
+flavor's images, and uploads through `fastlane supply`. The `production` track
+defaults to `release_status=draft`, so starting the rollout is still a click in
+Play Console. Credentials and the upload-key hazards are covered in
+`docs/PLAY_STORE.md` §5; note that with Play App Signing enabled the local
+`aether-release.jks` is the **upload** key, and losing it is a key reset rather
+than a new app identity.

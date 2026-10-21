@@ -1,0 +1,1 @@
+Remote-first IPTV player for Android TV, Google TV and phones. No accounts.

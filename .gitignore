@@ -190,6 +190,8 @@ id_dsa*
 *credentials*.json
 service-account*.json
 serviceAccount*.json
+# Google Play Developer API service account key used by scripts/play-upload.sh
+android/play-service-account.json
 .npmrc
 .netrc
 .aws/

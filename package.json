@@ -23,6 +23,9 @@
     "android:release": "npm run android:sync && bash scripts/android-gradle.sh assembleMobileRelease assembleTvRelease",
     "android:bundle": "npm run android:sync && bash scripts/android-gradle.sh bundleMobileRelease bundleTvRelease",
     "android:java": "bash scripts/android-gradle.sh --version",
+    "play:assets": "python3 scripts/play-assets.py",
+    "play:screenshots": "bash scripts/play-screenshots.sh",
+    "play:upload": "bash scripts/play-upload.sh",
     "release": "bash scripts/release.sh"
   },
   "dependencies": {

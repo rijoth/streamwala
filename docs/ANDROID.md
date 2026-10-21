@@ -224,6 +224,9 @@ Both release APKs were installed and driven with `adb shell input keyevent`:
 - **Remote media keys.** Some boxes consume PLAY/FF/REW/CH+/CH- at the system
   level before the WebView sees them; forwarding them requires a new native
   input source routed through `src/shared/input`.
-- **Play Store.** TV listing requires the 320×180 banner (generated) plus TV
-  screenshots; the TV flavor is already leanback-required so it will only be
-  offered to TV devices.
+- **Play Store.** The store-side checklist lives in `docs/PLAY_STORE.md`: two
+  listings (one per package), generated listing graphics, screenshot capture,
+  data safety and content-rating answers, and `scripts/play-upload.sh`. Two
+  known gaps stay open there: the 320×180 launcher banner is mark-only (ADR 019)
+  while Play's TV-BN criterion expects the app name in the banner, and the
+  feature graphic is the brand mark until a real capture replaces it.

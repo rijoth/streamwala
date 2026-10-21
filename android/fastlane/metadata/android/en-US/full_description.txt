@@ -1,0 +1,35 @@
+Streamwala is a client-side IPTV player built for the couch. It is designed around the remote: every screen is reachable with the D-pad, every action is one OK press, and text entry happens on an on-screen keyboard you drive with the arrow keys. The phone build adds a soft keyboard for the same fields.
+
+LIVE TV
+- Your own channel list, groups and favourites, in a grid or a list
+- Zap with the D-pad, with the number pad, or by typing a channel number
+- A Now and Next banner on every channel change, with playback stats on demand
+- HLS, MPEG-TS and plain MP4 sources all get a chance, through the player engine that suits them
+
+GUIDE
+- A timeline EPG you pan on two axes with the remote
+- Programme details, a Now line and one-press tuning
+- Several XMLTV feeds per playlist, plus a match report for channels that need mapping by hand
+
+FINDING THINGS
+- Search across channel name, number and category
+- Favourites pinned to the first row of the app
+- Categories in a vertical rail that keeps the active filter visible
+
+YOUR DATA STAYS YOURS
+- No account, no sign-up, no developer server
+- Playlists, channels, guide data and settings live in the local database on your device
+- No analytics, no ads, no tracking, no crash reporting
+- If a provider blocks the app's requests, you can point it at a proxy of your own
+
+DESIGNED FOR BIG SCREENS
+- Dark Material 3 theme by default, with AMOLED and light options
+- UI scale and safe-area controls tuned for viewing at three metres
+- A focus ring and a slight lift on the focused control, so you can always see where the remote will act
+- BACK closes one layer per press and exits the player deliberately
+
+WHAT IT DOES NOT DO
+- Streamwala ships no channels, playlists or guide data. You bring your own M3U or M3U8 playlist, Xtream Codes account or XMLTV guide, and you are responsible for having the right to watch what you add. The demo list that ships with the app is public test streams and open movie clips only.
+- No recording, no VOD catalogue and no series browser yet.
+
+Streamwala comes in two builds: this listing for phones and tablets, and a separate Streamwala TV app for Android TV and Google TV with a leanback launcher and a landscape-only layout. Both are the same player, packaged for their own form factor.

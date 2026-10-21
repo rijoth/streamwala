@@ -100,6 +100,8 @@ scripts/release.sh v1.0.0-rc.1 --push  # pre-release
 
 The tag is the version: the pipeline derives `versionName` and `versionCode` from it, so nothing in the repository can disagree with what was shipped. Releases need four `ANDROID_*` repository secrets (the release keystore, base64-encoded) — `docs/RELEASING.md` has the list, the failure modes and how to re-run or undo one.
 
+Google Play is a separate step with its own two listings (phone/tablet and Android TV). The store copy and the listing graphics live in `android/fastlane/metadata/` and are regenerated from the same brand constants as the launcher icon; `scripts/play-upload.sh` submits an AAB plus the listing through `fastlane supply`. `docs/PLAY_STORE.md` is the console checklist: data safety, content rating, privacy policy hosting and the screenshots Play will not accept as mockups.
+
 ## Only a player
 
 Streamwala ships no channels and no playlists. You are responsible for the sources you add and for having the right to watch them. The built-in demo list is public test streams and open movie clips only.
