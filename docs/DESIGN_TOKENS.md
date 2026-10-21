@@ -131,7 +131,13 @@ build and CI have no Python at all.
 The boot splash renders the mark at `--brand-mark-size` (`35vmin`, i.e. 0.35 of
 the shorter viewport side) — the bottom of the native splash's 0.35–0.54 range,
 matching its densest TV bucket, so the mark does not visibly resize when the
-native splash hands over to the web one.
+native splash hands over to the web one. The wordmark uses `--brand-title-size`;
+the two-line attribution hanging below it uses `--brand-credit-size` (24px) and
+`--brand-credit-url-size` (22px at 65% opacity) separated by `--brand-credit-gap`
+(7px), all multiplied by `--ui-scale`. The URL line is additionally capped at
+`6.5vw`, which never engages on a 1280-wide TV but keeps a narrow touch viewport
+from clipping it. The block is absolutely positioned so it never moves the
+centred mark+wordmark group.
 
 ## Remote color-key dots
 

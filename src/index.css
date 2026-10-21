@@ -127,7 +127,13 @@
   --brand-mark-size: 35vmin;
   --brand-splash-gap: 3vmin;
   --brand-title-size: calc(28px * var(--ui-scale));
-  --brand-tagline-size: calc(16px * var(--ui-scale));
+  /* Two-line attribution hanging under the wordmark. 24px copyright, 22px URL,
+     7px apart: the URL line is the widest thing on the splash, so it is sized
+     to stay on one line down to 1280x720 at the largest UI scale (see
+     e2e/splash.spec.ts). */
+  --brand-credit-size: calc(24px * var(--ui-scale));
+  --brand-credit-url-size: calc(22px * var(--ui-scale));
+  --brand-credit-gap: calc(7px * var(--ui-scale));
 
   /* Attribution credit in the content footer. Secondary and low-emphasis, but
      still 18-20px on a 1920px canvas so it stays legible at 3 metres. */

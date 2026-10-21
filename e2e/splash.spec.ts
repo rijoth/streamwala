@@ -53,6 +53,57 @@ test('hands the static splash over to React, then clears it into onboarding', as
   await expect(page.getByRole('button', { name: /Get Started/i })).toBeVisible();
 });
 
+test('the splash credit stays one line per line and inside a 1280x720 TV viewport', async () => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/');
+
+  const credit = page.getByTestId('app-splash-credit');
+  await expect(credit).toBeVisible();
+
+  // One round trip: the splash is only guaranteed to be up for its 400ms floor,
+  // so measure everything at once instead of polling per line.
+  const measured = await credit.evaluate((block) => {
+    const lines = Array.from(block.querySelectorAll('span'));
+    return {
+      viewportWidth: window.innerWidth,
+      lineCount: lines.length,
+      anchors: block.querySelectorAll('a, button, [tabindex]').length,
+      lines: lines.map((line) => {
+        const rect = line.getBoundingClientRect();
+        const style = window.getComputedStyle(line);
+        const fontSize = parseFloat(style.fontSize);
+        return {
+          fontSize,
+          height: rect.height,
+          left: rect.left,
+          right: rect.right,
+          // A wrapped or clipped line overflows either its own box or its parent.
+          scrollDelta: line.scrollWidth - line.clientWidth,
+          whiteSpace: style.whiteSpace,
+        };
+      }),
+    };
+  });
+
+  expect(measured.lineCount).toBe(2);
+  expect(measured.anchors).toBe(0);
+  // Copyright ~24px, URL ~22px (default --ui-scale is 1).
+  expect(Math.abs(measured.lines[0].fontSize - 24)).toBeLessThanOrEqual(2);
+  expect(Math.abs(measured.lines[1].fontSize - 22)).toBeLessThanOrEqual(2);
+
+  for (const line of measured.lines) {
+    expect(line.whiteSpace).toBe('nowrap');
+    // Single line: one line box is ~1.5em tall, two wrapped lines would be ~3em.
+    expect(line.height).toBeLessThan(line.fontSize * 2);
+    expect(line.scrollDelta).toBeLessThanOrEqual(1);
+    expect(line.left).toBeGreaterThanOrEqual(0);
+    expect(line.right).toBeLessThanOrEqual(measured.viewportWidth);
+  }
+
+  await waitForAppReady(page);
+  await page.setViewportSize({ width: 1920, height: 1080 });
+});
+
 test('a reload with saved data shows the splash again, then Home', async () => {
   // Onboarding -> demo import, the same D-pad path the other specs use.
   await page.keyboard.press('Enter');

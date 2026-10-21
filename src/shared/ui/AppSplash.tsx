@@ -1,5 +1,5 @@
 import React from 'react';
-import { PRODUCT_NAME, PRODUCT_TAGLINE } from '../product.ts';
+import { PRODUCT_COPYRIGHT, PRODUCT_NAME, PRODUCT_REPOSITORY_LABEL } from '../product.ts';
 import markUrl from './brand/streamwala-mark.svg';
 
 export interface AppSplashProps {
@@ -22,6 +22,12 @@ export interface AppSplashProps {
  * `index.html` and the native splash use, and it sits in the same place inside
  * the same surface colour, so the handover between the native splash, the
  * static copy and this component is invisible.
+ *
+ * The attribution below the wordmark is plain text pulled from the same
+ * `shared/product` constants as the shell footer and Settings → About. It must
+ * never become a link or a D-pad stop (a TV remote cannot open one), and it is
+ * absolutely positioned so it hangs *below* the centred mark+wordmark group
+ * instead of pushing the mark off centre.
  */
 export const AppSplash: React.FC<AppSplashProps> = ({ leaving = false }) => (
   <div
@@ -39,19 +45,29 @@ export const AppSplash: React.FC<AppSplashProps> = ({ leaving = false }) => (
       className="app-splash-mark block"
       style={{ width: 'var(--brand-mark-size)', height: 'var(--brand-mark-size)' }}
     />
-    <div className="flex flex-col items-center gap-1 text-center">
+    <div className="relative flex flex-col items-center gap-1 text-center">
       <span
         className="font-semibold text-[var(--md-sys-color-on-surface)]"
         style={{ fontSize: 'var(--brand-title-size)' }}
       >
         {PRODUCT_NAME}
       </span>
-      <span
-        className="text-[var(--md-sys-color-on-surface-variant)]"
-        style={{ fontSize: 'var(--brand-tagline-size)' }}
+      {/* `top-full` + `mt-1` keeps the same 4px rhythm the subtitle had. */}
+      <div
+        data-testid="app-splash-credit"
+        className="absolute left-1/2 top-full mt-1 flex w-max -translate-x-1/2 flex-col items-center gap-[var(--brand-credit-gap)] whitespace-nowrap text-center font-normal text-[var(--md-sys-color-on-surface-variant)] select-none pointer-events-none"
       >
-        {PRODUCT_TAGLINE}
-      </span>
+        <span style={{ fontSize: 'var(--brand-credit-size)' }}>{PRODUCT_COPYRIGHT}</span>
+        {/* 6.5vw only ever engages on narrow touch viewports: on a 1280-wide TV
+            the token (22px x ui-scale) is always the smaller value, so the URL
+            stays one unclipped line without wrapping. */}
+        <span
+          className="opacity-[0.65]"
+          style={{ fontSize: 'min(var(--brand-credit-url-size), 6.5vw)' }}
+        >
+          {PRODUCT_REPOSITORY_LABEL}
+        </span>
+      </div>
     </div>
     <span className="sr-only">Loading {PRODUCT_NAME}</span>
   </div>
