@@ -342,23 +342,23 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
       {/* Error Overlay with Actionable Recovery */}
       {playerState.status === 'error' && playerState.error && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/85 p-8 z-40">
-          <div className="max-w-xl w-full bg-[var(--md-sys-color-surface-container-high)] p-8 rounded-3xl border border-red-900/60 shadow-2xl flex flex-col gap-5 text-center text-[var(--md-sys-color-on-surface)]">
-            <div className="w-16 h-16 rounded-2xl bg-red-950 text-red-400 mx-auto flex items-center justify-center shadow-inner">
+          <div className="max-w-xl w-full bg-[var(--md-sys-color-surface-container-high)] p-8 rounded-3xl border border-[var(--md-sys-color-error)] shadow-2xl flex flex-col gap-5 text-center text-[var(--md-sys-color-on-surface)]">
+            <div className="w-16 h-16 rounded-2xl status-live-surface text-[var(--md-sys-color-error)] mx-auto flex items-center justify-center shadow-inner">
               <Icon name="error_outline" size={36} />
             </div>
 
             <div>
               <h2 className="text-2xl font-bold tracking-tight mb-2">Stream Unavailable</h2>
-              <p className="text-xs font-mono text-red-300 break-all p-3 rounded-xl bg-black/40 border border-red-900/40">
+              <p className="text-xs font-mono text-[var(--md-sys-color-error)] break-all p-3 rounded-xl bg-black/40 border border-[var(--md-sys-color-error)]">
                 {playerState.error}
               </p>
               {playerState.isMixedContent && (
-                <p className="text-xs text-amber-300 mt-2">
+                <p className="text-xs text-[var(--sw-status-favorite)] mt-2">
                   Insecure HTTP stream blocked on secure HTTPS page. Using a CORS proxy solves this.
                 </p>
               )}
               {!playerState.isMixedContent && playerState.transport === 'proxied' && (
-                <p className="text-xs text-amber-300 mt-2">
+                <p className="text-xs text-[var(--sw-status-favorite)] mt-2">
                   Direct playback failed and the CORS proxy configured in Settings did not respond
                   either — it may be down or blocking this provider. Check Settings → Network.
                 </p>
@@ -372,7 +372,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
                   icon="bolt"
                   autoFocus
                   onClick={handleQuickEnableProxy}
-                  className="bg-amber-400 hover:bg-amber-300 text-black font-bold shadow-lg"
+                  className="bg-[var(--sw-status-favorite)] hover:brightness-110 text-[var(--md-sys-color-surface-dim)] font-bold shadow-lg"
                 >
                   Try with CORS Proxy
                 </Button>

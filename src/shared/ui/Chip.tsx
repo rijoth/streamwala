@@ -33,14 +33,11 @@ export const Chip: React.FC<ChipProps> = ({
       ref={ref as React.Ref<HTMLButtonElement>}
       type="button"
       onClick={onClick}
+      aria-pressed={selected}
       className={`
-        tv-focus-target inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium
+        tv-focus-target relative inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium
         cursor-pointer outline-none shrink-0 border
-        ${
-          selected
-            ? 'bg-[var(--md-sys-color-primary-container)] border-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary-container)]'
-            : 'bg-[var(--md-sys-color-surface-container-low)] border-[var(--md-sys-color-outline-variant)] text-[var(--md-sys-color-on-surface-variant)] hover:bg-[var(--md-sys-color-surface-container)]'
-        }
+        ${selected ? 'state-selected state-selected-underline' : 'action-secondary border-transparent'}
         ${focused ? 'tv-focused' : ''}
         ${className}
       `}

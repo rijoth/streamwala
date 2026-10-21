@@ -92,7 +92,7 @@ export const TextField: React.FC<TextFieldProps> = ({
             tv-focus-target tv-flat relative flex items-center gap-2 px-3 py-2 rounded-xl
             bg-[var(--md-sys-color-surface-container)] border
             ${error ? 'border-[var(--md-sys-color-error)]' : 'border-[var(--md-sys-color-outline-variant)]'}
-            ${focused ? 'tv-focused !bg-[var(--md-sys-color-surface-container-high)]' : ''}
+            ${focused ? 'tv-focused' : ''}
           `}
         >
           {icon && (
@@ -174,7 +174,7 @@ export const TextField: React.FC<TextFieldProps> = ({
           tv-focus-target tv-flat relative flex items-center gap-3 px-4 py-3 rounded-2xl
           bg-[var(--md-sys-color-surface-container)] border transition-colors duration-150
           ${error ? 'border-[var(--md-sys-color-error)]' : 'border-[var(--md-sys-color-outline-variant)]'}
-          ${focused ? 'tv-focused !bg-[var(--md-sys-color-surface-container-high)]' : ''}
+          ${focused ? 'tv-focused' : ''}
         `}
       >
         {icon && (

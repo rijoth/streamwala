@@ -77,7 +77,7 @@ export const CorsDiagnosticModal: React.FC<CorsDiagnosticModalProps> = ({
           {isHttpOnHttps ? (
             <>
               Your web player is loaded over secure <strong className="text-[var(--md-sys-color-on-surface)]">HTTPS</strong>,
-              which blocks unencrypted <code className="px-1.5 py-0.5 rounded bg-black/40 text-amber-300 font-mono">http://</code> stream URLs.
+              which blocks unencrypted <code className="px-1.5 py-0.5 rounded bg-black/40 text-[var(--sw-status-favorite)] font-mono">http://</code> stream URLs.
               Selecting an HTTPS CORS proxy below tunnels the stream securely, bypassing the browser block.
             </>
           ) : (
@@ -89,16 +89,16 @@ export const CorsDiagnosticModal: React.FC<CorsDiagnosticModalProps> = ({
         </p>
 
         {/* Failed Stream Details */}
-        <div className="p-3 rounded-2xl bg-black/40 border border-red-900/50 flex flex-col gap-1.5">
+        <div className="p-3 rounded-2xl bg-black/40 border border-[var(--md-sys-color-error)] flex flex-col gap-1.5">
           <div className="flex items-center justify-between text-xs text-[var(--md-sys-color-outline)] font-mono">
             <span>Failed Stream URL</span>
-            {isHttpOnHttps && <span className="text-amber-400 font-bold">Unencrypted HTTP</span>}
+            {isHttpOnHttps && <span className="text-[var(--sw-status-favorite)] font-bold">Unencrypted HTTP</span>}
           </div>
           <p className="text-xs font-mono text-[var(--md-sys-color-on-surface)] break-all select-all">
             {failedUrl || 'Unknown stream URL'}
           </p>
           {errorDetails && (
-            <p className="text-xs font-mono text-red-300 border-t border-red-900/40 pt-1.5 mt-1 break-all">
+            <p className="text-xs font-mono text-[var(--md-sys-color-error)] border-t border-[var(--md-sys-color-error)] pt-1.5 mt-1 break-all">
               {errorDetails}
             </p>
           )}
@@ -108,7 +108,7 @@ export const CorsDiagnosticModal: React.FC<CorsDiagnosticModalProps> = ({
         <div className="p-4 rounded-2xl bg-[var(--md-sys-color-surface-container)] border border-[var(--md-sys-color-outline-variant)] flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <h4 className="font-semibold text-sm text-[var(--md-sys-color-on-surface)] flex items-center gap-2">
-              <Icon name="bolt" size={18} className="text-amber-400" />
+              <Icon name="bolt" size={18} className="text-[var(--sw-status-favorite)]" />
               1-Click Solution: Select a CORS Proxy Preset
             </h4>
           </div>
@@ -165,15 +165,15 @@ export const CorsDiagnosticModal: React.FC<CorsDiagnosticModalProps> = ({
 
         {/* Demo channel repair option if user is on demo channels */}
         {isDemoStream && (
-          <div className="p-3 rounded-2xl bg-emerald-950/40 border border-emerald-800/60 flex items-center justify-between gap-3">
-            <div className="text-xs text-emerald-200">
+          <div className="p-3 rounded-2xl status-active-surface border flex items-center justify-between gap-3">
+            <div className="text-xs">
               <span className="font-bold block">Testing with Legal Demo Channels?</span>
               Updated verified 100% active public test feeds (NASA, DW News, Blender, Apple HLS) are available.
             </div>
             <Button
               variant="tonal"
               icon="verified"
-              className="shrink-0 text-xs text-emerald-300 !border-emerald-700"
+              className="shrink-0 text-xs"
               disabled={isUpdatingDemo}
               onClick={handleRepairDemoChannels}
             >

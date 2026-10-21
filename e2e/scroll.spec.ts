@@ -123,10 +123,10 @@ async function expectFocusedFullyVisible(p: Page, label: string) {
       async () => {
         const geo = await focusGeometry(p);
         if (!geo) return 'no-focus';
-        // The box-shadow ring is painted outside the border box and scales with
-        // it: 3px * 1.05 ≈ 3.15px. `--focus-ring-pad` (12px) must cover the
-        // scale overhang plus this ring.
-        const ringPad = 4;
+        // The outline (4px offset + 3px ring) is painted outside the border box
+        // and scales with it. `--focus-ring-pad` (18px) must cover the scale
+        // overhang plus this ring.
+        const ringPad = 8;
         const inside =
           geo.left - ringPad >= geo.clip.left - 2 &&
           geo.right + ringPad <= geo.clip.right + 2 &&

@@ -433,7 +433,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                   <span>{localFileContent ? 'File loaded! Click to replace' : 'Click to choose M3U / M3U8 file'}</span>
                 </label>
                 {localFileContent && (
-                  <p className="text-xs text-emerald-400">
+                  <p className="text-xs text-[var(--sw-status-active)]">
                     File ready ({Math.round(localFileContent.length / 1024)} KB)
                   </p>
                 )}
@@ -441,7 +441,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
             )}
 
             {errorMessage && (
-              <div className="p-3 rounded-xl bg-red-950/60 border border-red-800 text-red-200 text-xs flex items-center gap-2">
+              <div className="p-3 rounded-xl bg-[var(--md-sys-color-error-container)] border border-[var(--md-sys-color-error)] text-[var(--md-sys-color-on-error-container)] text-xs flex items-center gap-2">
                 <Icon name="error" size={18} className="shrink-0" />
                 <span>{errorMessage}</span>
               </div>
@@ -551,7 +551,7 @@ const SourceCard: React.FC<SourceCardProps> = ({
             {title}
           </h3>
           {badge && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 font-semibold">
+            <span className="text-xs px-2 py-0.5 rounded-full status-active-surface border font-semibold">
               {badge}
             </span>
           )}

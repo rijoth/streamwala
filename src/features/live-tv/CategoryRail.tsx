@@ -187,10 +187,9 @@ const CategoryRailItem: React.FC<CategoryRailItemProps> = ({
       className={`
         tv-focus-target shrink-0 w-full h-[var(--category-item-height)] px-3 rounded-xl
         flex items-center gap-3 text-left cursor-pointer outline-none border
-        ${
-          selected
-            ? 'bg-[var(--md-sys-color-secondary-container)] border-[var(--md-sys-color-secondary)] text-[var(--md-sys-color-on-secondary-container)]'
-            : 'bg-[var(--md-sys-color-surface-container)] border-[var(--md-sys-color-outline-variant)] text-[var(--md-sys-color-on-surface-variant)] hover:bg-[var(--md-sys-color-surface-container-high)]'
+        ${selected
+          ? 'state-selected state-selected-underline'
+          : 'action-secondary border-[var(--md-sys-color-outline-variant)]'
         }
         ${focused ? 'tv-focused' : ''}
       `}

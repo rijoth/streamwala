@@ -57,10 +57,10 @@ Each guardrail below prevents a bug class found in the audit (see
   `getComputedStyle` on the cursor for the rail, a Home card, the Live TV grid,
   a Settings tab/button/text field, a virtual-keyboard key and an EPG cell, and
   asserts the computed scale (`--focus-scale` 1.05, `--focus-scale-key` 1.08 for
-  keys, `.tv-flat` = no scale for width-derived targets), the 3px ring in
-  `--md-sys-color-focus-ring`, at least two elevation
-  layers, `z-index: 20`, that the scaled box stays inside its clip region, that
-  the scale is released when focus moves on, and that
+  keys, `.tv-flat` = no scale for width-derived targets), the 3px near-white
+  `outline` at a 4px `outline-offset` in `--sw-focus-ring`, two static elevation
+  layers, `z-index: 20`, that the scaled box plus the ring stays inside its clip
+  region, that the scale is released when focus moves on, and that
   `prefers-reduced-motion: reduce` keeps the cue with a `0s` transition. It is
   also what makes a dead Tailwind `ring-*`/`scale-*` utility (the unlayered
   `.tv-focused` rule wins, so such utilities are no-ops) fail instead of
@@ -68,8 +68,24 @@ Each guardrail below prevents a bug class found in the audit (see
   half of the same contract: which class lands on the focused `Button`/`Card`/
   `TextField`, and that no focus target re-adds a `ring-*`/`scale-*` utility. A
   final sweep walks every top-level screen and requires the painted focus box
-  (`getBoundingClientRect()` + ring) to stay inside its clipping ancestor, so a
-  new full-width focusable that forgets `.tv-flat` fails.
+  (`getBoundingClientRect()` + 4px offset + 3px ring) to stay inside its
+  clipping ancestor, so a new full-width focusable that forgets `.tv-flat`
+  fails.
+- **State distinction guardrail (ADR 030):** focus, selected, primary and
+  secondary used to share one accent tint, so the screen had no single
+  unmistakable "this is where the remote is" cue. `src/shared/ui/designTokens.test.ts`
+  parses `src/index.css` and proves every theme (Dark, AMOLED, Light) declares
+  all `--sw-*` tokens, keeps text at >= 4.5:1 and the ring at >= 3:1 on every
+  surface it can land on, derives `--sw-surface-selected` from the accent at 15%
+  over the card surface, and that `.tv-focus-target` animates `transform` only.
+  `e2e/state-styling.spec.ts` reads the painted result: the active Settings tab
+  is the tint + accent label + 3px marker and still shows the ring when focused,
+  `Add New Source` is the solid accent fill with its dark label (and keeps that
+  fill while focused), `Refresh` is the neutral secondary surface, the three
+  semantic colours are not the accent, and all four stay distinct after a theme
+  switch. **Negative proof:** point `--sw-focus-ring` at
+  `var(--sw-accent-primary)` or give the selected state the solid fill and the
+  jsdom token test fails (`not.toBe`) before a device ever sees it.
 - **Splash guardrail (ADR 022):** a warm reload paints Home while the boot
   splash still owns input, so D-pad keys pressed in that window are dropped and
   focus silently stays where the previous spec left it. Specs that act on the

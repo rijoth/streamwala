@@ -119,7 +119,7 @@ export const EpgSourceSection: React.FC<EpgSourceSectionProps> = ({ manager, onS
                     <Icon
                       name={source.enabled ? 'check_circle' : 'pause_circle'}
                       size={16}
-                      className={source.enabled ? 'text-emerald-400' : 'text-[var(--md-sys-color-outline)]'}
+                      className={source.enabled ? 'text-[var(--sw-status-active)]' : 'text-[var(--md-sys-color-outline)]'}
                     />
                     <span className="font-semibold text-sm truncate">{source.name}</span>
                     <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-[var(--md-sys-color-surface-container-highest)] text-[var(--md-sys-color-outline)]">

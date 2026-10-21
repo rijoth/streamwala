@@ -14,7 +14,7 @@ export const M3_TOKENS = {
     outline: 'var(--md-sys-color-outline)',
     outlineVariant: 'var(--md-sys-color-outline-variant)',
     error: 'var(--md-sys-color-error)',
-    focusRing: 'var(--md-sys-color-focus-ring)',
+    focusRing: 'var(--sw-focus-ring)',
   },
   elevation: {
     level0: 'none',
@@ -30,3 +30,47 @@ export const M3_TOKENS = {
     full: 'var(--md-shape-full)',
   },
 };
+
+/**
+ * The four interaction states, each with its own token set (ADR 030).
+ *
+ * Consumed as class names (`action-primary`, `state-selected`,
+ * `status-favorite`, …) rather than raw colours, so one theme file owns every
+ * value. Components that need a token in an inline style can use these.
+ */
+export const STATE_TOKENS = {
+  focus: {
+    ring: 'var(--sw-focus-ring)',
+    surface: 'var(--sw-focus-surface)',
+    ringWidth: 'var(--focus-ring-width)',
+    ringOffset: 'var(--focus-ring-offset)',
+    scale: 'var(--focus-scale)',
+    duration: 'var(--focus-motion-duration)',
+    easing: 'var(--focus-motion-easing)',
+  },
+  selected: {
+    surface: 'var(--sw-surface-selected)',
+    surfaceFocused: 'var(--sw-surface-selected-focus)',
+    text: 'var(--sw-accent-text)',
+    marker: 'var(--sw-accent-marker)',
+  },
+  primaryAction: {
+    fill: 'var(--sw-accent-primary)',
+    label: 'var(--sw-on-accent-primary)',
+  },
+  secondaryAction: {
+    surface: 'var(--sw-surface-secondary)',
+    label: 'var(--sw-on-surface-secondary)',
+  },
+  status: {
+    active: 'var(--sw-status-active)',
+    activeSurface: 'var(--sw-status-active-surface)',
+    onActive: 'var(--sw-on-status-active)',
+    favorite: 'var(--sw-status-favorite)',
+    favoriteSurface: 'var(--sw-status-favorite-surface)',
+    onFavorite: 'var(--sw-on-status-favorite)',
+    live: 'var(--sw-status-live)',
+    liveSurface: 'var(--sw-status-live-surface)',
+    onLive: 'var(--sw-on-status-live)',
+  },
+} as const;

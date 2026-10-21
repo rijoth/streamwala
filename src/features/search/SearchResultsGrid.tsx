@@ -144,7 +144,7 @@ export const SearchResultCard: React.FC<SearchResultCardProps> = ({
       className={`
         tv-focus-target group relative rounded-2xl p-4 flex flex-col items-center text-center cursor-pointer outline-none overflow-hidden
         bg-[var(--md-sys-color-surface-container)] border border-[var(--md-sys-color-outline-variant)]
-        ${focused ? 'tv-focused !bg-[var(--md-sys-color-primary-container)] !border-[var(--md-sys-color-primary)] z-10' : ''}
+        ${focused ? 'tv-focused z-10' : ''}
       `}
     >
       <div className="w-full flex items-center justify-between mb-2">
@@ -157,9 +157,9 @@ export const SearchResultCard: React.FC<SearchResultCardProps> = ({
             e.stopPropagation();
             onToggleFavorite();
           }}
-          className="p-1 text-[var(--md-sys-color-outline)] hover:text-amber-400 cursor-pointer"
+          className="p-1 text-[var(--md-sys-color-outline)] hover:text-[var(--sw-status-favorite)] cursor-pointer"
         >
-          <Icon name="star" size={16} filled={channel.isFavorite} className={channel.isFavorite ? 'text-amber-400' : ''} />
+          <Icon name="star" size={16} filled={channel.isFavorite} className={channel.isFavorite ? 'text-[var(--sw-status-favorite)]' : ''} />
         </button>
       </div>
 

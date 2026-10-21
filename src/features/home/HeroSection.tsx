@@ -48,7 +48,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ channel, expanded, onW
       >
         <div className="flex items-center gap-2 shrink-0">
           <span
-            className={`px-2.5 py-0.5 rounded-full bg-red-600/90 text-white text-[11px] font-bold tracking-wider uppercase ${
+            className={`px-2.5 py-0.5 rounded-full status-live-surface border text-[11px] font-bold tracking-wider uppercase ${
               expanded ? 'animate-pulse' : ''
             }`}
           >

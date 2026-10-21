@@ -57,7 +57,7 @@ export const PlayerControlsOverlay: React.FC<PlayerControlsOverlayProps> = ({
             icon={isPlaying ? 'pause' : 'play_arrow'}
             onClick={onTogglePlay}
             autoFocus
-            className="!p-5 !rounded-3xl shadow-2xl !bg-[var(--md-sys-color-primary)] text-black font-bold scale-110"
+            className="!p-5 !rounded-3xl shadow-2xl font-bold"
           >
             {isPlaying ? 'Pause' : 'Play'}
           </Button>

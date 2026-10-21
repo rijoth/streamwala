@@ -22,10 +22,10 @@ export const NerdStatsOverlay: React.FC<NerdStatsOverlayProps> = ({
 
   return (
     <div className="fixed top-8 left-8 z-50 animate-fade-in pointer-events-auto">
-      <div className="bg-black/90 backdrop-blur-md p-5 rounded-2xl border border-white/20 shadow-2xl text-xs font-mono text-emerald-400 w-96 flex flex-col gap-2">
+      <div className="bg-black/90 backdrop-blur-md p-5 rounded-2xl border border-white/20 shadow-2xl text-xs font-mono text-[var(--sw-status-active)] w-96 flex flex-col gap-2">
         <div className="flex items-center justify-between pb-2 border-b border-white/10 text-white font-sans font-bold">
           <div className="flex items-center gap-2">
-            <Icon name="terminal" size={16} className="text-emerald-400" />
+            <Icon name="terminal" size={16} className="text-[var(--sw-status-active)]" />
             <span>Nerd Diagnostics</span>
           </div>
           <button

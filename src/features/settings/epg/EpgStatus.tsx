@@ -51,7 +51,7 @@ export const EpgStatusLine: React.FC<EpgStatusLineProps> = ({
     text = `Parsing… ${status.programmesKept} programmes kept`;
   } else if (status.phase === 'ready') {
     icon = 'check_circle';
-    tone = 'text-emerald-400';
+    tone = 'text-[var(--sw-status-active)]';
     text = status.message ?? `Guide updated ${relativeTime(status.updatedAt)}`;
   } else if (status.phase === 'failed') {
     icon = 'error';

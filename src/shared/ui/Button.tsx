@@ -7,6 +7,12 @@ export type ButtonVariant = 'filled' | 'tonal' | 'outlined' | 'text';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
+  /**
+   * Renders the *selected* state (accent tint, accent label, 3px marker).
+   * Use `filled` only for the screen's single primary action (ADR 030); a
+   * selected toggle is not a primary action.
+   */
+  selected?: boolean;
   icon?: string;
   focusKey?: string;
   autoFocus?: boolean;
@@ -16,6 +22,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 export const Button: React.FC<ButtonProps> = ({
   variant = 'filled',
+  selected = false,
   icon,
   focusKey,
   autoFocus = false,
@@ -43,20 +50,22 @@ export const Button: React.FC<ButtonProps> = ({
     }
   }, [autoFocus, focusSelf]);
 
-  // Variant styling according to M3 tokens
+  // State styling is owned by `src/index.css` (ADR 030): `action-primary` is the
+  // solid accent fill, `action-secondary` the neutral tonal surface, and
+  // `state-selected` the tint + marker pair. No component-level colour here.
   let variantClasses = '';
   switch (variant) {
     case 'filled':
-      variantClasses = 'bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)] font-semibold';
+      variantClasses = 'action-primary';
       break;
     case 'tonal':
-      variantClasses = 'bg-[var(--md-sys-color-surface-container-high)] text-[var(--md-sys-color-on-surface)] hover:bg-[var(--md-sys-color-surface-container-highest)]';
+      variantClasses = 'action-secondary';
       break;
     case 'outlined':
-      variantClasses = 'bg-transparent border border-[var(--md-sys-color-outline)] text-[var(--md-sys-color-on-surface)]';
+      variantClasses = 'action-outlined';
       break;
     case 'text':
-      variantClasses = 'bg-transparent text-[var(--md-sys-color-primary)] hover:bg-[var(--md-sys-color-surface-container-low)]';
+      variantClasses = 'action-text';
       break;
   }
 
@@ -66,12 +75,13 @@ export const Button: React.FC<ButtonProps> = ({
       type="button"
       disabled={disabled}
       onClick={onClick}
+      aria-pressed={selected ? true : undefined}
       className={`
         tv-focus-target relative inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-base font-medium
         select-none cursor-pointer outline-none shrink-0
         ${disabled ? 'opacity-40 pointer-events-none' : ''}
+        ${selected ? 'state-selected state-selected-underline' : variantClasses}
         ${focused ? 'tv-focused' : ''}
-        ${variantClasses}
         ${className}
       `}
       {...props}

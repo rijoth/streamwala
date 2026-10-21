@@ -82,7 +82,7 @@ export const NowNextBanner: React.FC<NowNextBannerProps> = ({
                 )}
                 <h2 className="font-bold text-2xl tracking-tight">{channel.name}</h2>
                 {channel.isFavorite && (
-                  <Icon name="star" size={20} filled className="text-amber-400" />
+                  <Icon name="star" size={20} filled className="text-[var(--sw-status-favorite)]" />
                 )}
               </div>
               <p className="text-xs text-white/60 font-medium">{channel.groupName}</p>
@@ -95,7 +95,7 @@ export const NowNextBanner: React.FC<NowNextBannerProps> = ({
                 {resolution}
               </span>
             )}
-            <span className="px-2.5 py-1 rounded-lg bg-red-600/80 text-xs font-bold tracking-wider uppercase text-white animate-pulse">
+            <span className="px-2.5 py-1 rounded-lg status-live-surface border text-xs font-bold tracking-wider uppercase animate-pulse">
               LIVE
             </span>
           </div>

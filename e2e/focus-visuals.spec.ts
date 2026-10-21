@@ -6,8 +6,8 @@ import { pressColorKey, waitForAppReady } from './helpers.ts';
  *
  * `e2e/dpad.spec.ts` proves the cursor lands on a `tv-focus-target`; this spec
  * proves that target is actually visibly focused: the scale from
- * `--focus-scale` (and `--focus-scale-key` for small keys), the 3 px ring in
- * `--md-sys-color-focus-ring`, the two-layer elevation shadow, the stacking
+ * `--focus-scale` (and `--focus-scale-key` for small keys), the 3px near-white
+ * outline offset 4px from `--sw-focus-ring`, the two-layer elevation shadow, the stacking
  * order, that the scale is released when focus moves on, and that
  * `prefers-reduced-motion` drops the interpolation but keeps the cue.
  *
@@ -49,6 +49,10 @@ interface ClipRect {
 }
 
 interface FocusVisuals {
+  outlineStyle: string;
+  outlineWidth: string;
+  outlineColor: string;
+  outlineOffset: string;
   isControl: boolean;
   isKey: boolean;
   scale: number;
@@ -78,9 +82,9 @@ function readFocus(p: Page): Promise<FocusVisuals | null> {
     const layers = cs.boxShadow === 'none' ? [] : cs.boxShadow.split(/,(?![^(]*\))/);
 
     // Resolve the focus-ring token to the same `rgb(...)` form Chromium writes
-    // into `box-shadow`.
+    // into `outline-color`.
     const probe = document.createElement('span');
-    probe.style.color = 'var(--md-sys-color-focus-ring)';
+    probe.style.color = "var(--sw-focus-ring)";
     probe.style.position = 'absolute';
     probe.style.opacity = '0';
     document.body.append(probe);
@@ -118,6 +122,10 @@ function readFocus(p: Page): Promise<FocusVisuals | null> {
       isControl: el.classList.contains('tv-focus-target'),
       isKey: el.classList.contains('tv-key'),
       scale,
+      outlineStyle: cs.outlineStyle,
+      outlineWidth: cs.outlineWidth,
+      outlineColor: cs.outlineColor,
+      outlineOffset: cs.outlineOffset,
       shadow: cs.boxShadow,
       layers: layers.length,
       firstLayer: (layers[0] ?? '').trim(),
@@ -171,21 +179,23 @@ async function expectFocusVisuals(
   expect(seen.scale, `${label}: focus scale was ${seen.scale}`).toBeGreaterThanOrEqual(scaleBand.min);
   expect(seen.scale, `${label}: focus scale was ${seen.scale}`).toBeLessThanOrEqual(scaleBand.max);
 
-  // Ring: first layer, `0 0 0 3px` in the focus-ring colour.
-  expect(seen.firstLayer, `${label}: first shadow layer is not the 3px ring`).toContain(
-    '0px 0px 0px 3px'
-  );
-  expect(seen.firstLayer, `${label}: ring is not --md-sys-color-focus-ring`).toContain(seen.ringRgb);
+  // Ring: a 3px near-white outline, offset 4px from the border box. The offset
+  // gap shows the surface behind the control, never the control's own fill, so
+  // the same near-white ring survives on a filled primary action.
+  expect(seen.outlineStyle, `${label}: focus ring is not painted`).toBe('solid');
+  expect(seen.outlineWidth, `${label}: focus ring width`).toBe('3px');
+  expect(seen.outlineOffset, `${label}: focus ring offset`).toBe('4px');
+  expect(seen.outlineColor, `${label}: ring is not --sw-focus-ring`).toBe(seen.ringRgb);
 
-  // Elevation: ring + contact shadow + cast shadow.
-  expect(seen.layers, `${label}: expected ring + 2 elevation layers, got "${seen.shadow}"`)
-    .toBeGreaterThanOrEqual(3);
+  // Elevation: contact shadow + cast shadow, static (only transform animates).
+  expect(seen.layers, `${label}: expected 2 elevation layers, got "${seen.shadow}"`)
+    .toBeGreaterThanOrEqual(2);
 
   expect(seen.zIndex, `${label}: focused element is not raised above its neighbours`).toBe('20');
 
-  // The painted (scaled) box plus the ring must stay inside the clip region,
-  // i.e. `--focus-ring-pad` is big enough for this target.
-  const ring = 4;
+  // The painted (scaled) box plus the 4px offset and 3px ring must stay inside
+  // the clip region, i.e. `--focus-ring-pad` is big enough for this target.
+  const ring = 8;
   expect(
     seen.rect.left - ring >= seen.clip.left - 1 &&
       seen.rect.right + ring <= seen.clip.right + 1 &&
@@ -460,7 +470,7 @@ test('every top-level screen: focus paint box stays inside its clip region', asy
         violations.push(`${screen} step ${i}: no focus cursor`);
         continue;
       }
-      const ring = 4;
+      const ring = 8;
       const fits =
         v.rect.left - ring >= v.clip.left - 1 &&
         v.rect.right + ring <= v.clip.right + 1 &&
@@ -501,10 +511,12 @@ test.describe('prefers-reduced-motion', () => {
     await focusRail(reduced);
     const v = (await readSettledFocus(reduced)) as FocusVisuals;
     expect(v.transitionDuration, 'reduced motion must drop the interpolation').toBe('0s');
-    // A size/contrast cue, not motion: the scale and ring stay.
+    // A size/contrast cue, not motion: the scale and the ring stay.
     expect(v.scale).toBeGreaterThanOrEqual(BASE_SCALE_MIN);
     expect(v.scale).toBeLessThanOrEqual(BASE_SCALE_MAX);
-    expect(v.firstLayer).toContain('0px 0px 0px 3px');
-    expect(v.layers).toBeGreaterThanOrEqual(3);
+    expect(v.outlineWidth).toBe('3px');
+    expect(v.outlineOffset).toBe('4px');
+    expect(v.outlineColor).toBe(v.ringRgb);
+    expect(v.layers).toBeGreaterThanOrEqual(2);
   });
 });

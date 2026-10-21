@@ -173,8 +173,8 @@ const NavRailItem: React.FC<NavRailItemProps> = ({
         tv-focus-target tv-rail-item relative shrink-0 flex items-center justify-center rounded-full outline-none
         w-[var(--rail-item-size)] h-[var(--rail-item-size)]
         ${isActive
-          ? 'bg-[var(--md-sys-color-secondary-container)] text-[var(--md-sys-color-on-secondary-container)]'
-          : 'text-[var(--md-sys-color-on-surface-variant)] hover:bg-[var(--md-sys-color-surface-container-high)]'}
+          ? 'state-selected state-selected-dot'
+          : 'text-[var(--md-sys-color-on-surface-variant)]'}
         ${focused ? 'tv-focused z-20' : ''}
       `}
     >

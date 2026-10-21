@@ -70,7 +70,7 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <ScrollPositionIndicator axis={axis} itemSize={rowSize} count={totalRows} />
-          <div className="flex items-center gap-2 text-xs font-semibold text-amber-400 bg-amber-950/40 border border-amber-800/60 px-3 py-1.5 rounded-full">
+          <div className="flex items-center gap-2 text-xs font-semibold status-favorite-surface border px-3 py-1.5 rounded-full">
             <Icon name="star" size={16} filled />
             <span>{isSearching ? `${displayFavorites.length} Match` : `${favorites.length} Pinned`}</span>
           </div>
@@ -177,7 +177,7 @@ const FavoriteCard: React.FC<FavoriteCardProps> = ({
       className={`
         tv-focus-target group relative rounded-2xl p-4 flex flex-col items-center text-center cursor-pointer outline-none overflow-hidden
         bg-[var(--md-sys-color-surface-container)] border border-[var(--md-sys-color-outline-variant)]
-        ${focused ? 'tv-focused !bg-[var(--md-sys-color-primary-container)] !border-[var(--md-sys-color-primary)] z-10' : ''}
+        ${focused ? 'tv-focused z-10' : ''}
       `}
     >
       <div className="w-full flex items-center justify-between mb-2">
@@ -190,7 +190,7 @@ const FavoriteCard: React.FC<FavoriteCardProps> = ({
             e.stopPropagation();
             onToggleFavorite();
           }}
-          className="p-1 text-amber-400 hover:text-red-400 cursor-pointer"
+          className="p-1 text-[var(--sw-status-favorite)] hover:text-[var(--md-sys-color-error)] cursor-pointer"
         >
           <Icon name="star" size={18} filled />
         </button>

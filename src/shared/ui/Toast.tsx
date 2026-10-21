@@ -23,13 +23,13 @@ export const ToastContainer: React.FC<ToastProps> = ({ toasts, onDismiss }) => {
         let colorClasses = 'border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container-high)]';
         if (toast.type === 'success') {
           icon = 'check_circle';
-          colorClasses = 'border-emerald-600 bg-[var(--md-sys-color-surface-container-high)] text-emerald-300';
+          colorClasses = 'border-[var(--sw-status-active)] bg-[var(--md-sys-color-surface-container-high)] text-[var(--sw-status-active)]';
         } else if (toast.type === 'error') {
           icon = 'error';
           colorClasses = 'border-[var(--md-sys-color-error)] bg-[var(--md-sys-color-surface-container-high)] text-[var(--md-sys-color-error)]';
         } else if (toast.type === 'warning') {
           icon = 'warning';
-          colorClasses = 'border-amber-500 bg-[var(--md-sys-color-surface-container-high)] text-amber-300';
+          colorClasses = 'border-[var(--sw-status-favorite)] bg-[var(--md-sys-color-surface-container-high)] text-[var(--sw-status-favorite)]';
         }
 
         return (

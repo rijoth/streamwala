@@ -132,7 +132,7 @@ export const EpgGuideView: React.FC<EpgGuideViewProps> = ({
               <Icon
                 name={anyFailed ? 'error' : anyRunning ? 'sync' : 'check_circle'}
                 size={16}
-                className={anyFailed ? 'text-[var(--md-sys-color-error)]' : 'text-emerald-400'}
+                className={anyFailed ? 'text-[var(--md-sys-color-error)]' : 'text-[var(--sw-status-active)]'}
               />
               <span>{anyFailed ? 'Guide refresh failed' : anyRunning ? 'Refreshing…' : 'Guide ready'}</span>
               <Button variant="text" className="!px-2 !py-1 text-xs" onClick={() => void runtime.refresh()}>
@@ -280,7 +280,7 @@ export const EpgGuideView: React.FC<EpgGuideViewProps> = ({
                   {nowX !== null && nowX >= 0 && nowX <= timelineWidth && (
                     <div
                       aria-hidden="true"
-                      className="pointer-events-none absolute top-0 bottom-0 w-0.5 bg-red-500 z-20"
+                      className="pointer-events-none absolute top-0 bottom-0 w-0.5 bg-[var(--sw-status-live)] z-20"
                       style={{ left: nowX }}
                     />
                   )}

@@ -82,14 +82,14 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
             key={shortcut}
             label={shortcut}
             onClick={() => onChange(value + shortcut)}
-            className="!px-3 !py-2 text-sm font-mono bg-[var(--md-sys-color-surface-container)] hover:bg-[var(--md-sys-color-primary-container)]"
+            className="!px-3 !py-2 text-sm font-mono"
           />
         ))}
         <KeyButton
           label="Paste"
           icon="content_paste"
           onClick={handlePaste}
-          className="!px-3 !py-2 text-sm bg-[var(--md-sys-color-secondary-container)] text-[var(--md-sys-color-on-secondary-container)]"
+          className="!px-3 !py-2 text-sm action-secondary"
         />
       </div>
 
@@ -118,7 +118,7 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
                 label="Del"
                 icon="backspace"
                 onClick={handleBackspace}
-                className="!px-4 !py-2.5 text-red-300"
+                className="!px-4 !py-2.5 text-[var(--md-sys-color-error)]"
               />
             )}
           </div>
@@ -170,7 +170,7 @@ const KeyButton: React.FC<KeyButtonProps> = ({ label, icon, onClick, className =
         tv-focus-target tv-key rounded-xl bg-[var(--md-sys-color-surface-container)] text-[var(--md-sys-color-on-surface)]
         border border-[var(--md-sys-color-outline-variant)] select-none cursor-pointer flex items-center justify-center gap-1.5
         outline-none
-        ${focused ? 'tv-focused !bg-[var(--md-sys-color-primary-container)] !text-[var(--md-sys-color-on-primary-container)] z-10' : ''}
+        ${focused ? 'tv-focused z-10' : ''}
         ${className}
       `}
     >

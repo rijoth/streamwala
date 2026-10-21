@@ -92,7 +92,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <p className="text-xs text-[var(--md-sys-color-outline)]">Configure 10-foot TV display, playback engines, and network proxies.</p>
         </div>
         {isSavedMessage && (
-          <span className="text-xs font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-3 py-1.5 rounded-full flex items-center gap-1.5 animate-fade-in">
+          <span className="text-xs font-semibold text-[var(--sw-status-active)] status-active-surface border px-3 py-1.5 rounded-full flex items-center gap-1.5 animate-fade-in">
             <Icon name="check" size={16} />
             Settings Saved
           </span>
@@ -116,9 +116,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               className={`
                 px-4 py-2.5 rounded-full text-xs font-bold flex items-center gap-2
                 ${activeTab === tab.id
-                  ? 'bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)] shadow-md'
-                  : 'bg-[var(--md-sys-color-surface-container)] text-[var(--md-sys-color-on-surface-variant)] hover:bg-[var(--md-sys-color-surface-container-high)]'
-                }
+                  ? 'state-selected state-selected-underline'
+                  : 'action-secondary'}
               `}
             >
               <Icon name={tab.icon} size={16} />
@@ -144,7 +143,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 ].map((th) => (
                   <Button
                     key={th.id}
-                    variant={settings.theme === th.id ? 'filled' : 'tonal'}
+                    variant="tonal"
+                    selected={settings.theme === th.id}
                     icon={th.icon}
                     onClick={() => updateSettings({ theme: th.id as 'dark' | 'amoled' | 'light' })}
                     className="!py-3 text-xs"
@@ -164,7 +164,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </p>
               <div className="flex items-center gap-3">
                 <Button
-                  variant={settings.safePadding ? 'filled' : 'tonal'}
+                  variant="tonal"
+                  selected={settings.safePadding}
                   icon={settings.safePadding ? 'check_box' : 'check_box_outline_blank'}
                   onClick={() => updateSettings({ safePadding: !settings.safePadding })}
                 >
@@ -182,7 +183,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </p>
               <div className="flex items-center gap-3">
                 <Button
-                  variant={settings.showRemoteHints ? 'filled' : 'tonal'}
+                  variant="tonal"
+                  selected={settings.showRemoteHints}
                   icon={settings.showRemoteHints ? 'check_box' : 'check_box_outline_blank'}
                   onClick={() => updateSettings({ showRemoteHints: !settings.showRemoteHints })}
                 >
@@ -199,7 +201,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 {[0.9, 1.0, 1.1, 1.25].map((scale) => (
                   <Button
                     key={scale}
-                    variant={settings.uiScale === scale ? 'filled' : 'tonal'}
+                    variant="tonal"
+                    selected={settings.uiScale === scale}
                     onClick={() => updateSettings({ uiScale: scale })}
                     className="!px-4 !py-2 text-xs"
                   >
@@ -232,8 +235,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     className={`
                       p-4 rounded-2xl text-left border
                       ${settings.defaultEngine === eng.id
-                        ? 'bg-[var(--md-sys-color-primary-container)] border-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary-container)]'
-                        : 'bg-[var(--md-sys-color-surface-container-high)] border-transparent text-[var(--md-sys-color-on-surface)]'
+                        ? 'state-selected state-selected-underline'
+                        : 'action-secondary border-transparent'
                       }
                     `}
                   >
@@ -254,7 +257,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <div className="flex items-center gap-3">
                 <Button
                   focusKey="SETTINGS_SOUND_TOGGLE"
-                  variant={settings.channelSwitchSound ? 'filled' : 'tonal'}
+                  variant="tonal"
+                  selected={settings.channelSwitchSound}
                   icon={settings.channelSwitchSound ? 'volume_up' : 'volume_off'}
                   onClick={() => updateSettings({ channelSwitchSound: !settings.channelSwitchSound })}
                 >
@@ -268,7 +272,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <FocusZone focusKey="SETTINGS_SECTION_NERD" ownsChildren className="flex flex-col gap-4">
               <h3 className="font-bold text-lg">Technical Nerd Diagnostics</h3>
               <Button
-                variant={settings.showNerdStats ? 'filled' : 'tonal'}
+                variant="tonal"
+                selected={settings.showNerdStats}
                 icon="query_stats"
                 onClick={() => updateSettings({ showNerdStats: !settings.showNerdStats })}
               >
@@ -316,7 +321,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       <div className="flex items-center gap-2">
                         <h4 className="font-bold text-base">{pl.name}</h4>
                         {pl.isActive && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 font-semibold">
+                          <span className="text-xs px-2 py-0.5 rounded-full status-active-surface text-[var(--sw-on-status-active)] border font-semibold">
                             Active
                           </span>
                         )}
@@ -329,7 +334,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
                     <div className="flex items-center gap-2">
                       <Button
-                        variant="filled"
+                        variant="tonal"
                         icon="schedule"
                         onClick={() => setEditingPlaylist(pl)}
                         className="!px-3 !py-1.5 text-xs"
@@ -385,15 +390,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                         className={`
                           p-3.5 rounded-2xl text-left border
                           ${isSelected
-                            ? 'bg-[var(--md-sys-color-primary-container)] border-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary-container)] shadow-sm'
-                            : 'bg-[var(--md-sys-color-surface-container-high)] border-transparent text-[var(--md-sys-color-on-surface)] hover:bg-[var(--md-sys-color-surface-container-highest)]'
+                            ? 'state-selected state-selected-underline'
+                            : 'action-secondary border-transparent'
                           }
                         `}
                       >
                         <div className="font-bold text-xs flex items-center justify-between">
                           <span>{preset.name}</span>
                           {isSelected && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 font-bold border border-emerald-800">
+                            <span className="text-[10px] px-2 py-0.5 rounded-full status-active-surface text-[var(--sw-on-status-active)] font-bold border">
                               Active
                             </span>
                           )}
@@ -427,12 +432,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
             <Card variant="filled" isInteractive={false} className="p-6 flex flex-col gap-4">
               <FocusZone focusKey="SETTINGS_SECTION_DANGER" ownsChildren className="flex flex-col gap-4">
-              <h3 className="font-bold text-lg text-red-400">Danger Zone</h3>
+              <h3 className="font-bold text-lg text-[var(--md-sys-color-error)]">Danger Zone</h3>
               <p className="text-xs text-[var(--md-sys-color-outline)]">
                 Purge all downloaded channel lists, EPG program guides, and history from local IndexedDB storage.
               </p>
               <div>
-                <Button variant="outlined" icon="delete_forever" onClick={handleClearAllData} className="!border-red-800 text-red-400">
+                <Button variant="outlined" icon="delete_forever" onClick={handleClearAllData} className="border-[var(--md-sys-color-error)] text-[var(--md-sys-color-error)]">
                   Clear All Local Data & Reset
                 </Button>
               </div>

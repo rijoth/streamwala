@@ -135,13 +135,12 @@ const MiniChannelItem: React.FC<MiniChannelItemProps> = ({
       onClick={onSelect}
       className={`
         tv-focus-target w-full flex items-center gap-3 p-3 rounded-2xl cursor-pointer outline-none text-left
-        transition-all duration-100 select-none
-        ${
-          isActive
-            ? 'bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)] font-semibold'
-            : 'hover:bg-[var(--md-sys-color-surface-container-high)] text-[var(--md-sys-color-on-surface)]'
+        select-none
+        ${isActive
+          ? 'state-selected state-selected-underline font-semibold'
+          : 'text-[var(--md-sys-color-on-surface)]'
         }
-        ${focused ? 'tv-focused !bg-[var(--md-sys-color-primary)] !text-[var(--md-sys-color-on-primary)] z-10' : ''}
+        ${focused ? 'tv-focused z-10' : ''}
       `}
     >
       <span className="font-mono text-xs w-8 text-center text-[var(--md-sys-color-outline)] font-bold">
@@ -167,7 +166,7 @@ const MiniChannelItem: React.FC<MiniChannelItemProps> = ({
       </div>
 
       {channel.isFavorite && (
-        <Icon name="star" size={16} filled className="text-amber-400 shrink-0" />
+        <Icon name="star" size={16} filled className="text-[var(--sw-status-favorite)] shrink-0" />
       )}
     </button>
   );

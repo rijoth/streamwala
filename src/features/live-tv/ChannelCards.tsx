@@ -44,7 +44,7 @@ export const ChannelGridCard: React.FC<ChannelItemProps> = ({
       className={`
         tv-focus-target group relative rounded-2xl p-4 flex flex-col items-center text-center cursor-pointer outline-none overflow-hidden
         bg-[var(--md-sys-color-surface-container)] border border-[var(--md-sys-color-outline-variant)]
-        ${focused ? 'tv-focused !bg-[var(--md-sys-color-primary-container)] !border-[var(--md-sys-color-primary)] z-10' : ''}
+        ${focused ? 'tv-focused z-10' : ''}
       `}
     >
       <div className="w-full flex items-center justify-between mb-3 text-xs">
@@ -57,9 +57,9 @@ export const ChannelGridCard: React.FC<ChannelItemProps> = ({
             e.stopPropagation();
             onToggleFavorite();
           }}
-          className="p-1 text-[var(--md-sys-color-outline)] hover:text-amber-400 cursor-pointer"
+          className="p-1 text-[var(--md-sys-color-outline)] hover:text-[var(--sw-status-favorite)] cursor-pointer"
         >
-          <Icon name="star" size={18} filled={channel.isFavorite} className={channel.isFavorite ? 'text-amber-400' : ''} />
+          <Icon name="star" size={18} filled={channel.isFavorite} className={channel.isFavorite ? 'text-[var(--sw-status-favorite)]' : ''} />
         </button>
       </div>
 
@@ -111,7 +111,7 @@ export const ChannelListItem: React.FC<ChannelItemProps> = ({
       className={`
         tv-focus-target group flex items-center gap-4 p-3 rounded-2xl cursor-pointer outline-none overflow-hidden
         bg-[var(--md-sys-color-surface-container)] border border-[var(--md-sys-color-outline-variant)]
-        ${focused ? 'tv-focused !bg-[var(--md-sys-color-primary-container)] z-10' : ''}
+        ${focused ? 'tv-focused z-10' : ''}
       `}
     >
       <span className="font-mono font-bold text-base w-10 text-center text-[var(--md-sys-color-primary)]">
@@ -161,9 +161,9 @@ export const ChannelListItem: React.FC<ChannelItemProps> = ({
           e.stopPropagation();
           onToggleFavorite();
         }}
-        className="p-2 text-[var(--md-sys-color-outline)] hover:text-amber-400 cursor-pointer"
+        className="p-2 text-[var(--md-sys-color-outline)] hover:text-[var(--sw-status-favorite)] cursor-pointer"
       >
-        <Icon name="star" size={20} filled={channel.isFavorite} className={channel.isFavorite ? 'text-amber-400' : ''} />
+        <Icon name="star" size={20} filled={channel.isFavorite} className={channel.isFavorite ? 'text-[var(--sw-status-favorite)]' : ''} />
       </button>
     </div>
   );

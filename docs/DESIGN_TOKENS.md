@@ -19,7 +19,55 @@ for dark mode; `src/app/settingsStore.test.ts` enforces this.
 | Surface | `--md-sys-color-surface`, `-surface-dim`, `-surface-bright`, `-surface-container-lowest`, `-surface-container-low`, `-surface-container`, `-surface-container-high`, `-surface-container-highest` |
 | Content | `--md-sys-color-on-surface`, `-on-surface-variant`, `-outline`, `-outline-variant` |
 | Error | `--md-sys-color-error`, `-on-error`, `-error-container`, `-on-error-container` |
-| Focus | `--md-sys-color-focus-ring` |
+| Focus | `--md-sys-color-focus-ring` (alias of `--sw-focus-ring`, kept for the e2e probe) |
+
+## Interaction states (`--sw-*`)
+
+The four interaction states have distinct tokens so the accent is never
+overloaded (ADR 030). Every value is a literal so `src/shared/ui/designTokens.test.ts`
+can compute real WCAG contrast instead of trusting a comment.
+
+| State | Tokens | Consumed as |
+|---|---|---|
+| Focus | `--sw-focus-ring`, `--sw-focus-surface` | `.tv-focused` (one rule) |
+| Selected / active | `--sw-surface-selected`, `--sw-surface-selected-focus`, `--sw-accent-text`, `--sw-accent-marker` | `.state-selected` + `.state-selected-underline` / `-dot` |
+| Primary action | `--sw-accent-primary`, `--sw-on-accent-primary` | `.action-primary` |
+| Secondary action | `--sw-surface-secondary`, `--sw-on-surface-secondary` | `.action-secondary` |
+
+Semantic status is separate from all four:
+
+| Meaning | Tokens |
+|---|---|
+| Active / ready (green) | `--sw-status-active`, `--sw-status-active-surface`, `--sw-on-status-active` |
+| Favourite / attention (amber) | `--sw-status-favorite`, `--sw-status-favorite-surface`, `--sw-on-status-favorite` |
+| Live / error-adjacent (red) | `--sw-status-live`, `--sw-status-live-surface`, `--sw-on-status-live` |
+
+Rules:
+
+1. **Focus is never the accent.** A 3px near-white outline offset 4px. The
+   offset gap shows the surface *behind* the control, so the same ring is
+   visible on a card, over poster art and on a filled primary action. Light
+   theme inverts the ring to near-black (`#10131a`) because a near-white ring
+   disappears on `#fdfbff`; the invariant is "never the accent", not "always
+   white".
+2. **Selected is a tint, never a fill.** Accent at 15% over the card surface,
+   accent label/icon, plus a persistent 3px underline (tabs, pills, chips) or a
+   dot (icon-only rail destinations). `--sw-surface-selected-focus` is the
+   lightened tint used when the item is *also* focused, so both cues show.
+3. **Primary is the single solid accent fill** per screen (`Add New Source`,
+   `Save Custom Proxy`, `Open Settings` on an empty guide). Dark label in Dark
+   and AMOLED; the Light theme keeps a light accent fill (`#8ec2ff`) so the dark
+   label still applies. If a screen needs two actions, the second is secondary.
+4. **Secondary is neutral.** `--sw-surface-secondary` with a light label in the
+   dark themes and a dark label in Light, never the accent. `Edit EPG` and
+   `Refresh` are secondary, not primary.
+5. **Toggles are selected, not primary.** A switch in the "on" position uses the
+   selected state (tint + marker), so it can never be mistaken for the screen's
+   primary action.
+6. **Transform and opacity only.** `.tv-focus-target` animates `transform`
+   (`--focus-motion-duration`, 150ms ease-out) and nothing else; outline,
+   background and shadow flip instantly, so low-end TV boxes never animate paint
+   work. `prefers-reduced-motion` drops the interpolation and keeps the cue.
 
 ## Shape (`--md-shape-*`)
 

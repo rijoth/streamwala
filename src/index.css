@@ -39,25 +39,71 @@
   --md-sys-color-error-container: #93000a;
   --md-sys-color-on-error-container: #ffdad6;
 
-  --md-sys-color-focus-ring: #a0caff;
+  /*
+   * ---- Streamwala state tokens (`--sw-*`) ----
+   * Four distinct interaction states, each with its own token so the accent is
+   * never overloaded (ADR 030):
+   *
+   *   focus            --sw-focus-ring / --sw-focus-surface
+   *   selected/active  --sw-surface-selected (+ --sw-accent-text, marker)
+   *   primary action   --sw-accent-primary / --sw-on-accent-primary
+   *   secondary action --sw-surface-secondary / --sw-on-surface-secondary
+   *
+   * Semantic status colours are deliberately separate from the accent:
+   * green = Active/ready, amber = favourite, red = live/recording.
+   * Every value below is a literal so `designTokens.test.ts` can verify WCAG
+   * contrast (>= 4.5:1 for text, >= 3:1 for the focus ring) for all themes.
+   * `--sw-surface-selected` is the accent at 15% over the card surface; the
+   * derivation is asserted by the same test.
+   */
+  --sw-focus-ring: #f2f5fa;
+  --sw-focus-surface: #2a2e3a;
+  --sw-surface-selected: #323a49;
+  --sw-surface-selected-focus: #445065;
+  --sw-accent-primary: #a0caff;
+  --sw-accent-text: #a0caff;
+  --sw-accent-marker: var(--sw-accent-text);
+  --sw-on-accent-primary: #071a2e;
+  --sw-surface-secondary: #2b2f3b;
+  --sw-on-surface-secondary: #e8eaf2;
+
+  --sw-status-active: #6ee7a8;
+  --sw-status-active-surface: #2a3e3c;
+  --sw-on-status-active: #6ee7a8;
+  --sw-status-favorite: #f6c453;
+  --sw-status-favorite-surface: #3e392f;
+  --sw-on-status-favorite: #f6c453;
+  --sw-status-live: #ff8b8b;
+  --sw-status-live-surface: #403038;
+  --sw-on-status-live: #ff8b8b;
+
+  /* Kept as the compatibility alias consumed by e2e/focus-visuals.spec.ts and
+     the shared token map; the theme variants redefine `--sw-focus-ring`. */
+  --md-sys-color-focus-ring: var(--sw-focus-ring);
 
   /* TV Safe Areas */
   --tv-safe-x: 48px;
   --tv-safe-y: 32px;
 
-  /* Focus geometry. The overhang per side of a scaled focus target is
-     w*(scale-1)/2 + ringWidth*scale, so 1.05 needs 0.025w + 3.15px:
-     a 212px card overhangs 8.45px, a 210px tile 8.40px.
-     --focus-ring-pad is the leading/trailing padding that stops the ring and
-     the scale from being clipped by an overflow container. It is sized for the
-     widest target that sits in a clipping container (w <= 319px at scale 1.05)
-     and stays well under the 16px grid gap, so adjacent cards never overlap. */
+  /* Focus geometry. The focus cue is a 3px near-white outline offset 4px from
+     the border box (ADR 030), so the painted overhang per side of a scaled
+     target is w*(scale-1)/2 + (ringOffset + ringWidth)*scale, i.e.
+     0.025w + 7.35px at scale 1.05: a 212px card overhangs 12.65px, a 210px
+     tile 12.60px. --focus-ring-pad is the leading/trailing padding (and the
+     overflow-clip margin) that keeps the ring unclipped; 18px covers every
+     target up to w = 426px and stays close to the 16px grid gap, so a focused
+     card never paints over its neighbour's content. */
   --focus-ring-width: 3px;
+  --focus-ring-offset: 4px;
   --focus-scale: 1.05;
+  /* Transform-only interpolation: paint work (outline, background, shadow)
+     flips instantly, so low-end TV boxes never animate a shadow or a colour. */
+  --focus-motion-duration: 150ms;
+  --focus-motion-easing: cubic-bezier(0.2, 0, 0, 1);
   /* Small targets (virtual-keyboard keys, ~48px) need more scale to read at 3m;
      the overhang stays ~4.2px, which fits the same pad. */
   --focus-scale-key: 1.08;
-  --focus-ring-pad: 12px;
+  --focus-ring-pad: 18px;
 
   /* UI Scaling Factor */
   --ui-scale: 1;
@@ -155,15 +201,31 @@ html.theme-light {
   --md-sys-color-error-container: #ffdad6;
   --md-sys-color-on-error-container: #410002;
 
-  --md-sys-color-focus-ring: #1e5b96;
-}
+  --md-sys-color-focus-ring: var(--sw-focus-ring);
 
-/* Softer drop shadow so the focus ring stays readable on light surfaces. */
-html.theme-light .tv-focused {
-  box-shadow:
-    0 0 0 var(--focus-ring-width) var(--md-sys-color-focus-ring),
-    0 2px 4px rgba(0, 0, 0, 0.12),
-    0 12px 28px rgba(0, 0, 0, 0.22);
+  /* Streamwala state tokens, inverted for a light surface: the focus ring is
+     near-black because a near-white ring is invisible on #fdfbff, and the solid
+     accent fill stays light enough to keep its dark label (9.6:1). */
+  --sw-focus-ring: #10131a;
+  --sw-focus-surface: #ffffff;
+  --sw-surface-selected: #dfe7f6;
+  --sw-surface-selected-focus: #e3f0ff;
+  --sw-accent-primary: #8ec2ff;
+  --sw-accent-text: #1e5b96;
+  --sw-accent-marker: var(--sw-accent-text);
+  --sw-on-accent-primary: #06182b;
+  --sw-surface-secondary: #dfe3ec;
+  --sw-on-surface-secondary: #1a1b21;
+
+  --sw-status-active: #14532d;
+  --sw-status-active-surface: #cdddd9;
+  --sw-on-status-active: #14532d;
+  --sw-status-favorite: #92400e;
+  --sw-status-favorite-surface: #e2d8d0;
+  --sw-on-status-favorite: #78350f;
+  --sw-status-live: #991b1b;
+  --sw-status-live-surface: #e5ced4;
+  --sw-on-status-live: #7f1d1d;
 }
 
 /* AMOLED Black theme variant */
@@ -175,6 +237,16 @@ html.theme-amoled {
   --md-sys-color-surface-container: #101015;
   --md-sys-color-surface-container-high: #191920;
   --md-sys-color-surface-container-highest: #23232b;
+
+  /* Pure-black variant: the same accent over a #101015 card, so the selected
+     tint and the focus surface are re-derived instead of inherited. */
+  --sw-focus-ring: #ffffff;
+  --sw-focus-surface: #1d1e26;
+  --sw-surface-selected: #262c38;
+  --sw-surface-selected-focus: #3a4456;
+  --sw-status-active-surface: #1e302b;
+  --sw-status-favorite-surface: #332b1e;
+  --sw-status-live-surface: #342227;
 }
 
 /* Base Body Styles */
@@ -225,24 +297,45 @@ textarea,
   font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
-/* 10-Foot Remote Focus Ring styling */
+/*
+ * ---- Interaction states (ADR 030) ----
+ *
+ * Four states, four token sets, one owner. Utilities from `@import
+ * "tailwindcss"` live in a cascade layer, so every rule below is unlayered and
+ * deliberately wins over a `bg-*`/`text-*` utility on the same element.
+ *
+ * 1. Focus       -- always the same cue, never the accent, so it stays visible
+ *                   on cards, on filled buttons and over poster art.
+ * 2. Selected    -- accent tint + accent text + a small persistent marker. No
+ *                   solid accent fill, so "selected" can never be confused with
+ *                   "primary action".
+ * 3. Primary     -- solid accent fill, dark label, one per screen.
+ * 4. Secondary   -- neutral tonal surface, light label, no accent.
+ */
+
+/* 1. Focus: 3px near-white outline offset 4px, 1.05 scale, soft elevation. */
 .tv-focus-target {
-  transition: transform 140ms cubic-bezier(0.2, 0, 0, 1),
-              box-shadow 140ms cubic-bezier(0.2, 0, 0, 1),
-              border-color 140ms cubic-bezier(0.2, 0, 0, 1),
-              background-color 140ms cubic-bezier(0.2, 0, 0, 1);
+  transition: transform var(--focus-motion-duration) var(--focus-motion-easing);
   outline: none;
 }
 
 .tv-focused {
   transform: scale(var(--focus-scale));
-  /* Ring + two-layer elevation: a tight contact shadow and a wide cast shadow,
-     so the focused card reads as lifted, not just outlined, at 3 metres. */
+  outline: var(--focus-ring-width) solid var(--sw-focus-ring);
+  outline-offset: var(--focus-ring-offset);
+  /* Two static elevation layers (a tight contact shadow and a wide cast
+     shadow) so the focused box reads as lifted, not just outlined, at 3
+     metres. Only `transform` is animated; shadow/outline/colour flip instantly. */
   box-shadow:
-    0 0 0 var(--focus-ring-width) var(--md-sys-color-focus-ring),
     0 2px 4px rgba(0, 0, 0, 0.35),
     0 12px 28px rgba(0, 0, 0, 0.65);
   z-index: 20;
+}
+
+/* Slightly lighter surface, but never over a primary action (its fill is its
+   identity) or a selected item (the tint and marker are its identity). */
+.tv-focus-target.tv-focused:not(.action-primary):not(.state-selected) {
+  background-color: var(--sw-focus-surface);
 }
 
 /* Small targets keep a larger scale (see --focus-scale-key). */
@@ -260,10 +353,123 @@ textarea,
   transform: none;
 }
 
-/* Subtle focus without heavy scale for inline list rows or nav items */
-.tv-focused-subtle {
-  box-shadow: inset 0 0 0 2px var(--md-sys-color-focus-ring);
-  background-color: var(--md-sys-color-surface-container-highest) !important;
+/* Softer cast shadow on light surfaces, where the ring itself is near-black. */
+html.theme-light .tv-focused {
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.12),
+    0 12px 28px rgba(0, 0, 0, 0.22);
+}
+
+/* 2. Selected / active: accent tint, accent text and icon, persistent marker. */
+.state-selected {
+  background-color: var(--sw-surface-selected);
+  color: var(--sw-accent-text);
+  border-color: transparent;
+}
+
+/* Selected + focused keeps both cues: the tint stays (only lightened), the
+   marker stays, and the ring/scale/elevation are added by `.tv-focused`. */
+.state-selected.tv-focused {
+  background-color: var(--sw-surface-selected-focus);
+}
+
+/* The marker is absolutely positioned inside the control, so the host must be a
+   positioning context regardless of which utility classes the component uses. */
+.state-selected-underline,
+.state-selected-dot {
+  position: relative;
+}
+
+.state-selected-underline::after,
+.state-selected-dot::after {
+  content: '';
+  position: absolute;
+  border-radius: var(--md-shape-full);
+  background-color: var(--sw-accent-marker);
+  pointer-events: none;
+}
+
+/* 3px underline for tabs, pills and chips. */
+.state-selected-underline::after {
+  left: 50%;
+  bottom: 4px;
+  width: 40%;
+  min-width: 12px;
+  height: 3px;
+  transform: translateX(-50%);
+}
+
+/* Dot for icon-only destinations (the navigation rail). */
+.state-selected-dot::after {
+  left: 50%;
+  bottom: 7px;
+  width: 6px;
+  height: 6px;
+  transform: translateX(-50%);
+}
+
+/* 3. Primary action: solid accent fill with a dark, high-contrast label. */
+.action-primary {
+  background-color: var(--sw-accent-primary);
+  color: var(--sw-on-accent-primary);
+  font-weight: 600;
+}
+
+/* 4. Secondary action: neutral tonal surface, light label, no accent. */
+.action-secondary {
+  background-color: var(--sw-surface-secondary);
+  color: var(--sw-on-surface-secondary);
+}
+
+.action-outlined {
+  background-color: transparent;
+  border: 1px solid var(--md-sys-color-outline);
+  color: var(--md-sys-color-on-surface);
+}
+
+.action-text {
+  background-color: transparent;
+  color: var(--sw-accent-text);
+}
+
+/* Mouse affordance only: TV remotes never hover, so this costs a TV nothing. */
+.action-secondary:hover {
+  background-color: var(--md-sys-color-surface-container-high);
+}
+
+.state-selected:hover {
+  background-color: var(--sw-surface-selected-focus);
+}
+
+/* Semantic status: green = Active/ready, amber = favourite, red = live. */
+.status-active {
+  color: var(--sw-status-active);
+}
+
+.status-favorite {
+  color: var(--sw-status-favorite);
+}
+
+.status-live {
+  color: var(--sw-status-live);
+}
+
+.status-active-surface {
+  background-color: var(--sw-status-active-surface);
+  border-color: var(--sw-status-active);
+  color: var(--sw-on-status-active);
+}
+
+.status-favorite-surface {
+  background-color: var(--sw-status-favorite-surface);
+  border-color: var(--sw-status-favorite);
+  color: var(--sw-on-status-favorite);
+}
+
+.status-live-surface {
+  background-color: var(--sw-status-live-surface);
+  border-color: var(--sw-status-live);
+  color: var(--sw-on-status-live);
 }
 
 /*
