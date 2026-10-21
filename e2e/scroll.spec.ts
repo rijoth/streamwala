@@ -99,7 +99,11 @@ function focusGeometry(p: Page): Promise<FocusGeometry | null> {
     }
 
     const row = el.closest('[data-scroll-row]') as HTMLElement | null;
-    const viewport = document.querySelector('[data-scroll-axis="vertical"]') as HTMLElement | null;
+    // Live TV now has two vertical axes (category rail + grid); the offset that
+    // matters here is the result grid's.
+    const viewport =
+      (document.querySelector('[data-testid="live-viewport"]') as HTMLElement | null) ??
+      (document.querySelector('[data-scroll-axis="vertical"]') as HTMLElement | null);
     return {
       left,
       top,
@@ -232,7 +236,7 @@ test('10k channel list: held Down settles aligned and in view', async () => {
   await expect(page.getByText('All Channels').first()).toBeVisible();
   await page.waitForTimeout(200);
 
-  await page.keyboard.press('ArrowDown'); // chips -> first grid card
+  await page.keyboard.press('ArrowRight'); // category rail -> first grid card
   await holdArrowDown(page, 3000);
 
   // Let the release tween settle, then assert no further motion.
@@ -252,7 +256,7 @@ test('returning from the player restores the exact card and offset', async () =>
   await expectFocusedFullyVisible(page, 'before play');
   const before = await page.evaluate(() => {
     const el = document.querySelector('[data-focused="true"]') as HTMLElement | null;
-    const viewport = document.querySelector('[data-scroll-axis="vertical"]') as HTMLElement | null;
+    const viewport = document.querySelector('[data-testid="live-viewport"]') as HTMLElement | null;
     return {
       text: (el?.textContent ?? '').trim(),
       offset: viewport ? Number(viewport.getAttribute('data-scroll-offset')) : 0,
@@ -270,7 +274,7 @@ test('returning from the player restores the exact card and offset', async () =>
   await expect(page.getByText('All Channels').first()).toBeVisible({ timeout: 10_000 });
   const after = await page.evaluate(() => {
     const el = document.querySelector('[data-focused="true"]') as HTMLElement | null;
-    const viewport = document.querySelector('[data-scroll-axis="vertical"]') as HTMLElement | null;
+    const viewport = document.querySelector('[data-testid="live-viewport"]') as HTMLElement | null;
     return {
       text: (el?.textContent ?? '').trim(),
       offset: viewport ? Number(viewport.getAttribute('data-scroll-offset')) : 0,
@@ -309,7 +313,7 @@ test('held-key traversal stays responsive under 4x CPU throttling', async () => 
   try {
     await page.getByRole('button', { name: 'Live TV' }).click();
     await page.waitForTimeout(300);
-    await page.keyboard.press('ArrowDown'); // chips -> grid
+    await page.keyboard.press('ArrowRight'); // category rail -> grid
     await page.waitForTimeout(300);
 
     const result = await page.evaluate(async () => {

@@ -13,6 +13,8 @@ export interface FocusZoneProps {
   focusable?: boolean;
   isFocusBoundary?: boolean;
   saveLastFocusedChild?: boolean;
+  /** Child the zone focuses when entered; defaults to the remembered/last one. */
+  preferredChildFocusKey?: string;
   autoRestoreFocus?: boolean;
   trackChildren?: boolean;
   className?: string;
@@ -38,6 +40,7 @@ export const FocusZone: React.FC<FocusZoneProps> = ({
   focusable = true,
   isFocusBoundary = false,
   saveLastFocusedChild = true,
+  preferredChildFocusKey,
   autoRestoreFocus = true,
   trackChildren = true,
   className = '',
@@ -50,6 +53,7 @@ export const FocusZone: React.FC<FocusZoneProps> = ({
     focusable,
     isFocusBoundary,
     saveLastFocusedChild,
+    preferredChildFocusKey,
     autoRestoreFocus,
     trackChildren,
     onEnterPress,

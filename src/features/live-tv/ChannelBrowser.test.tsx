@@ -1,6 +1,6 @@
 import React from 'react';
-import { describe, it, expect } from 'vitest';
-import { screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '../../test/renderWithProviders.tsx';
 import { ChannelBrowser } from './ChannelBrowser.tsx';
@@ -115,5 +115,38 @@ describe('ChannelBrowser inline search', () => {
     expect(screen.getByText('0 of 3')).toBeInTheDocument();
     // The grid viewport stays mounted so the scroller keeps its content ref.
     expect(screen.getByTestId('live-viewport')).toBeInTheDocument();
+  });
+});
+
+describe('ChannelBrowser category rail', () => {
+  it('marks only the active scope and exposes every category as a rail control', () => {
+    renderBrowser(SPORTS);
+
+    const rail = screen.getByTestId('category-rail');
+    const sports = within(rail).getByRole('button', { name: /Sports/ });
+    const news = within(rail).getByRole('button', { name: /News/ });
+    const all = within(rail).getByRole('button', { name: /All Channels/ });
+
+    expect(sports).toHaveAttribute('aria-current', 'true');
+    expect(news).not.toHaveAttribute('aria-current');
+    expect(all).not.toHaveAttribute('aria-current');
+  });
+
+  it('selects a scope from the rail', async () => {
+    const user = userEvent.setup();
+    const onSelectGroup = vi.fn();
+    renderWithProviders(
+      <ChannelBrowser
+        channels={CHANNELS}
+        groups={GROUPS}
+        activeGroupId="all"
+        onSelectGroup={onSelectGroup}
+        onSelectChannel={noop}
+        onToggleFavorite={noop}
+      />
+    );
+
+    await user.click(within(screen.getByTestId('category-rail')).getByRole('button', { name: /News/ }));
+    expect(onSelectGroup).toHaveBeenCalledWith(NEWS);
   });
 });

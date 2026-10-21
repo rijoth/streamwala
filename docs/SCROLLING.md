@@ -32,7 +32,7 @@ animations, and clipped the hero, headings and focus rings).
 | `useVirtualWindow.ts` / `VirtualGrid.tsx` | Windowing driven by the offset for grids/long lists; the content keeps full index-math height so clamping stays correct. |
 | `useRowSnapScroller.ts` | Vertical page scroller (Home): focused row top on the focus line. |
 | `useCarouselScroller.ts` | Horizontal fixed-slot carousel. |
-| `useGridScroller.ts` | Minimal-scroll grids/lists; derives columns from viewport width. |
+| `useGridScroller.ts` | Minimal-scroll grids/lists (including the Live TV category rail, `columns: 1`); derives columns from viewport width. |
 | `useStripScroller.ts` | Horizontal strip for variable-width items (filter chips). |
 | `useKeyRepeat.ts` | Subscribes to held-key acceleration from `shared/input`. |
 | `scrollMemory.ts` / `useScrollRestore.ts` | Per-screen/per-row focus + offset persistence and restore. |
@@ -58,7 +58,8 @@ Public API is exported from `src/shared/scroll/index.ts` only.
 ## Adding a scrollable screen
 
 1. Pick the scroller: `useRowSnapScroller` (page of rows), `useCarouselScroller`
-   (horizontal rail), `useGridScroller` (grid/list), `useStripScroller`
+   (horizontal rail), `useGridScroller` (grid/list, or a single-column vertical
+   rail), `useStripScroller`
    (variable-width chips), or `useScrollAxis` (bespoke, e.g. EPG's two axes).
 2. Render a clipping viewport (`overflow-hidden`) and a transformed content
    element. `ScrollViewport` does this; `VirtualGrid` owns its content element.

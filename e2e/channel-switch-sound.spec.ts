@@ -102,7 +102,7 @@ test('selecting a channel card from the Live TV grid plays the tone', async () =
   await expect(page.getByText('Featured Live')).toBeVisible({ timeout: 15_000 });
 
   await page.getByRole('button', { name: /^Live/i }).click();
-  const cards = page.locator('[data-scroll-index]');
+  const cards = page.getByTestId('live-viewport').locator('[data-scroll-index]');
   await expect(cards.first()).toBeVisible();
 
   // A fresh PlayerView mount is a tune-in, not a silent no-op.
@@ -121,7 +121,7 @@ test('disabling the preference keeps channel switching silent', async () => {
   await expect(page.getByRole('button', { name: 'Switch Sound Off' })).toBeVisible();
 
   await page.getByRole('button', { name: /^Live/i }).click();
-  const cards = page.locator('[data-scroll-index]');
+  const cards = page.getByTestId('live-viewport').locator('[data-scroll-index]');
   await expect(cards.first()).toBeVisible();
   await cards.nth(3).click();
   await expect(page.locator('video')).toBeVisible();

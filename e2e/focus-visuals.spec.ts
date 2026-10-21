@@ -284,8 +284,7 @@ test('home channel card: scaled, ringed, elevated', async () => {
 test('live TV grid card: scaled, ringed, elevated', async () => {
   await page.getByTestId('navigation-rail').getByRole('button', { name: 'Live TV' }).click();
   await expect(page.getByRole('heading', { name: 'All Channels' })).toBeVisible();
-  await page.keyboard.press('ArrowDown'); // chips -> inline search field
-  await page.keyboard.press('ArrowDown'); // search field -> grid
+  await page.keyboard.press('ArrowRight'); // category rail -> channel grid
   await expectFocusVisuals(page, 'live TV grid card');
 });
 

@@ -47,7 +47,10 @@ async function setRootFontSize(px: number) {
 /** Name/group line boxes and the row-pitch the scroller is using. */
 function cardMetrics() {
   return page.evaluate(() => {
-    const cells = Array.from(document.querySelectorAll<HTMLElement>('[data-scroll-index]'));
+    const viewport = document.querySelector('[data-testid="live-viewport"]');
+    const cells = Array.from(
+      viewport?.querySelectorAll<HTMLElement>('[data-scroll-index]') ?? []
+    );
     const sample = cells.slice(0, 4);
     return {
       cells: sample.map((cell) => {
@@ -127,6 +130,7 @@ test('grid cards survive a 24px root font size', async () => {
 
 test('focused card stays fully visible after scrolling at 20px root font size', async () => {
   await setRootFontSize(20);
+  await page.keyboard.press('ArrowRight'); // category rail -> grid
   for (let i = 0; i < 12; i += 1) await page.keyboard.press('ArrowDown');
   await page.waitForTimeout(600);
 
@@ -146,7 +150,10 @@ test('list rows keep the logo and text unclipped at 20px root font size', async 
   await page.getByRole('button', { name: /List View/i }).click();
   await page.waitForTimeout(400);
   const list = await page.evaluate(() => {
-    const cells = Array.from(document.querySelectorAll<HTMLElement>('[data-scroll-index]'));
+    const viewport = document.querySelector('[data-testid="live-viewport"]');
+    const cells = Array.from(
+      viewport?.querySelectorAll<HTMLElement>('[data-scroll-index]') ?? []
+    );
     return cells.slice(0, 3).map((cell) => {
       const logo = cell.querySelector('img, div') as HTMLElement | null;
       const h4 = cell.querySelector('h4') as HTMLElement | null;

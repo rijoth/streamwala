@@ -94,11 +94,34 @@ async function typeInFocusedField(p: Page, text: string) {
 }
 
 function chip(p: Page, label: string) {
-  return p.locator('[data-scroll-item] button').filter({ hasText: label }).first();
+  return p.getByTestId('category-rail').getByRole('button', { name: label });
+}
+
+/** Walk LEFT until the engine cursor lands inside the category rail. */
+async function focusCategoryRail(p: Page) {
+  for (let i = 0; i < 6; i += 1) {
+    const inRail = await p.evaluate(() =>
+      !!document.querySelector('[data-focused="true"]')?.closest('[data-testid="category-rail"]')
+    );
+    if (inRail) return;
+    await p.keyboard.press('ArrowLeft');
+  }
+  await expect
+    .poll(() =>
+      p.evaluate(() =>
+        !!document.querySelector('[data-focused="true"]')?.closest('[data-testid="category-rail"]')
+      )
+    )
+    .toBe(true);
 }
 
 /** Walk DOWN until the engine cursor lands on a channel card. */
 async function focusFirstChannel(p: Page) {
+  // Live TV enters on the category rail; RIGHT hands focus to the grid.
+  const onRail = await p.evaluate(() =>
+    !!document.querySelector('[data-focused="true"]')?.closest('[data-testid="category-rail"]')
+  );
+  if (onRail) await p.keyboard.press('ArrowRight');
   for (let i = 0; i < 6; i += 1) {
     if (await focusedChannelId(p)) return;
     await p.keyboard.press('ArrowDown');
@@ -106,17 +129,18 @@ async function focusFirstChannel(p: Page) {
   await expect.poll(async () => focusedChannelId(p)).toBeTruthy();
 }
 
-/** Offset of the visible vertical scroller for the current screen. */
+/** Offset of the Live TV result grid (the rail also has a vertical axis). */
 function verticalOffset(p: Page) {
   return p.evaluate(() => {
-    const viewport = document.querySelector<HTMLElement>('[data-scroll-axis="vertical"]');
+    const viewport = document.querySelector<HTMLElement>('[data-testid="live-viewport"]');
     return viewport ? Number(viewport.getAttribute('data-scroll-offset')) : null;
   });
 }
 
 test('the navigation rail has no Search destination', async () => {
   const labels = await page
-    .locator('aside button')
+    .getByTestId('navigation-rail')
+    .locator('button')
     .evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label')));
   expect(labels).not.toContain('Search');
   expect(labels).toEqual(['Home', 'Live TV', 'EPG Guide', 'Favorites', 'Settings']);
@@ -154,7 +178,7 @@ test('Yellow on Home focuses the inline search field and filters rows', async ()
   expect(await focusedFieldLabel(page)).toBe('Search all channels');
 });
 
-test('Live TV search follows the category chip and survives the view toggle', async () => {
+test('Live TV search follows the selected category and survives the view toggle', async () => {
   await rail(page, 'Live TV').click();
   await expect(page.getByRole('heading', { name: 'All Channels' })).toBeVisible();
 
@@ -174,22 +198,32 @@ test('Live TV search follows the category chip and survives the view toggle', as
   await expect(page.getByText('1 of 3')).toBeVisible();
   await expect(page.getByText('Deutsche Welle (DW Live News HD)')).toBeVisible();
 
-  // The view toggle applies to the filtered result set, not the category list.
+  // The view toggle applies to the filtered result set, not the category rail.
   await page.getByRole('button', { name: /List View/i }).click();
   await expect(page.getByText('1 of 3')).toBeVisible();
   await expect(page.getByText('Deutsche Welle (DW Live News HD)')).toBeVisible();
   await page.getByRole('button', { name: /Grid View/i }).click();
 });
 
-test('Live TV D-pad path is chips -> search field -> results', async () => {
+test('Live TV D-pad path is category rail -> results -> back to the active scope', async () => {
   await rail(page, 'Live TV').click();
   await chip(page, 'All Channels').click();
+  await focusCategoryRail(page);
 
-  await page.keyboard.press('ArrowDown');
-  await expectFocusedField(page, 'Search channels');
-
-  await page.keyboard.press('ArrowDown');
+  // RIGHT enters the channel grid at the remembered card.
+  await page.keyboard.press('ArrowRight');
   await expect.poll(async () => focusedChannelId(page)).toBeTruthy();
+
+  // LEFT returns to the category rail, on the active scope.
+  await page.keyboard.press('ArrowLeft');
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const el = document.querySelector('[data-focused="true"]');
+        return (el?.closest('[data-testid="category-rail"]') ? el.textContent : null) ?? '';
+      })
+    )
+    .toContain('All Channels');
 });
 
 test('Favorites search filters the pinned set and falls back to the field on unpin', async () => {
@@ -283,7 +317,7 @@ test('narrowing a scrolled result set clamps the offset instead of leaving a bla
   await page.keyboard.press('ArrowDown');
   const visible = await page.evaluate(() => {
     const el = document.querySelector<HTMLElement>('[data-focused="true"][data-channel-id]');
-    const viewport = document.querySelector<HTMLElement>('[data-scroll-axis="vertical"]');
+    const viewport = document.querySelector<HTMLElement>('[data-testid="live-viewport"]');
     if (!el || !viewport) return false;
     const card = el.getBoundingClientRect();
     const clip = viewport.getBoundingClientRect();

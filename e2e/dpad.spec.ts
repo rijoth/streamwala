@@ -147,8 +147,7 @@ test('Red key pins the focused channel instead of leaving the screen', async () 
 
   await page.getByRole('button', { name: 'Live TV' }).click();
   await expect(page.getByRole('heading', { name: 'All Channels' })).toBeVisible();
-  await page.keyboard.press('ArrowDown'); // category chips -> inline search field
-  await page.keyboard.press('ArrowDown'); // search field -> channel grid
+  await page.keyboard.press('ArrowRight'); // category rail -> channel grid
 
   await expect.poll(async () => (await focusedFavourite(page))?.id).toBeTruthy();
   const before = await focusedFavourite(page);
