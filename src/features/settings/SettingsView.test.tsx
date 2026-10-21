@@ -2,6 +2,7 @@ import React from 'react';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import { renderWithProviders } from '../../test/renderWithProviders.tsx';
+import userEvent from '@testing-library/user-event';
 import { pressKey } from '../../test/remote.ts';
 import { focusKeyExists, getCurrentFocusKey, setFocus } from '../../shared/focus/index.ts';
 import { useSettingsStore } from '../../app/settingsStore.ts';
@@ -96,6 +97,19 @@ describe('SettingsView D-pad reachability (BUG-020)', () => {
     await waitFor(() =>
       expect(useSettingsStore.getState().settings.channelSwitchSound).toBe(false)
     );
+  });
+
+  it('offers the reduced TV UI scale factors and applies them', async () => {
+    renderSettings();
+
+    for (const label of ['60%', '70%', '80%', '90%', '100%', '110%', '125%']) {
+      expect(screen.getByRole('button', { name: label })).toBeInTheDocument();
+    }
+
+    await userEvent.click(screen.getByRole('button', { name: '60%' }));
+
+    await waitFor(() => expect(useSettingsStore.getState().settings.uiScale).toBe(0.6));
+    expect(document.documentElement.style.getPropertyValue('--ui-scale')).toBe('0.6');
   });
 
   it('shows the author credit and full repository URL in the About tab', async () => {

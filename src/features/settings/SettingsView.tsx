@@ -197,8 +197,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <Card variant="filled" isInteractive={false} className="p-6 flex flex-col gap-4">
               <FocusZone focusKey="SETTINGS_SECTION_SCALE" ownsChildren className="flex flex-col gap-4">
               <h3 className="font-bold text-lg">TV UI Scale Factor</h3>
-              <div className="flex items-center gap-4">
-                {[0.9, 1.0, 1.1, 1.25].map((scale) => (
+              <div className="flex flex-wrap items-center gap-4">
+                {[0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.25].map((scale) => (
                   <Button
                     key={scale}
                     variant="tonal"

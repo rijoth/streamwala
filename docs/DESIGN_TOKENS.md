@@ -85,7 +85,9 @@ Rules:
 | `--rail-icon-size` | `calc(32px * var(--ui-scale))` | rail Material Symbols icon size (≈ 32 px at 1080p) |
 
 Changing `settings.uiScale` rewrites `--ui-scale`; everything derived from it
-(including the rail) reflows without component branches.
+(including the rail) reflows without component branches. The Settings ▸ TV UI
+Scale Factor row offers 60%, 70%, 80%, 90%, 100%, 110% and 125%; the accepted
+range is 0.6–1.5 (`SettingsSchema.uiScale`).
 
 ## Brand mark
 

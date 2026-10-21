@@ -98,9 +98,18 @@ test('D-pad walks every section of the Appearance panel', async () => {
   await expectFocusOnControl(page, /Remote Hints/);
 
   await page.keyboard.press('ArrowDown');
-  await expectFocusOnControl(page, /90%/);
+  await expectFocusOnControl(page, /60%/);
 
   // RIGHT stays inside the focused section's row.
+  await page.keyboard.press('ArrowRight');
+  await expectFocusOnControl(page, /70%/);
+
+  await page.keyboard.press('ArrowRight');
+  await expectFocusOnControl(page, /80%/);
+
+  await page.keyboard.press('ArrowRight');
+  await expectFocusOnControl(page, /90%/);
+
   await page.keyboard.press('ArrowRight');
   await expectFocusOnControl(page, /100%/);
 

@@ -166,7 +166,7 @@ export interface HistoryEntry {
 
 export interface AppSettings {
   theme: 'dark' | 'amoled' | 'light';
-  uiScale: number; // 0.8 to 1.5
+  uiScale: number; // 0.6 to 1.5
   safePadding: boolean;
   defaultEngine: 'auto' | 'hls' | 'mpegts' | 'native';
   proxyUrlTemplate: string; // e.g. https://cors-anywhere.../

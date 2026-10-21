@@ -94,7 +94,7 @@ export const EpgMappingSchema = z.object({
 
 export const SettingsSchema = z.object({
   theme: z.enum(['dark', 'amoled', 'light']),
-  uiScale: z.number().min(0.8).max(1.5),
+  uiScale: z.number().min(0.6).max(1.5),
   safePadding: z.boolean(),
   defaultEngine: z.enum(['auto', 'hls', 'mpegts', 'native']),
   proxyUrlTemplate: z.string(),
