@@ -1,5 +1,7 @@
 ext {
-    minSdkVersion = 23
+    // Google Play's automatic protection requires 24+; the uploaded bundle must
+    // never drop below it (Android 7.0). Raising this only narrows support.
+    minSdkVersion = 24
     compileSdkVersion = 35
     targetSdkVersion = 35
     androidxActivityVersion = '1.9.2'
