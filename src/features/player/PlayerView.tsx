@@ -6,10 +6,10 @@ import { playChannelSwitchSound } from '../../services/audio/index.ts';
 import { useSettingsStore } from '../../app/settingsStore.ts';
 import { useNowNext } from '../../app/epgRuntime.tsx';
 import { useTvInput, pushBackHandler } from '../../shared/input/index.ts';
+import { isChannelNumberEntryActive } from '../../shared/channel-number/index.ts';
 import { NowNextBanner } from './NowNextBanner.tsx';
 import { PlayerControlsOverlay } from './PlayerControlsOverlay.tsx';
 import { MiniChannelOverlay } from './MiniChannelOverlay.tsx';
-import { NumberZapOverlay } from './NumberZapOverlay.tsx';
 import { NerdStatsOverlay } from './NerdStatsOverlay.tsx';
 import { CorsDiagnosticModal } from '../onboarding/CorsDiagnosticModal.tsx';
 import { Button, CircularProgress } from '../../shared/ui/index.ts';
@@ -71,10 +71,6 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
 
   // Now/Next comes from the shared EPG selector (one query + minute ticker).
   const { current: currentProgram, next: nextProgram } = useNowNext(channel.id);
-
-  // Number Zap state
-  const [zapDigits, setZapDigits] = useState('');
-  const zapTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto-hide timers
   const controlsTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -187,6 +183,10 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
   useTvInput((event) => {
     if (showMiniList) return; // Allow mini list to handle its own navigation
 
+    // The app-level number entry owns OK while digits are pending: committing
+    // the number must not also toggle the controls overlay.
+    if (event.action === 'SELECT' && isChannelNumberEntryActive()) return true;
+
     // When an overlay owns focus (controls or error recovery), let the
     // spatial-navigation engine move focus. Otherwise arrow keys both moved
     // control focus AND zapped channels on every press.
@@ -200,22 +200,6 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
     ) {
       resetControlsTimer();
       return;
-    }
-
-    if (event.action === 'DIGIT' && event.digit !== undefined) {
-      const newDigits = zapDigits + event.digit;
-      setZapDigits(newDigits);
-
-      if (zapTimerRef.current) clearTimeout(zapTimerRef.current);
-      zapTimerRef.current = setTimeout(() => {
-        const targetNum = parseInt(newDigits, 10);
-        const matched = allChannels.find(c => c.number === targetNum);
-        if (matched) {
-          onChannelChange(matched);
-        }
-        setZapDigits('');
-      }, 2000);
-      return true;
     }
 
     if (event.action === 'NAV_UP' || event.action === 'CH_UP') {
@@ -282,7 +266,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
       onOpenSettings();
       return true;
     }
-  }, [allChannels, channel, playerState.status, zapDigits, showMiniList, showControls, showNerdStats, zapToNext, zapToPrev, resetControlsTimer, onChannelChange, onOpenGuide, onOpenSearch, onOpenSettings, onToggleFavorite]);
+  }, [allChannels, channel, playerState.status, showMiniList, showControls, showNerdStats, zapToNext, zapToPrev, resetControlsTimer, onChannelChange, onOpenGuide, onOpenSearch, onOpenSettings, onToggleFavorite]);
 
   // Aspect ratio class mapper
   let videoObjectFit = 'object-contain';
@@ -294,10 +278,6 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
     const next = list[(list.indexOf(aspectRatio) + 1) % list.length];
     setAspectRatio(next);
   };
-
-  const matchedZapChannel = zapDigits
-    ? allChannels.find(c => c.number === parseInt(zapDigits, 10))?.name
-    : undefined;
 
   const handleCycleEngine = () => {
     const cycleEngines: ('hls' | 'mpegts' | 'native')[] = ['hls', 'mpegts', 'native'];
@@ -495,12 +475,6 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
           onChannelChange(newCh);
           setShowMiniList(false);
         }}
-      />
-
-      {/* Number Zapping Overlay */}
-      <NumberZapOverlay
-        digits={zapDigits}
-        matchedChannelName={matchedZapChannel}
       />
 
       {/* Nerd Stats Overlay */}

@@ -31,7 +31,13 @@ export const SideSheet: React.FC<SideSheetProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex bg-black/60 backdrop-blur-sm animate-fade-in">
+    <div
+      data-input-blocker="true"
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      className="fixed inset-0 z-50 flex bg-black/60 backdrop-blur-sm animate-fade-in"
+    >
       <div
         className="flex-1"
         onClick={onClose}

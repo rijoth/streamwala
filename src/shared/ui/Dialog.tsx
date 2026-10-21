@@ -31,7 +31,13 @@ export const Dialog: React.FC<DialogProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-fade-in">
+    <div
+      data-input-blocker="true"
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-fade-in"
+    >
       <FocusZone
         isFocusBoundary={true}
         className={`

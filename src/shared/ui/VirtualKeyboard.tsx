@@ -50,7 +50,10 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
   };
 
   return (
-    <FocusZone className="w-full max-w-4xl bg-[var(--md-sys-color-surface-container-high)] rounded-3xl p-6 border border-[var(--md-sys-color-outline-variant)] shadow-2xl flex flex-col gap-4">
+    <FocusZone
+      data-text-entry-open="true"
+      className="w-full max-w-4xl bg-[var(--md-sys-color-surface-container-high)] rounded-3xl p-6 border border-[var(--md-sys-color-outline-variant)] shadow-2xl flex flex-col gap-4"
+    >
       <div className="flex items-center justify-between pb-2 border-b border-[var(--md-sys-color-outline-variant)]">
         <div className="flex items-center gap-2">
           <Icon name="keyboard" size={24} className="text-[var(--md-sys-color-primary)]" />

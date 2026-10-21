@@ -162,6 +162,29 @@ test('D-pad opens the guide, traverses both axes and opens/closes details', asyn
   await expect(page.locator('[data-focused="true"].tv-focus-target')).toHaveCount(1);
 });
 
+test('number entry scrolls to a channel row, focuses it and does not start playback', async () => {
+  await page.getByTestId('navigation-rail').getByRole('button', { name: 'EPG Guide' }).click();
+  await expect(page.getByText('Show 0').first()).toBeVisible({ timeout: 15_000 });
+
+  // Channel 15 lives below the first virtualized window, so this exercises the
+  // guide's scroll-then-focus path, not just a direct setFocus.
+  await page.keyboard.press('1');
+  await page.keyboard.press('5');
+  await expect(page.getByTestId('channel-number-overlay')).toContainText('15_');
+
+  await page.keyboard.press('Enter');
+  await expect(
+    page.locator('[data-focused="true"][data-channel-id="e2e_ch_14"]')
+  ).toBeVisible({ timeout: 5_000 });
+  await expect(page.getByText('Watch now')).toBeHidden();
+
+  // The commit only moved focus, so OK now performs its normal action.
+  await page.keyboard.press('Enter');
+  await expect(page.getByText('Watch now')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByText('Watch now')).toBeHidden();
+});
+
 test('20k-programme traversal stays responsive under 4x CPU throttling', async () => {
   const client = await page.context().newCDPSession(page);
   await client.send('Emulation.setCPUThrottlingRate', { rate: 4 });

@@ -18,6 +18,10 @@ export interface FocusZoneProps {
   autoRestoreFocus?: boolean;
   trackChildren?: boolean;
   className?: string;
+  /** Marks a focusable text-entry widget (see input/textEntryGuard). */
+  'data-text-entry-open'?: string;
+  /** Marks a modal that owns all digits (see input/textEntryGuard). */
+  'data-input-blocker'?: string;
   children: React.ReactNode;
   onEnterPress?: () => void;
   orientation?: 'horizontal' | 'vertical' | 'grid';
@@ -44,6 +48,8 @@ export const FocusZone: React.FC<FocusZoneProps> = ({
   autoRestoreFocus = true,
   trackChildren = true,
   className = '',
+  'data-text-entry-open': dataTextEntryOpen,
+  'data-input-blocker': dataInputBlocker,
   children,
   onEnterPress,
   ownsChildren = true,
@@ -62,6 +68,8 @@ export const FocusZone: React.FC<FocusZoneProps> = ({
   return (
     <div
       ref={ref as React.Ref<HTMLDivElement>}
+      data-text-entry-open={dataTextEntryOpen}
+      data-input-blocker={dataInputBlocker}
       className={`${className} ${hasFocusedChild ? 'has-focused-child' : ''}`}
     >
       {ownsChildren ? <FocusScope focusKey={resolvedFocusKey}>{children}</FocusScope> : children}

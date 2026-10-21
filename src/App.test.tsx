@@ -1,10 +1,11 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { renderWithProviders } from './test/renderWithProviders.tsx';
 import { db } from './services/storage/db.ts';
 import { installDemoPlaylist } from './services/playlist/demoPlaylist.ts';
 import { useSettingsStore } from './app/settingsStore.ts';
+import { pressKey } from './test/remote.ts';
 import App from './App.tsx';
 
 // The player mounts real media engines; the shell only needs to know it is
@@ -125,6 +126,24 @@ describe('App navigation shell', () => {
     const footer = screen.getByTestId('content-footer');
     expect(footer).toContainElement(screen.getByTestId('app-copyright-footer'));
     expect(footer.className).toContain('justify-end');
+  });
+
+  it('tunes a non-favourite channel from Favorites using the full channel list', async () => {
+    await installDemoPlaylist();
+    renderWithProviders(<App />);
+
+    await screen.findByText('Featured Live', undefined, { timeout: 5_000 });
+    fireEvent.click(within(screen.getByTestId('navigation-rail')).getByRole('button', { name: 'Favorites' }));
+    await screen.findByRole('heading', { name: 'Favorite Channels' });
+    await waitFor(() => expect(screen.queryByTestId('app-splash')).not.toBeInTheDocument());
+
+    // Channel 4 is not pinned, so it is absent from the Favorites grid. Direct
+    // entry must still resolve it against the full playlist and start playback.
+    pressKey('4');
+    expect(screen.getByTestId('channel-number-overlay')).toHaveTextContent('4_');
+    pressKey('Enter');
+
+    await waitFor(() => expect(screen.getByTestId('player-view')).toBeInTheDocument());
   });
 
   it('hides the attribution credit while the fullscreen player is open', async () => {

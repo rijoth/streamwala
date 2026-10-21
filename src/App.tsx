@@ -10,6 +10,7 @@ import {
   isRailFocusKey,
 } from './shared/focus/index.ts';
 import { useTvInput, useIdleCursor } from './shared/input/index.ts';
+import { ChannelNumberEntryHost } from './shared/channel-number/index.ts';
 import { NavigationRail, NavDestination, ContentFooter, AppSplash } from './shared/ui/index.ts';
 import { useSettingsStore, applyTheme } from './app/settingsStore.ts';
 import { useAppBoot } from './app/useAppBoot.ts';
@@ -429,6 +430,20 @@ export default function App() {
           }}
         />
       )}
+
+      {/*
+       * One direct-number-entry handler + overlay for the whole app. It is
+       * mounted here (outside the screen switch, inside the player's stacking
+       * context) so Home, Live TV, Guide, Favorites and playback share the
+       * exact same behaviour. The per-screen action and timing live in
+       * shared/channel-number/config.ts.
+       */}
+      <ChannelNumberEntryHost
+        channels={channels}
+        screen={playingChannel ? 'player' : activeNavId}
+        onTune={setPlayingChannel}
+        disabled={isBooting}
+      />
     </div>
     {leavingSplash}
     </EpgProvider>

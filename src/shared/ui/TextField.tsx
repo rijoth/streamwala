@@ -88,6 +88,7 @@ export const TextField: React.FC<TextFieldProps> = ({
       <div className={`w-full ${className}`}>
         <div
           ref={ref as React.Ref<HTMLDivElement>}
+          data-text-entry="true"
           className={`
             tv-focus-target tv-flat relative flex items-center gap-2 px-3 py-2 rounded-xl
             bg-[var(--md-sys-color-surface-container)] border
@@ -170,6 +171,7 @@ export const TextField: React.FC<TextFieldProps> = ({
 
       <div
         ref={ref as React.Ref<HTMLDivElement>}
+        data-text-entry="true"
         className={`
           tv-focus-target tv-flat relative flex items-center gap-3 px-4 py-3 rounded-2xl
           bg-[var(--md-sys-color-surface-container)] border transition-colors duration-150

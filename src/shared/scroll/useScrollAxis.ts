@@ -268,12 +268,21 @@ export function useScrollAxis({ orientation, config }: UseScrollAxisOptions): Sc
   }, [orientation, scrollBy, scrollToOffset]);
 
   // Layout-only measurement: sizes are used for clamping, never per-focus.
+  //
+  // The scroll containers are often rendered conditionally (the EPG guide shows
+  // a loading state first), so the refs can still be null when this effect
+  // first runs. Retry on animation frames until both nodes exist, otherwise a
+  // scroller that mounts later would keep a 0x0 size model forever and every
+  // programmatic scroll would clamp to zero.
   useEffect(() => {
-    const viewport = viewportRef.current;
-    const content = contentRef.current;
-    if (!viewport) return;
+    let observer: ResizeObserver | null = null;
+    let frame: number | null = null;
+    let cancelled = false;
 
     const measure = () => {
+      const viewport = viewportRef.current;
+      const content = contentRef.current;
+      if (!viewport) return;
       const contentSize =
         orientation === 'vertical' ? content?.scrollHeight ?? 0 : content?.scrollWidth ?? 0;
       const viewportSize =
@@ -281,14 +290,31 @@ export function useScrollAxis({ orientation, config }: UseScrollAxisOptions): Sc
       setSizes(contentSize, viewportSize);
     };
 
-    measure();
-    apply();
+    const attach = () => {
+      if (cancelled) return;
+      const viewport = viewportRef.current;
+      const content = contentRef.current;
+      if (!viewport || !content) {
+        frame = requestAnimationFrame(attach);
+        return;
+      }
 
-    if (typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver(measure);
-    observer.observe(viewport);
-    if (content) observer.observe(content);
-    return () => observer.disconnect();
+      measure();
+      apply();
+
+      if (typeof ResizeObserver === 'undefined') return;
+      observer = new ResizeObserver(measure);
+      observer.observe(viewport);
+      observer.observe(content);
+    };
+
+    attach();
+
+    return () => {
+      cancelled = true;
+      if (frame !== null) cancelAnimationFrame(frame);
+      observer?.disconnect();
+    };
   }, [orientation, setSizes, apply]);
 
   useEffect(() => stopTween, [stopTween]);

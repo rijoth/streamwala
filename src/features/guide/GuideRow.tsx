@@ -10,6 +10,7 @@ export interface GuideRowProps {
   index: number;
   layouts: GuideProgramLayout[];
   columnWidth: number;
+  highlighted?: boolean;
   onSelectProgram: (program: Program) => void;
   onSelectChannel: () => void;
 }
@@ -84,12 +85,16 @@ export const GuideRow: React.FC<GuideRowProps> = ({
   index,
   layouts,
   columnWidth,
+  highlighted = false,
   onSelectProgram,
   onSelectChannel,
 }) => (
   <div
     data-scroll-index={index}
-    className="relative border-b border-[var(--md-sys-color-outline-variant)]"
+    data-channel-number-highlight={highlighted ? 'true' : 'false'}
+    className={`relative border-b border-[var(--md-sys-color-outline-variant)] ${
+      highlighted ? 'sw-channel-number-highlight' : ''
+    }`}
     style={{ minHeight: GUIDE_ROW_MIN_HEIGHT }}
   >
     {layouts.length === 0 ? (

@@ -1,8 +1,10 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Channel, Program } from '../../domain/types.ts';
 import { useEpgRuntime } from '../../app/epgRuntime.tsx';
 import { useSettingsStore } from '../../app/settingsStore.ts';
-import { FocusZone } from '../../shared/focus/index.ts';
+import { FocusZone, focusKeyExists, setFocus } from '../../shared/focus/index.ts';
+import { CHANNEL_NUMBER_ENTRY_CONFIG } from '../../shared/channel-number/config.ts';
+import { registerGuideChannelFocus } from '../../shared/channel-number/guideFocus.ts';
 import { Button, Chip, LinearProgress } from '../../shared/ui/index.ts';
 import { Icon } from '../../shared/icons/index.ts';
 import {
@@ -64,6 +66,8 @@ export const EpgGuideView: React.FC<EpgGuideViewProps> = ({
   const [selected, setSelected] = useState<{ program: Program; channel: Channel } | null>(null);
   const [reminders, setReminders] = useState<Set<string>>(new Set());
   const [favoriteOverrides, setFavoriteOverrides] = useState<Record<string, boolean>>({});
+  const [highlightedChannelId, setHighlightedChannelId] = useState<string | null>(null);
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const now = Date.now();
   const dayStart = guideDayStart(now, dayOffset);
@@ -99,6 +103,63 @@ export const EpgGuideView: React.FC<EpgGuideViewProps> = ({
     }
     return map;
   }, [channels, programs, dayStart, dayEnd]);
+
+  /**
+   * Number-entry commit for the guide: scroll the target row into view, then
+   * move focus onto its first program cell (or its empty cell) and highlight
+   * the row briefly. This never starts playback; OK afterwards opens program
+   * details exactly as a normal D-pad press would.
+   */
+  const focusChannelRef = useRef<(channel: Channel) => boolean>(() => false);
+  focusChannelRef.current = (target) => {
+    const index = channels.findIndex((channel) => channel.id === target.id);
+    if (index < 0) return false;
+
+    const rowTop = index * vScroller.rowSize;
+    vScroller.axis.scrollToOffset(
+      clamp(
+        rowTop - vScroller.rowSize,
+        0,
+        maxOffset(vScroller.axis.getContentSize(), vScroller.axis.getViewportSize())
+      ),
+      { animate: false }
+    );
+
+    const first = layoutsByChannel.get(target.id)?.[0];
+    const focusKey = first ? `EPG_PROG_${first.program.id}` : `EPG_EMPTY_${target.id}`;
+
+    setHighlightedChannelId(target.id);
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    highlightTimerRef.current = setTimeout(() => {
+      setHighlightedChannelId(null);
+      highlightTimerRef.current = null;
+    }, CHANNEL_NUMBER_ENTRY_CONFIG.guideHighlightMs);
+
+    // The row window is virtualized: wait for the scroll offset to render the
+    // row and register its focusable before asking the engine to focus it.
+    let attempts = 0;
+    const tryFocus = () => {
+      if (focusKeyExists(focusKey)) {
+        setFocus(focusKey);
+        return;
+      }
+      if (attempts++ < 90) requestAnimationFrame(tryFocus);
+    };
+    requestAnimationFrame(tryFocus);
+    return true;
+  };
+
+  useEffect(
+    () => registerGuideChannelFocus((channel) => focusChannelRef.current(channel)),
+    []
+  );
+
+  useEffect(
+    () => () => {
+      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    },
+    []
+  );
 
   const jumpToNow = useCallback(() => {
     setDayOffset(0);
@@ -271,6 +332,7 @@ export const EpgGuideView: React.FC<EpgGuideViewProps> = ({
                           index={index}
                           columnWidth={COLUMN_WIDTH}
                           layouts={layoutsByChannel.get(channel.id) ?? []}
+                          highlighted={highlightedChannelId === channel.id}
                           onSelectProgram={(program) => setSelected({ program, channel })}
                           onSelectChannel={() => onSelectChannel(channel)}
                         />
