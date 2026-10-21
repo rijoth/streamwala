@@ -83,6 +83,10 @@
   --brand-title-size: calc(28px * var(--ui-scale));
   --brand-tagline-size: calc(16px * var(--ui-scale));
 
+  /* Attribution credit in the content footer. Secondary and low-emphasis, but
+     still 18-20px on a 1920px canvas so it stays legible at 3 metres. */
+  --credit-font-size: calc(18px * var(--ui-scale));
+
   /* Remote color-key dots (physical remote button colours, theme-independent) */
   --streamwala-color-key-red: #ef4444;
   --streamwala-color-key-green: #22c55e;

@@ -9,7 +9,9 @@ interface RemoteHint {
 /**
  * Colored-dot legend for the remote color keys, relocated out of the rail to a
  * slim footer inside the content safe area. Purely informational: the shortcuts
- * themselves are handled by the app-level input layer.
+ * themselves are handled by the app-level input layer. Vertical spacing is owned
+ * by the footer row (`ContentFooter`) so the legend and the copyright credit
+ * share one baseline.
  */
 const REMOTE_HINTS: RemoteHint[] = [
   { id: 'red', label: 'Favs', color: 'var(--streamwala-color-key-red)' },
@@ -21,7 +23,7 @@ const REMOTE_HINTS: RemoteHint[] = [
 export const RemoteHintBar: React.FC = () => (
   <div
     data-testid="remote-hint-bar"
-    className="shrink-0 flex items-center gap-6 pt-3 text-xs text-[var(--md-sys-color-on-surface-variant)]"
+    className="shrink-0 flex items-center gap-6 text-xs text-[var(--md-sys-color-on-surface-variant)]"
   >
     {REMOTE_HINTS.map((hint) => (
       <span key={hint.id} className="inline-flex items-center gap-2">

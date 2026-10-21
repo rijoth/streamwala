@@ -91,6 +91,55 @@ describe('App navigation shell', () => {
     );
   });
 
+  it('renders the attribution credit in the content footer, on the legend row', async () => {
+    await installDemoPlaylist();
+    renderWithProviders(<App />);
+
+    await screen.findByText('Featured Live', undefined, { timeout: 5_000 });
+
+    const credit = screen.getByTestId('app-copyright-footer');
+    expect(credit).toHaveTextContent('© 2026 Rijo Thomas · github.com/rijoth/streamwala');
+
+    // Inert by design: no link, no tab stop, no pointer interaction. A remote
+    // cannot open URLs, so the credit must never compete with the D-pad.
+    expect(credit.closest('a')).toBeNull();
+    expect(credit).not.toHaveAttribute('tabindex');
+    expect(credit).not.toHaveRole('button');
+    expect(credit.className).toContain('pointer-events-none');
+    expect(credit.className).toContain('select-none');
+
+    // Shares the legend row, so it costs no extra vertical space.
+    const footer = screen.getByTestId('content-footer');
+    expect(footer).toContainElement(screen.getByTestId('remote-hint-bar'));
+    expect(footer).toContainElement(credit);
+  });
+
+  it('keeps the attribution credit when the remote hint bar is disabled', async () => {
+    await installDemoPlaylist();
+    useSettingsStore.getState().updateSettings({ showRemoteHints: false });
+    renderWithProviders(<App />);
+
+    await screen.findByText('Featured Live', undefined, { timeout: 5_000 });
+
+    expect(screen.queryByTestId('remote-hint-bar')).not.toBeInTheDocument();
+    const footer = screen.getByTestId('content-footer');
+    expect(footer).toContainElement(screen.getByTestId('app-copyright-footer'));
+    expect(footer.className).toContain('justify-end');
+  });
+
+  it('hides the attribution credit while the fullscreen player is open', async () => {
+    await installDemoPlaylist();
+    renderWithProviders(<App />);
+
+    await screen.findByText('Featured Live', undefined, { timeout: 5_000 });
+    expect(screen.getByTestId('app-copyright-footer')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Watch Now/i }));
+
+    await waitFor(() => expect(screen.getByTestId('player-view')).toBeInTheDocument());
+    expect(screen.queryByTestId('app-copyright-footer')).not.toBeInTheDocument();
+  });
+
   it('covers the shell with the boot splash and drops remote shortcuts meanwhile', async () => {
     await installDemoPlaylist();
     renderWithProviders(<App />);

@@ -4,7 +4,7 @@ import { FocusZone, useFocusable } from '../../shared/focus/index.ts';
 import { Button, Card, TextField } from '../../shared/ui/index.ts';
 import { Icon } from '../../shared/icons/index.ts';
 import { Playlist, PROXY_PRESETS } from '../../domain/types.ts';
-import { PRODUCT_NAME, PRODUCT_VERSION } from '../../shared/product.ts';
+import { PRODUCT_COPYRIGHT, PRODUCT_NAME, PRODUCT_REPOSITORY, PRODUCT_VERSION } from '../../shared/product.ts';
 import { db, savePlaylist } from '../../services/storage/db.ts';
 import { EpgFirstRunBanner } from './epg/EpgFirstRunBanner.tsx';
 
@@ -462,6 +462,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <p>
                 Users are solely responsible for providing their own legally obtained M3U playlists and Xtream credentials. The included demo playlist consists exclusively of public domain, open-source Blender Foundation movies, and authorized public test feeds.
               </p>
+            </div>
+
+            {/* Same credit as the shell footer, with the full repository URL and
+                no link behaviour: a remote cannot open links. */}
+            <div
+              data-testid="settings-copyright-credit"
+              className="pt-3 border-t border-[var(--md-sys-color-outline-variant)] text-xs text-[var(--md-sys-color-outline)] select-text"
+            >
+              <p>{PRODUCT_COPYRIGHT}</p>
+              <p>{PRODUCT_REPOSITORY}</p>
             </div>
           </Card>
         )}

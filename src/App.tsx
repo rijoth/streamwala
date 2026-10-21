@@ -10,7 +10,7 @@ import {
   isRailFocusKey,
 } from './shared/focus/index.ts';
 import { useTvInput, useIdleCursor } from './shared/input/index.ts';
-import { NavigationRail, NavDestination, RemoteHintBar, AppSplash } from './shared/ui/index.ts';
+import { NavigationRail, NavDestination, ContentFooter, AppSplash } from './shared/ui/index.ts';
 import { useSettingsStore, applyTheme } from './app/settingsStore.ts';
 import { useAppBoot } from './app/useAppBoot.ts';
 import { EpgProvider } from './app/epgRuntime.tsx';
@@ -397,8 +397,9 @@ export default function App() {
           )}
           </div>
 
-          {/* Remote color-key legend lives in the content footer, not the rail. */}
-          {settings.showRemoteHints && <RemoteHintBar />}
+          {/* Color-key legend + attribution share the content footer row. The
+              credit stays visible when the legend is disabled in Settings. */}
+          <ContentFooter showRemoteHints={settings.showRemoteHints} />
         </main>
       )}
 

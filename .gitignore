@@ -246,6 +246,9 @@ CLAUDE.local.md
 scratch/
 tmp/
 .tmp/
+
+# Agent working plans / notes for the change in flight (not repo documentation)
+.plans/
 *.bak
 *.orig
 *.rej

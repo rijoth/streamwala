@@ -97,4 +97,18 @@ describe('SettingsView D-pad reachability (BUG-020)', () => {
       expect(useSettingsStore.getState().settings.channelSwitchSound).toBe(false)
     );
   });
+
+  it('shows the author credit and full repository URL in the About tab', async () => {
+    renderSettings();
+
+    setFocus('SETTINGS_TAB_about');
+    await waitFor(() => expect(getCurrentFocusKey()).toBe('SETTINGS_TAB_about'));
+    pressKey('Enter');
+
+    const credit = await screen.findByTestId('settings-copyright-credit');
+    expect(credit).toHaveTextContent('© 2026 Rijo Thomas');
+    expect(credit).toHaveTextContent('https://github.com/rijoth/streamwala');
+    // Plain text only: a remote cannot follow a link.
+    expect(credit.querySelector('a')).toBeNull();
+  });
 });
