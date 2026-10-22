@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { FocusZone } from '../../shared/focus/index.ts';
+import React, { useRef, useState } from 'react';
+import { FocusZone, useFocusable } from '../../shared/focus/index.ts';
 import { Button, Card, TextField, LinearProgress, CircularProgress } from '../../shared/ui/index.ts';
 import { Icon } from '../../shared/icons/index.ts';
 import { PRODUCT_NAME } from '../../shared/product.ts';
@@ -35,6 +35,8 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   const [xtreamUser, setXtreamUser] = useState('');
   const [xtreamPass, setXtreamPass] = useState('');
   const [localFileContent, setLocalFileContent] = useState<string | null>(null);
+  const [localFileName, setLocalFileName] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Status & Progress
   const [isValidating, setIsValidating] = useState(false);
@@ -91,9 +93,13 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   // Handle local file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    // Reset first: re-picking the *same* file must fire `change` again, so a
+    // failed read can be retried without reloading the page.
+    e.target.value = '';
     if (!file) return;
 
     setPlaylistName(file.name.replace(/\.[^/.]+$/, ''));
+    setLocalFileName(file.name);
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target?.result as string;
@@ -101,6 +107,11 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
     };
     reader.readAsText(file);
   };
+
+  // Android TV / remote: the native file chooser can only be opened from a real
+  // user gesture, so the picker is a focusable control and this handler runs
+  // from the remote's Select/OK press (BUG: file picker was mouse-only).
+  const openFilePicker = () => fileInputRef.current?.click();
 
   // Validate and start import
   const handleStartImport = async () => {
@@ -358,6 +369,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
               onChange={setPlaylistName}
               placeholder="e.g. My Home IPTV"
               icon="badge"
+              focusKey="ONBOARDING_PLAYLIST_NAME"
               autoFocus={sourceType !== 'file'}
             />
 
@@ -417,27 +429,25 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
             )}
 
             {sourceType === 'file' && (
-              <div className="flex flex-col gap-2 p-4 rounded-2xl bg-[var(--md-sys-color-surface-container-high)] border border-dashed border-[var(--md-sys-color-outline)] text-center">
+              <>
                 <input
+                  ref={fileInputRef}
                   type="file"
                   accept=".m3u,.m3u8,text/plain"
                   onChange={handleFileChange}
                   className="hidden"
-                  id="m3u-file-input"
+                  data-testid="onboarding-file-input"
                 />
-                <label
-                  htmlFor="m3u-file-input"
-                  className="cursor-pointer py-4 flex flex-col items-center gap-2 text-sm text-[var(--md-sys-color-primary)] font-semibold"
-                >
-                  <Icon name="folder_open" size={36} />
-                  <span>{localFileContent ? 'File loaded! Click to replace' : 'Click to choose M3U / M3U8 file'}</span>
-                </label>
-                {localFileContent && (
-                  <p className="text-xs text-[var(--sw-status-active)]">
-                    File ready ({Math.round(localFileContent.length / 1024)} KB)
-                  </p>
-                )}
-              </div>
+                <LocalFilePicker
+                  focusKey="ONBOARDING_FILE_PICKER"
+                  autoFocus
+                  fileName={localFileName}
+                  fileSizeKb={
+                    localFileContent ? Math.max(1, Math.round(localFileContent.length / 1024)) : null
+                  }
+                  onActivate={openFilePicker}
+                />
+              </>
             )}
 
             {errorMessage && (
@@ -451,6 +461,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
               <Button
                 variant="text"
                 icon="arrow_back"
+                focusKey="ONBOARDING_DETAILS_BACK"
                 onClick={() => setStep('source')}
               >
                 Back
@@ -459,6 +470,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
               <Button
                 variant="filled"
                 icon={isValidating ? undefined : 'download'}
+                focusKey="ONBOARDING_START_IMPORT"
                 disabled={isValidating}
                 onClick={handleStartImport}
                 className="!px-8"
@@ -515,6 +527,60 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
         }}
       />
     </div>
+  );
+};
+
+interface LocalFilePickerProps {
+  focusKey: string;
+  autoFocus?: boolean;
+  fileName: string | null;
+  fileSizeKb: number | null;
+  onActivate: () => void;
+}
+
+/**
+ * D-pad activatable drop zone for a local M3U file. A `<label for>` on a hidden
+ * `<input type="file">` is invisible to spatial navigation (no focusable node,
+ * no Select handler), which left the file source reachable by mouse only. This
+ * is a real `<button>` so Enter/OK runs `input.click()` inside a user gesture
+ * and the TV WebView is allowed to open the system file chooser.
+ */
+const LocalFilePicker: React.FC<LocalFilePickerProps> = ({
+  focusKey,
+  autoFocus = false,
+  fileName,
+  fileSizeKb,
+  onActivate,
+}) => {
+  const { ref, focused } = useFocusable({ focusKey, autoFocus, onEnterPress: onActivate });
+  const loaded = fileName !== null;
+
+  return (
+    <button
+      ref={ref as React.Ref<HTMLButtonElement>}
+      type="button"
+      onClick={onActivate}
+      data-testid="onboarding-file-picker"
+      className={`
+        tv-focus-target tv-flat w-full flex flex-col items-center gap-1.5 px-4 py-5 rounded-2xl
+        border border-dashed text-center cursor-pointer outline-none
+        bg-[var(--md-sys-color-surface-container-high)]
+        ${loaded ? 'border-[var(--md-sys-color-primary)]' : 'border-[var(--md-sys-color-outline)]'}
+        ${focused ? 'tv-focused' : ''}
+      `}
+    >
+      <Icon
+        name={loaded ? 'task_alt' : 'folder_open'}
+        size={36}
+        className={loaded ? 'text-[var(--sw-status-active)]' : 'text-[var(--md-sys-color-primary)]'}
+      />
+      <span className="text-sm font-semibold text-[var(--md-sys-color-primary)]">
+        {loaded ? 'Press OK to replace the selected file' : 'Press OK to choose M3U / M3U8 file'}
+      </span>
+      <span className="text-xs text-[var(--md-sys-color-on-surface-variant)] break-all">
+        {loaded ? `${fileName} · ${fileSizeKb} KB ready` : 'Opens your device file picker'}
+      </span>
+    </button>
   );
 };
 

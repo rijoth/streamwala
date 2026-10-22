@@ -155,14 +155,14 @@ export const TextField: React.FC<TextFieldProps> = ({
 
   return (
     <div className={`flex flex-col gap-1.5 w-full ${className}`}>
-      <div className="flex items-center justify-between">
-        <label className="text-sm font-medium text-[var(--md-sys-color-on-surface-variant)]">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <label className="text-sm font-medium text-[var(--md-sys-color-on-surface-variant)] min-w-0">
           {label}
         </label>
         <button
           type="button"
           onClick={() => setShowVirtualKeyboard(true)}
-          className="text-xs text-[var(--md-sys-color-primary)] hover:underline flex items-center gap-1 cursor-pointer"
+          className="text-xs text-[var(--md-sys-color-primary)] hover:underline flex items-center gap-1 shrink-0 whitespace-nowrap cursor-pointer"
         >
           <Icon name="keyboard" size={14} />
           <span>Remote Keyboard</span>
