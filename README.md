@@ -6,8 +6,6 @@ I built it because most IPTV players are desktop apps that ignore a remote, or t
 
 ## Screenshots
 
-Taken from the running app at 1920×1080 with the demo playlist loaded. No mockups, no device frames, and no private provider data.
-
 ![Streamwala home screen on Android TV](docs/screenshots/tv/03-home.png)
 
 | Live TV | Playback |
@@ -18,8 +16,6 @@ Taken from the running app at 1920×1080 with the demo playlist loaded. No mocku
 | **Program guide.** Two-axis timeline with Now/Next and a live Now line. OK opens details. | **Favorites.** Pinned channels from the active playlist, searchable and always first. |
 | ![Settings](docs/screenshots/tv/08-settings.png) | ![Source picker during onboarding](docs/screenshots/tv/02-playlist-source.png) |
 | **Settings.** Theme, TV safe area, UI scale, playback engine, playlists and proxy. | **Sources.** Demo, M3U/M3U8 URL (with XMLTV), a local file, or Xtream Codes. |
-
-Regenerate them with `node scripts/web-screenshots.mjs tv` (also `tablet`, `tablet-portrait`, `phone` and `phone-landscape`). The script drives the demo playlist, so a capture cannot leak a real provider URL, username or channel.
 
 ## What works
 
