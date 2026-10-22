@@ -1,5 +1,13 @@
 import React from 'react';
 import * as LucideIcons from 'lucide-react';
+import { ICON_FONT_GLYPHS, STATIC_GLYPHS } from './glyphPaths.generated.ts';
+
+/**
+ * Icon names the shipped webfont actually contains (ADR 036). Anything else
+ * must fall back to a real glyph: an unknown name renders as the literal words
+ * it is spelled with, because Material Symbols is a ligature font.
+ */
+const KNOWN_GLYPHS = new Set(ICON_FONT_GLYPHS);
 
 export interface IconProps {
   name: string;
@@ -23,6 +31,13 @@ function cssLength(size: number | string): string {
 /**
  * Material Symbols Rounded icon wrapper with Lucide fallback.
  * Strictly adheres to 10-foot legibility standards.
+ *
+ * Icons named in `STATIC_GLYPHS` render as inline SVG instead of a ligature in
+ * the icon font (ADR 036). Material Symbols is a *ligature* font: the DOM holds
+ * the literal words `live_tv`, so any font that has not loaded yet paints
+ * those words — which is what the brand-scale marks used to do for seconds on
+ * a cold TV start. The outlines there are generated from the same font by
+ * `scripts/build-fonts.py`, so the shapes are identical.
  */
 export const Icon: React.FC<IconProps> = ({
   name,
@@ -31,8 +46,26 @@ export const Icon: React.FC<IconProps> = ({
   className = '',
   weight = 400,
 }) => {
+  // Brand-scale marks never wait on a webfont: the outline ships in the bundle.
+  const staticGlyph = STATIC_GLYPHS[name];
+  if (staticGlyph) {
+    const edge = cssLength(size);
+    return (
+      <svg
+        aria-hidden="true"
+        focusable="false"
+        viewBox={staticGlyph.viewBox}
+        fill="currentColor"
+        className={`glyph-mark select-none inline-block shrink-0 ${filled ? 'filled' : ''} ${className}`}
+        style={{ width: edge, height: edge }}
+      >
+        <path d={filled ? staticGlyph.filledPath : staticGlyph.path} />
+      </svg>
+    );
+  }
+
   // If the icon is standard Material Symbol (lowercase with underscores or hyphens)
-  const isMaterialSymbol = /^[a-z0-9_]+$/.test(name);
+  const isMaterialSymbol = KNOWN_GLYPHS.has(name);
 
   if (isMaterialSymbol) {
     const style: React.CSSProperties = {
@@ -64,7 +97,10 @@ export const Icon: React.FC<IconProps> = ({
       className={`material-symbols-rounded select-none inline-flex items-center justify-center ${className}`}
       style={{ fontSize: cssLength(size) }}
     >
-      help_outline
+      {/* The ligature name must exist in the subsetted font, or the fallback
+          itself renders as words. The `_outline` variants are gone upstream;
+          FILL 0 is the outline (see scripts/build-fonts.py). */}
+      help
     </span>
   );
 };

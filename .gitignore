@@ -61,6 +61,11 @@ server.js
 __pycache__/
 *.py[cod]
 
+# Upstream webfont downloads used by `npm run fonts` (5.4 MB icon variable
+# font + Google's latin subsets). Only the generated subsets in public/fonts
+# are committed; this cache exists so the generator reruns offline.
+.font-cache/
+
 # PWA / service-worker build output (generated at build time).
 # Hand-written PWA sources belong in `public/` and stay tracked (section 9).
 sw.js
@@ -276,6 +281,12 @@ tmp/
 
 # Hand-written service-worker source, if one is ever added under public/
 !public/sw.js
+
+# Self-hosted webfont subsets + the generated icon manifest (ADR 036). These are
+# build output in the strict sense, but they must be committed: the app has to
+# be offline-capable, and regenerating them needs Python + fonttools + network.
+!public/fonts/**
+!src/shared/icons/icon-font.json
 
 # Repository documentation and agent guidelines
 !AGENTS.md

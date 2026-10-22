@@ -81,9 +81,19 @@
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="theme-color" content="#0b0c13" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Roboto+Flex:opsz,wght@8..144,300..700&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+    <!--
+      Self-hosted fonts (ADR 036). Never a CDN here: Material Symbols is a
+      ligature font, so the DOM holds the *words* `arrow_forward`, `live_tv`.
+      With `display=swap` those words are painted until the font arrives — for
+      as long as the network takes on a TV — and if the CDN is unreachable they
+      never become icons. `scripts/build-fonts.py` subsets the icon font to the
+      icon names this repo uses (110 KB from 5.4 MB) and preloading it keeps
+      the blocked glyph box to a single frame. Neither file is rendered text,
+      so the preloads cannot delay first paint of the boot splash.
+    -->
+    <link rel="preload" href="/fonts/material-symbols-rounded.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/plus-jakarta-sans-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/roboto-flex-latin.woff2" as="font" type="font/woff2" crossorigin />
   </head>
   <body class="bg-[#0b0c13] text-[#e2e2ec] antialiased select-none overflow-hidden m-0 p-0">
     <!--

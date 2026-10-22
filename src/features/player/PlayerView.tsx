@@ -324,7 +324,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
         <div className="absolute inset-0 flex items-center justify-center bg-black/85 p-8 z-40">
           <div className="max-w-xl w-full bg-[var(--md-sys-color-surface-container-high)] p-8 rounded-3xl border border-[var(--md-sys-color-error)] shadow-2xl flex flex-col gap-5 text-center text-[var(--md-sys-color-on-surface)]">
             <div className="w-16 h-16 rounded-2xl status-live-surface text-[var(--md-sys-color-error)] mx-auto flex items-center justify-center shadow-inner">
-              <Icon name="error_outline" size={36} />
+              <Icon name="error" size={36} />
             </div>
 
             <div>
@@ -381,7 +381,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
 
               <Button
                 variant="outlined"
-                icon="help_outline"
+                icon="help"
                 onClick={() => setShowCorsModal(true)}
               >
                 Diagnostics & Presets

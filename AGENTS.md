@@ -20,6 +20,7 @@ If you see one, even if it is not caused by what you are working on right now, s
 - `npm run build`: Compiles production assets into `dist/`.
 - `npm run lint`: Runs TypeScript typechecks (`tsc --noEmit`).
 - `npm run check`: typecheck + eslint + coverage + Playwright e2e.
+- `npm run fonts`: regenerates the self-hosted webfont subsets + the generated brand glyph (Python 3 + `fonttools` + `brotli`; see ADR 037). Run it after adding or renaming any `Icon name`/`icon` value.
 - Android (see §5): `android:sync`, `android:debug`, `android:release`, `android:assets`.
 
 ## 4. Architecture & Strict Layer Rules

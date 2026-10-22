@@ -17,6 +17,7 @@
     "test:coverage": "vitest run --coverage",
     "e2e": "playwright test",
     "check": "npm run lint && npm run lint:eslint && npm run test:coverage && npm run e2e",
+    "fonts": "python3 scripts/build-fonts.py",
     "android:assets": "python3 scripts/android-assets.py",
     "android:sync": "npm run build && cap sync android",
     "android:debug": "npm run android:sync && bash scripts/android-gradle.sh assembleMobileDebug assembleTvDebug",

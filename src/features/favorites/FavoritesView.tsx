@@ -120,7 +120,7 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
             {favorites.length === 0 && (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-[var(--md-sys-color-outline)]">
                 <div className="w-16 h-16 rounded-2xl bg-[var(--md-sys-color-surface-container)] flex items-center justify-center mb-3">
-                  <Icon name="star_outline" size={32} />
+                  <Icon name="star" size={32} />
                 </div>
                 <h3 className="font-semibold text-lg text-[var(--md-sys-color-on-surface)]">
                   No favorites pinned yet

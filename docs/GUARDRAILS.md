@@ -224,6 +224,34 @@ Each guardrail below prevents a bug class found in the audit (see
   fails the design-px unit test; setting the 1280x720 canvas back to fixed px
   makes `e2e/ui-scale.spec.ts` report 4 columns and a 0.075 rail fraction.
 
+## I. Icon font is a ligature font: subset locally, never swap
+
+- **Prevents:** BUG-031 — icons painted as their ligature *names*
+  (`arrow_forward`, `live_tv`) for the first seconds of a cold start on TV,
+  because Material Symbols was loaded from Google Fonts with `display=swap` and
+  the upstream variable file is 5.4 MB. Offline (the normal APK case) the words
+  never became icons at all.
+- **Enforcement:** `scripts/build-fonts.py` (`npm run fonts`) subsets the icon
+  font to the icon names the repo uses (110 KB), writes `src/fonts.css` with
+  `font-display: block`, and bakes the brand-scale outlines into
+  `src/shared/icons/glyphPaths.generated.ts`. `index.html` preloads the three
+  local faces and never references a font CDN. `src/shared/icons/iconFont.test.ts`
+  fails when a component requests an icon the subset does not contain, when the
+  committed woff2 stops matching its recorded checksum, or when a Google Fonts
+  link returns. `Icon.test.tsx` proves the SVG path and the unknown-name
+  fallback; `e2e/fonts.spec.ts` proves glyph-shaped boxes in a real browser and
+  no requests to `fonts.gstatic.com`.
+- **Extend:** a new icon is added by writing the Material name in the component
+  and running `npm run fonts` (Python 3 + `fonttools` + `brotli`). Never edit
+  `src/fonts.css`, `glyphPaths.generated.ts` or `public/fonts/*` by hand. An
+  unknown name now renders the generated `help` glyph instead of its own
+  spelled-out word.
+- **Negative proof:** `--layout-features=rlig` is load-bearing twice over — the
+  ligature table lives under `rlig`, and dropping the flag (or letting the
+  subsetter run set-based ligature closure) turns the 5.4 MB font into a 3.9 MB
+  "subset". Removing `--no-layout-closure` while passing the letter glyphs makes
+  `iconFont.test.ts`'s size ceiling fail.
+
 ## Wiring into CI
 
 `npm run check` runs, in order: `tsc --noEmit` → `eslint src` → Vitest with
