@@ -7,6 +7,7 @@ import { CHANNEL_NUMBER_ENTRY_CONFIG } from '../../shared/channel-number/config.
 import { registerGuideChannelFocus } from '../../shared/channel-number/guideFocus.ts';
 import { Button, Chip, LinearProgress } from '../../shared/ui/index.ts';
 import { Icon } from '../../shared/icons/index.ts';
+import { useDesignPx } from '../../shared/utils/designPx.ts';
 import {
   VirtualGrid,
   clamp,
@@ -30,6 +31,7 @@ import {
   timeToX,
 } from './guideLayout.ts';
 
+// Design pixels on the 1920x1080 canvas; every use is multiplied by `--u`.
 const CHANNEL_COL_WIDTH = 208;
 const ROW_HEIGHT = 72;
 const COLUMN_WIDTH = 96;
@@ -70,6 +72,11 @@ export const EpgGuideView: React.FC<EpgGuideViewProps> = ({
   const [highlightedChannelId, setHighlightedChannelId] = useState<string | null>(null);
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const designPx = useDesignPx();
+  const channelColWidth = CHANNEL_COL_WIDTH * designPx;
+  const rowHeight = ROW_HEIGHT * designPx;
+  const columnWidth = COLUMN_WIDTH * designPx;
+
   const now = Date.now();
   const dayStart = guideDayStart(now, dayOffset);
   const dayEnd = guideDayEnd(dayStart);
@@ -78,14 +85,14 @@ export const EpgGuideView: React.FC<EpgGuideViewProps> = ({
   const vScroller = useGridScroller({
     screenKey: 'guide',
     count: channels.length,
-    rowSize: ROW_HEIGHT,
+    rowSize: rowHeight,
     minItemWidth: 1000,
     gap: 0,
     columns: 1,
     measureItemHeight: true,
   });
   const hAxis = useScrollAxis({ orientation: 'horizontal' });
-  const timelineWidth = GUIDE_COLUMNS * COLUMN_WIDTH;
+  const timelineWidth = GUIDE_COLUMNS * columnWidth;
   const verticalWindow = useVirtualWindow(vScroller.axis, vScroller.rowSize, channels.length, 2);
 
   useFocusedItemIndex(hAxis.viewportRef, (info) => {
@@ -100,10 +107,10 @@ export const EpgGuideView: React.FC<EpgGuideViewProps> = ({
   const layoutsByChannel = useMemo(() => {
     const map = new Map<string, ReturnType<typeof layoutPrograms>>();
     for (const channel of channels) {
-      map.set(channel.id, layoutPrograms(programs.get(channel.id) ?? [], dayStart, dayEnd, COLUMN_WIDTH));
+      map.set(channel.id, layoutPrograms(programs.get(channel.id) ?? [], dayStart, dayEnd, columnWidth));
     }
     return map;
-  }, [channels, programs, dayStart, dayEnd]);
+  }, [channels, programs, dayStart, dayEnd, columnWidth]);
 
   /**
    * Number-entry commit for the guide: scroll the target row into view, then
@@ -166,18 +173,21 @@ export const EpgGuideView: React.FC<EpgGuideViewProps> = ({
     setDayOffset(0);
     requestAnimationFrame(() => {
       const start = guideDayStart(Date.now(), 0);
-      const x = timeToX(Date.now(), start, guideDayEnd(start), COLUMN_WIDTH);
+      const x = timeToX(Date.now(), start, guideDayEnd(start), columnWidth);
       hAxis.scrollToOffset(
         clamp(x - hAxis.getViewportSize() / 3, 0, maxOffset(hAxis.getContentSize(), hAxis.getViewportSize())),
         { animate: true }
       );
     });
-  }, [hAxis]);
+  }, [hAxis, columnWidth]);
 
-  const nowX = dayOffset === 0 ? timeToX(now, dayStart, dayEnd, COLUMN_WIDTH) : null;
+  const nowX = dayOffset === 0 ? timeToX(now, dayStart, dayEnd, columnWidth) : null;
   const statusValues = Object.values(runtime?.statuses ?? {});
   const anyRunning = statusValues.some((s) => s.phase === 'running');
   const anyFailed = statusValues.some((s) => s.phase === 'failed');
+  // The demo playlist seeds programmes straight into Dexie without an XMLTV
+  // source, so an attached source cannot be the only proof that a guide exists.
+  const hasGuideData = (runtime?.sourceCount ?? 0) > 0 || programs.size > 0;
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden text-[var(--md-sys-color-on-surface)] p-6">
@@ -220,7 +230,7 @@ export const EpgGuideView: React.FC<EpgGuideViewProps> = ({
         ))}
       </div>
 
-      {runtime && runtime.sourceCount === 0 ? (
+      {runtime && !hasGuideData && !loading ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center gap-3">
           <Icon name="calendar_month" size={40} className="text-[var(--md-sys-color-outline)]" />
           <h3 className="font-semibold text-lg">No program guide attached</h3>
@@ -243,7 +253,7 @@ export const EpgGuideView: React.FC<EpgGuideViewProps> = ({
           <div className="flex shrink-0 border-b border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container-high)]">
             <div
               className="shrink-0 p-3 font-bold text-xs uppercase tracking-wider text-[var(--md-sys-color-outline)] border-r border-[var(--md-sys-color-outline-variant)]"
-              style={{ width: CHANNEL_COL_WIDTH }}
+              style={{ width: channelColWidth }}
             >
               Channel
             </div>
@@ -252,8 +262,9 @@ export const EpgGuideView: React.FC<EpgGuideViewProps> = ({
                 {Array.from({ length: GUIDE_COLUMNS }, (_, i) => (
                   <div
                     key={i}
+                    data-testid="guide-time-column"
                     className="shrink-0 p-2 text-xs font-mono font-semibold border-r border-[var(--md-sys-color-outline-variant)]"
-                    style={{ width: COLUMN_WIDTH }}
+                    style={{ width: columnWidth }}
                   >
                     {formatTime(dayStart + i * GUIDE_COLUMN_MS)}
                   </div>
@@ -265,7 +276,7 @@ export const EpgGuideView: React.FC<EpgGuideViewProps> = ({
           <div className="flex-1 min-h-0 flex">
             <div
               className="shrink-0 relative overflow-hidden border-r border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container-high)]"
-              style={{ width: CHANNEL_COL_WIDTH }}
+              style={{ width: channelColWidth }}
             >
               <EpgMirror axis={vScroller.axis} orientation="y">
                 <div className="relative" style={{ height: channels.length * vScroller.rowSize }}>
@@ -332,7 +343,7 @@ export const EpgGuideView: React.FC<EpgGuideViewProps> = ({
                         <GuideRow
                           channel={channel}
                           index={index}
-                          columnWidth={COLUMN_WIDTH}
+                          columnWidth={columnWidth}
                           layouts={layoutsByChannel.get(channel.id) ?? []}
                           highlighted={highlightedChannelId === channel.id}
                           onSelectProgram={(program) => setSelected({ program, channel })}

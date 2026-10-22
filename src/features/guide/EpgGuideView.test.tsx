@@ -55,6 +55,64 @@ describe('EpgGuideView', () => {
     expect(onOpenSettings).toHaveBeenCalledTimes(1);
   });
 
+  it('renders seeded programmes even when no XMLTV source is attached (demo playlist)', async () => {
+    const repository = createFakeEpgRepository();
+    const now = Date.now();
+    await repository.applyProgrammeImport([
+      {
+        channelId: 'ch1',
+        programs: [
+          {
+            id: 'p1',
+            channelId: 'ch1',
+            start: now - 3_600_000,
+            stop: now + 3_600_000,
+            title: 'Demo Seed Show',
+          },
+        ],
+      },
+    ]);
+
+    renderGuide(repository);
+
+    expect(await screen.findByText('Demo Seed Show')).toBeInTheDocument();
+    expect(screen.queryByText('No program guide attached')).not.toBeInTheDocument();
+  });
+
+  it('scales guide geometry with the design-pixel unit', async () => {
+    const repository = createFakeEpgRepository();
+    const now = Date.now();
+    await repository.putSource({
+      id: 'src1',
+      playlistId: 'pl1',
+      name: 'Guide',
+      kind: 'remote',
+      enabled: true,
+      priority: 0,
+      lastUpdatedAt: now,
+      channelCount: 1,
+      programmeCount: 1,
+    });
+    await repository.applyProgrammeImport([
+      {
+        channelId: 'ch1',
+        programs: [
+          { id: 'p1', channelId: 'ch1', start: now - 3_600_000, stop: now + 3_600_000, title: 'Scaled Show' },
+        ],
+      },
+    ]);
+
+    document.documentElement.style.fontSize = '8px'; // --u = 0.5
+    try {
+      renderGuide(repository);
+
+      const columns = await screen.findAllByTestId('guide-time-column');
+      expect(columns[0].style.width).toBe('48px'); // 96 design px * 0.5
+    } finally {
+      document.documentElement.style.fontSize = '';
+    }
+  });
+
   it('focuses a channel row from a number-entry request without starting playback', async () => {
     const repository = createFakeEpgRepository();
     const now = Date.now();
