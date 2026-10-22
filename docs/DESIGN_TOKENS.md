@@ -71,52 +71,88 @@ Rules:
 
 ## Shape (`--md-shape-*`)
 
-`--md-shape-xs|sm|md|lg|xl|full` (4/8/12/16/28/9999 px).
+`--md-shape-xs|sm|md|lg|xl|full` (4/8/12/16/28 design px, so `calc(N * var(--u))`; `full` stays a physical 9999px pill radius).
 
-## Layout & 10-foot geometry
+## Design unit and 10-foot geometry
+
+The app is authored on a **1920×1080 design canvas**. One design pixel is the
+CSS custom property `--u` (ADR 035):
+
+```css
+--ui-scale: 1; /* viewer preference, 0.6-1.5 */
+--u: clamp(0.4px, calc(min(0.05208334vw, 0.0925926vh) * var(--ui-scale)), 2.5px);
+html { font-size: calc(16 * var(--u)); }
+```
+
+`0.05208334vw` is exactly 1px at 1920 and `0.0925926vh` is 1px at 1080, so
+`min()` keeps the 16:9 ratio exact on either axis. The root font-size is
+16 design px, so Tailwind's rem scale and every `calc(N * var(--u))` token move
+together. No JS measurement is involved. A coarse-pointer touch viewport below
+1024 CSS px raises the floor to `0.6px` because the 600dp tablet portrait canvas
+would otherwise collapse body text below legibility.
+
+| Canvas (CSS) | `--u` (100%) | Root font | Rail |
+|---|---|---|---|
+| 960×540 | 0.500 | 8 CSS px | 48 CSS px |
+| 1280×720 | 0.667 | 10.67 CSS px | 64 CSS px |
+| 1920×1080 | 1.000 | 16 CSS px | 96 CSS px |
+| 2560×1440 | 1.333 | 21.33 CSS px | 128 CSS px |
+| 3840×2160 | 2.000 | 32 CSS px | 192 CSS px |
+
+A 4K TV that reports 1280×720 CSS px (Android density 320–480) is therefore an
+exact 2/3 render of the design, not fixed chrome that looks 1.5× too large.
 
 | Token | Value | Used by |
 |---|---|---|
-| `--ui-scale` | `1` (set by `applyTheme` from `settings.uiScale`) | global scale factor |
-| `--tv-safe-x` | `48px` (or `16px` when safe padding is off) | `.tv-safe-container` horizontal overscan padding |
-| `--tv-safe-y` | `32px` (or `16px` when safe padding is off) | `.tv-safe-container` vertical overscan padding |
-| `--rail-width` | `calc(96px * var(--ui-scale))` | permanent navigation rail width (in normal layout flow, never `position: fixed`) |
-| `--rail-item-size` | `calc(64px * var(--ui-scale))` | rail destination hit target (≥ 64 px square at 100% scale) |
-| `--rail-icon-size` | `calc(32px * var(--ui-scale))` | rail Material Symbols icon size (≈ 32 px at 1080p) |
+| `--u` | viewport-derived design pixel | the single geometry unit |
+| `--ui-scale` | `1` (set by `applyTheme` from `settings.uiScale`) | multiplier on the automatic screen fit |
+| `--tv-safe-x` | `calc(48 * var(--u))` (or `16`) | `.tv-safe-container` horizontal overscan padding |
+| `--tv-safe-y` | `calc(32 * var(--u))` (or `16`) | `.tv-safe-container` vertical overscan padding |
+| `--rail-width` | `calc(96 * var(--u))` | permanent navigation rail width (in normal layout flow, never `position: fixed`) |
+| `--rail-item-size` | `calc(64 * var(--u))` | rail destination hit target (64 design px square) |
+| `--rail-icon-size` | `calc(32 * var(--u))` | rail Material Symbols icon size |
+| `--focus-ring-width` | `calc(3 * var(--u))` | focus outline |
+| `--focus-ring-offset` | `calc(4 * var(--u))` | ring offset |
+| `--focus-ring-pad` | `calc(18 * var(--u))` | scroll padding; `useFocusRingClipStyle()` resolves it to px for `overflow-clip-margin` |
 
 Changing `settings.uiScale` rewrites `--ui-scale`; everything derived from it
-(including the rail) reflows without component branches. The Settings ▸ TV UI
-Scale Factor row offers 60%, 70%, 80%, 90%, 100%, 110% and 125%; the accepted
-range is 0.6–1.5 (`SettingsSchema.uiScale`).
+(including the rail) reflows without component branches. Settings ▸ TV UI Scale
+offers 60%, 75%, 90%, 100%, 110%, 125% and 150%, and shows the resolved
+`Screen fit N% → effective M%` value. The accepted range is 0.6–1.5
+(`SettingsSchema.uiScale`). The setting is deliberately **relative to screen
+fit**: 60% on a 1280×720 canvas means 60% of 2/3, i.e. 40% of the design.
+
+JS index math reads the same unit through `src/shared/utils/designPx.ts`
+(`readDesignPx` / `useDesignPx`). The hook re-reads on resize, rotation and the
+`streamwala:design-px` event that `applyTheme` dispatches.
 
 ## Logo geometry (`--logo-size-*`)
 
-Channel logo plates are the one geometry family authored as `px × --ui-scale`
-rather than in rem (ADR 034). Bitmap logo art has a fixed optical weight, so it
-has to follow the viewer's TV-distance setting; the card around it stays
-rem-sized because its text must track the root font size (ADR 017 / BUG-022).
+Channel logo plates are authored in design px (ADR 034 / ADR 035). Bitmap logo
+art has a fixed optical weight, so it follows the same canvas as the chrome;
+the card around it is rem-sized because its text must track the root font size,
+which now also follows the same unit.
 
 | Token | Value | Surface |
 |---|---|---|
-| `--logo-size-xs` | `calc(24px * var(--ui-scale))` | EPG channel column |
-| `--logo-size-sm` | `calc(32px * var(--ui-scale))` | player mini overlay, program details sheet |
-| `--logo-size-md` | `calc(40px * var(--ui-scale))` | Live TV list row |
-| `--logo-size-lg` | `calc(48px * var(--ui-scale))` | player now/next banner |
-| `--logo-size-xl` | `calc(56px * var(--ui-scale))` | Home channel tile, Home search grid |
-| `--logo-size-2xl` | `calc(64px * var(--ui-scale))` | Live TV grid card, Favorites card |
-| `--logo-size-hero` | `calc(256px * var(--ui-scale))` | Home hero watermark (decorative) |
+| `--logo-size-xs` | `calc(24 * var(--u))` | EPG channel column |
+| `--logo-size-sm` | `calc(32 * var(--u))` | player mini overlay, program details sheet |
+| `--logo-size-md` | `calc(40 * var(--u))` | Live TV list row |
+| `--logo-size-lg` | `calc(48 * var(--u))` | player now/next banner |
+| `--logo-size-xl` | `calc(56 * var(--u))` | Home channel tile, Home search grid |
+| `--logo-size-2xl` | `calc(64 * var(--u))` | Live TV grid card, Favorites card |
+| `--logo-size-hero` | `calc(256 * var(--u))` | Home hero watermark (decorative) |
 
 Two rules keep the family honest:
 
-1. **The plate is `px × --ui-scale`, never rem.** A rem plate would shrink
-   when a viewer lowers the font size for a reason that has nothing to do with
-   the distance they sit at.
+1. **The plate is a design-px token, never a literal.** It stays an integer
+   multiple of `--u`, so it cannot drift from the rail, the safe area or the
+   root font.
 2. **The image is 80% of the plate**, never `w-full` plus rem padding — this
-   reproduces the original 64/80 and 36/44 art ratios without letting a rem
-   `p-2` eat a px-authored plate at a large root font size.
+   reproduces the original 64/80 and 36/44 art ratios.
 
 Plates carry `data-logo-plate="<token>"` so `e2e/logo-size.spec.ts` can measure
-them per surface at `--ui-scale` 1 and 1.5;
+them per surface at the design unit and at 150%;
 `src/shared/ui/designTokens.test.ts` pins the token shape, the ordering
 (`xs < sm < md < lg < xl < 2xl < hero`) and the call sites.
 
@@ -165,9 +201,9 @@ The boot splash renders the mark at `--brand-mark-size` (`35vmin`, i.e. 0.35 of
 the shorter viewport side) — the bottom of the native splash's 0.35–0.54 range,
 matching its densest TV bucket, so the mark does not visibly resize when the
 native splash hands over to the web one. The wordmark uses `--brand-title-size`;
-the two-line attribution hanging below it uses `--brand-credit-size` (24px) and
-`--brand-credit-url-size` (22px at 65% opacity) separated by `--brand-credit-gap`
-(7px), all multiplied by `--ui-scale`. The URL line is additionally capped at
+the two-line attribution hanging below it uses `--brand-credit-size` (24 design px)
+and `--brand-credit-url-size` (22 design px at 65% opacity) separated by
+`--brand-credit-gap` (7 design px), all scaled by `--u`. The URL line is additionally capped at
 `6.5vw`, which never engages on a 1280-wide TV but keeps a narrow touch viewport
 from clipping it. The block is absolutely positioned so it never moves the
 centred mark+wordmark group.

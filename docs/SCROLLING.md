@@ -57,11 +57,13 @@ Public API is exported from `src/shared/scroll/index.ts` only.
   - `data-scroll-x={px}` on a variable-width cell (timeline).
 - Positioned content (`position: relative`) is required for the measurement
   helpers (`offsetTop`/`offsetLeft` are relative to it).
-- Add `--focus-ring-pad` (10 px) padding to scroll content so the 3 px focus
-  ring and `scale(1.04+)` are not clipped by `overflow: hidden`. Where padding
-  would change the index-math pitch (grids/lists), the clipping viewport uses
-  `overflow: clip` with `overflow-clip-margin: var(--focus-ring-pad)` instead:
-  the ring may paint into the margin, the row math is untouched.
+- Add `--focus-ring-pad` (`calc(18 * var(--u))`, ADR 035) padding to scroll
+  content so the 3-design-px focus ring and `scale(1.05)` are not clipped by
+  `overflow: hidden`. Where padding would change the index-math pitch
+  (grids/lists), use `useFocusRingClipStyle()`: it sets `overflow: clip` plus a
+  resolved px `overflow-clip-margin`, because Chromium rejects `var()`/`calc()`
+  for that property. The ring may paint into the margin, the row math is
+  untouched.
 
 ## Adding a scrollable screen
 

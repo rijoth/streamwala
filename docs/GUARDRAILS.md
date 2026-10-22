@@ -197,6 +197,33 @@ Each guardrail below prevents a bug class found in the audit (see
   `autoFocus` on result cards makes `SearchResultsGrid.test.tsx` and the e2e
   focus assertion fail.
 
+## H. One design-pixel unit derived from the viewport
+
+- **Prevents:** the reported 4K-TV bug where the app rendered fixed 96px chrome
+  on a 1280x720 CSS canvas: a 7.5% rail and only ~3.5 grid cards instead of the
+  5% rail and six design columns (ADR 035, BUG-029).
+- **Enforcement:** `src/index.css` declares `--u` from the viewport and pins
+  `html { font-size: calc(16 * var(--u)) }`. Every geometry token is
+  `calc(N * var(--u))` (rails, safe area, focus ring, logos, brand type, shape).
+  `src/shared/ui/designTokens.test.ts` fails on a bare px geometry token, on a
+  `px * --ui-scale` regression, on an arbitrary `[Npx]` Tailwind class or inline
+  `fontSize: 'Npx'`, and on a root font that stops following `--u`.
+  `e2e/ui-scale.spec.ts` proves `rootFont`, rail, rail hit target, hero logo,
+  grid column count and focus-ring pad in design px across 960x540,
+  1280x720 (@1x and @3x), 1920x1080, 2560x1440 and 3840x2160.
+- **Extend:** a new geometry value goes into `:root` as `calc(N * var(--u))`.
+  JS code that compares a px literal against a measured container width must
+  multiply by `useDesignPx()` and include it in the relevant effect/memo deps;
+  never hardcode `180` as a column threshold. A new canvas-dependent surface
+  adds a row to the e2e matrix instead of a bespoke viewport test.
+- **Known limitation:** rem in media queries resolves against the initial 16px
+  (MQ4), so `md:` breakpoints remain physical CSS px and do not scale with
+  `--u`. Layout switches are therefore not proportional; geometry inside a
+  breakpoint is.
+- **Negative proof:** reintroducing `--rail-width: calc(96px * var(--ui-scale))`
+  fails the design-px unit test; setting the 1280x720 canvas back to fixed px
+  makes `e2e/ui-scale.spec.ts` report 4 columns and a 0.075 rail fraction.
+
 ## Wiring into CI
 
 `npm run check` runs, in order: `tsc --noEmit` → `eslint src` → Vitest with

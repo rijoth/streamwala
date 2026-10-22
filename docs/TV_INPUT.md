@@ -59,10 +59,11 @@ Emulator check: `input keyevent 82` does not toggle diagnostics, `input keyevent
   EPG programme cells) carry `.tv-flat`: no scale, but the same ring and
   elevation. Their overhang grows with the element, so no fixed
   `--focus-ring-pad` can contain it.
-- `--focus-ring-pad` (12px) is the leading/trailing padding every scroll
-  viewport reserves so the scaled box plus ring is never clipped by an
-  `overflow: clip` ancestor. It is sized for `w <= 319px` at 1.05 and stays
-  under the 16px grid gap, which is why the scale is 1.05 and not 1.08.
+- `--focus-ring-pad` (`calc(18 * var(--u))`) is the leading/trailing padding
+  every scroll viewport reserves so the scaled box plus ring is never clipped
+  by an `overflow: clip` ancestor. It covers every target up to 426 design px at
+  1.05 and stays close to the 16-design-px grid gap, which is why the scale is
+  1.05 and not 1.08.
 - `prefers-reduced-motion: reduce` drops the transition only: the scale and the
   ring are a size/contrast cue, not motion, and stay visible.
 - Visible from 3 meters distance on 1080p and 4K displays.
