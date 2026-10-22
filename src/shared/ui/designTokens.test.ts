@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -175,11 +175,17 @@ describe.each(THEMES)('$name theme state tokens', ({ selector }) => {
 });
 
 describe('focus geometry tokens', () => {
-  it('is a 3-4px ring offset 4px with a 1.05 scale and a 150ms transform transition', () => {
+  const designPxBase = (value: string) => {
+    const match = value.match(/^calc\((\d+(?:\.\d+)?) \* var\(--u\)\)$/);
+    return match ? Number(match[1]) : Number.NaN;
+  };
+
+  it('is a 3-4 design-px ring offset 4 design px with a 1.05 scale and a 150ms transform transition', () => {
     const tokens = resolvedTokens(':root');
-    expect(parseFloat(tokens.get('--focus-ring-width')!)).toBeGreaterThanOrEqual(3);
-    expect(parseFloat(tokens.get('--focus-ring-width')!)).toBeLessThanOrEqual(4);
-    expect(parseFloat(tokens.get('--focus-ring-offset')!)).toBe(4);
+    const ringWidth = designPxBase(tokens.get('--focus-ring-width')!);
+    expect(ringWidth).toBeGreaterThanOrEqual(3);
+    expect(ringWidth).toBeLessThanOrEqual(4);
+    expect(designPxBase(tokens.get('--focus-ring-offset')!)).toBe(4);
     expect(parseFloat(tokens.get('--focus-scale')!)).toBeCloseTo(1.05, 3);
     expect(parseFloat(tokens.get('--focus-motion-duration')!)).toBe(150);
     expect(tokens.get('--focus-motion-easing')).toMatch(/ease-out|cubic-bezier/);
@@ -205,7 +211,7 @@ describe('focus geometry tokens', () => {
  */
 describe('logo scale', () => {
   const SCALE_ORDER = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', 'hero'] as const;
-  const PX_X_SCALE = /^calc\(\d+px \* var\(--ui-scale\)\)$/;
+  const DESIGN_PX = /^calc\((\d+(?:\.\d+)?) \* var\(--u\)\)$/;
 
   it('declares every --logo-size-* once, in :root', () => {
     for (const name of SCALE_ORDER) {
@@ -220,15 +226,15 @@ describe('logo scale', () => {
     }
   });
 
-  it('is authored as px * --ui-scale so it follows the TV UI scale', () => {
+  it('is authored in design px so it follows the screen-fit unit', () => {
     for (const name of SCALE_ORDER) {
-      expect(rootTokens.get(`--logo-size-${name}`), `--logo-size-${name}`).toMatch(PX_X_SCALE);
+      expect(rootTokens.get(`--logo-size-${name}`), `--logo-size-${name}`).toMatch(DESIGN_PX);
     }
   });
 
   it('grows monotonically from the EPG column to the hero watermark', () => {
     const bases = SCALE_ORDER.map((name) =>
-      Number(rootTokens.get(`--logo-size-${name}`)!.match(/calc\((\d+)px/)![1])
+      Number(rootTokens.get(`--logo-size-${name}`)!.match(/calc\((\d+) \* var\(--u\)\)/)![1])
     );
     for (let i = 1; i < bases.length; i += 1) {
       expect(bases[i], `${SCALE_ORDER[i]} must exceed ${SCALE_ORDER[i - 1]}`).toBeGreaterThan(
@@ -275,5 +281,111 @@ describe('logo plate call sites', () => {
         size
       );
     }
+  });
+});
+
+/**
+ * ADR 035: one design-pixel unit. `--u` is the viewport-derived factor (one
+ * design px on the 1920x1080 canvas), the root font-size is `16 * --u`, and
+ * every geometry token is an integer multiple of it. The tests below fail on a
+ * reintroduced `px * --ui-scale` token, on a bare px geometry token, on an
+ * unscaled arbitrary Tailwind class (which would keep the reported bug alive
+ * on text) and on a root font that stops following the unit.
+ */
+describe('design-px unit', () => {
+  const DESIGN_PX = /^calc\((\d+(?:\.\d+)?) \* var\(--u\)\)$/;
+  const GEOMETRY_TOKENS = [
+    '--tv-safe-x',
+    '--tv-safe-y',
+    '--focus-ring-width',
+    '--focus-ring-offset',
+    '--focus-ring-pad',
+    '--channel-number-entry-font-size',
+    '--rail-width',
+    '--rail-item-size',
+    '--rail-icon-size',
+    '--category-rail-width',
+    '--category-item-height',
+    '--logo-size-xs',
+    '--logo-size-sm',
+    '--logo-size-md',
+    '--logo-size-lg',
+    '--logo-size-xl',
+    '--logo-size-2xl',
+    '--logo-size-hero',
+    '--brand-title-size',
+    '--brand-credit-size',
+    '--brand-credit-url-size',
+    '--brand-credit-gap',
+    '--credit-font-size',
+    '--md-shape-xs',
+    '--md-shape-sm',
+    '--md-shape-md',
+    '--md-shape-lg',
+    '--md-shape-xl',
+  ];
+  /**
+   * Deliberately not in design px: the splash mark is a fraction of the shorter
+   * viewport side (vmin, matched to the native splash), the focus scales and
+   * motion are unitless, and `full` is a physical pill radius.
+   */
+  const UNITLESS_OR_VMIN = [
+    '--brand-mark-size',
+    '--brand-splash-gap',
+    '--focus-scale',
+    '--focus-scale-key',
+    '--focus-motion-duration',
+  ];
+
+  it('derives --u from the viewport with a safe floor and cap', () => {
+    expect(rootTokens.get('--u')).toBe(
+      'clamp(0.4px, calc(min(0.05208334vw, 0.0925926vh) * var(--ui-scale)), 2.5px)'
+    );
+  });
+
+  it('pins the root font-size to 16 design px', () => {
+    const rule = css.match(/\nhtml\s*\{([^}]*)\}/)?.[1] ?? '';
+    expect(rule).toMatch(/font-size:\s*calc\(16 \* var\(--u\)\)/);
+  });
+
+  it('authors every geometry token as an integer multiple of --u', () => {
+    for (const name of GEOMETRY_TOKENS) {
+      expect(rootTokens.has(name), `${name} missing`).toBe(true);
+      expect(rootTokens.get(name), `${name} must be calc(N * var(--u))`).toMatch(DESIGN_PX);
+    }
+  });
+
+  it('keeps the vmin/unitless allowlist free of pixel geometry', () => {
+    for (const name of UNITLESS_OR_VMIN) {
+      const value = rootTokens.get(name);
+      expect(value, `${name} missing`).toBeDefined();
+      expect(value, `${name} must not be authored in px`).not.toMatch(/\dpx/);
+    }
+    // `full` is a physical pill radius, not a design dimension.
+    expect(rootTokens.get('--md-shape-full')).toBe('9999px');
+  });
+
+  it('has no arbitrary px utility left in a component', () => {
+    const offenders: string[] = [];
+    const walk = (dir: string): void => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          walk(full);
+        } else if (entry.isFile() && entry.name.endsWith('.tsx') && !entry.name.endsWith('.test.tsx')) {
+          const source = readFileSync(full, 'utf8');
+          for (const match of source.matchAll(/\[[0-9.]+px\]/g)) {
+            offenders.push(`${path.relative(process.cwd(), full)}: ${match[0]}`);
+          }
+          for (const match of source.matchAll(
+            /\b(?:width|height|minWidth|minHeight|maxWidth|maxHeight|fontSize):\s*['"][0-9.]+px['"]/g
+          )) {
+            offenders.push(`${path.relative(process.cwd(), full)}: ${match[0]}`);
+          }
+        }
+      }
+    };
+    walk(path.resolve(process.cwd(), 'src'));
+    expect(offenders).toEqual([]);
   });
 });

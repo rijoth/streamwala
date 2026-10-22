@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { AppSettings, DEFAULT_SETTINGS } from '../domain/types.ts';
+import { DESIGN_PX_EVENT } from '../shared/utils/designPx.ts';
 
 interface SettingsState {
   settings: AppSettings;
@@ -66,17 +67,22 @@ export function applyTheme(settings: AppSettings) {
     root.classList.remove('theme-light');
   }
 
-  // Safe area overscan padding
+  // Safe area overscan padding, in design px (ADR 035). The CSS unit resolves
+  // against the viewport, so this keeps its intended proportion at any canvas.
   if (settings.safePadding) {
-    root.style.setProperty('--tv-safe-x', '48px');
-    root.style.setProperty('--tv-safe-y', '32px');
+    root.style.setProperty('--tv-safe-x', 'calc(48 * var(--u))');
+    root.style.setProperty('--tv-safe-y', 'calc(32 * var(--u))');
   } else {
-    root.style.setProperty('--tv-safe-x', '16px');
-    root.style.setProperty('--tv-safe-y', '16px');
+    root.style.setProperty('--tv-safe-x', 'calc(16 * var(--u))');
+    root.style.setProperty('--tv-safe-y', 'calc(16 * var(--u))');
   }
 
-  // UI scale
+  // UI scale multiplies the automatic screen fit. JS consumers of --u (grid
+  // column math, carousel offsets) subscribe to this event to re-measure.
   root.style.setProperty('--ui-scale', String(settings.uiScale));
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(DESIGN_PX_EVENT));
+  }
 }
 
 // Applied at module load, not from a React effect: the first paint — including

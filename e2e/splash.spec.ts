@@ -64,8 +64,11 @@ test('the splash credit stays one line per line and inside a 1280x720 TV viewpor
   // so measure everything at once instead of polling per line.
   const measured = await credit.evaluate((block) => {
     const lines = Array.from(block.querySelectorAll('span'));
+    const designPx =
+      Number.parseFloat(getComputedStyle(document.documentElement).fontSize) / 16;
     return {
       viewportWidth: window.innerWidth,
+      designPx,
       lineCount: lines.length,
       anchors: block.querySelectorAll('a, button, [tabindex]').length,
       lines: lines.map((line) => {
@@ -87,9 +90,10 @@ test('the splash credit stays one line per line and inside a 1280x720 TV viewpor
 
   expect(measured.lineCount).toBe(2);
   expect(measured.anchors).toBe(0);
-  // Copyright ~24px, URL ~22px (default --ui-scale is 1).
-  expect(Math.abs(measured.lines[0].fontSize - 24)).toBeLessThanOrEqual(2);
-  expect(Math.abs(measured.lines[1].fontSize - 22)).toBeLessThanOrEqual(2);
+  // Copyright 24 design px, URL 22 design px. The 1280x720 canvas renders at
+  // 2/3 of the design, so the live size follows --u (ADR 035).
+  expect(Math.abs(measured.lines[0].fontSize - 24 * measured.designPx)).toBeLessThanOrEqual(2);
+  expect(Math.abs(measured.lines[1].fontSize - 22 * measured.designPx)).toBeLessThanOrEqual(2);
 
   for (const line of measured.lines) {
     expect(line.whiteSpace).toBe('nowrap');

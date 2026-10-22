@@ -4,11 +4,12 @@ import { FocusZone, focusKeyExists, getCurrentFocusKey, setFocus } from '../../s
 import { useChannelSearch } from '../../shared/hooks/useChannelSearch.ts';
 import { useTvInput } from '../../shared/input/index.ts';
 import { Icon } from '../../shared/icons/index.ts';
+import { useDesignPx } from '../../shared/utils/designPx.ts';
 import {
   ScrollPositionIndicator,
   VirtualGrid,
   clamp,
-  focusRingClipStyle,
+  useFocusRingClipStyle,
   rowSnapOffset,
   useFocusedItemIndex,
   useGridScroller,
@@ -63,9 +64,11 @@ export const ChannelBrowser: React.FC<ChannelBrowserProps> = ({
   const { query, setQuery, isSearching, results } = useChannelSearch(scopedChannels);
   const displayChannels = isSearching ? results : scopedChannels;
 
-  const listGap = 8;
-  const gap = isList ? listGap : CHANNEL_GAP;
-  const fallbackItemHeight = isList ? CHANNEL_LIST_ITEM_HEIGHT : CHANNEL_GRID_ITEM_HEIGHT;
+  const designPx = useDesignPx();
+  const clipStyle = useFocusRingClipStyle();
+  const listGap = 8 * designPx;
+  const gap = isList ? listGap : CHANNEL_GAP * designPx;
+  const fallbackItemHeight = (isList ? CHANNEL_LIST_ITEM_HEIGHT : CHANNEL_GRID_ITEM_HEIGHT) * designPx;
 
   const { axis, config, columns, itemHeight, rowSize } = useGridScroller({
     // Query is deliberately absent: the scroller is keyed by screen, so typing
@@ -73,7 +76,7 @@ export const ChannelBrowser: React.FC<ChannelBrowserProps> = ({
     screenKey: `live:${activeGroupId}:${viewMode}`,
     count: displayChannels.length,
     rowSize: fallbackItemHeight + gap,
-    minItemWidth: 180,
+    minItemWidth: 180 * designPx,
     gap,
     maxColumns: 6,
     columns: isList ? 1 : undefined,
@@ -277,7 +280,7 @@ export const ChannelBrowser: React.FC<ChannelBrowserProps> = ({
               data-testid="live-viewport"
               data-scroll-axis="vertical"
               className="relative h-full overflow-hidden"
-              style={focusRingClipStyle}
+              style={clipStyle}
             >
               <VirtualGrid<ChannelRef>
                 axis={axis}

@@ -4,9 +4,20 @@ import * as LucideIcons from 'lucide-react';
 export interface IconProps {
   name: string;
   filled?: boolean;
+  /** Design px (24 = 1.5rem) or any CSS length such as `var(--rail-icon-size)`. */
   size?: number | string;
   className?: string;
   weight?: number;
+}
+
+/**
+ * Numeric sizes are design px: 16 design px === 1rem, so every icon call site
+ * that passes a number follows the root font-size (and therefore `--u`) with
+ * no per-site churn. A string is passed through so token-driven sizes keep
+ * working.
+ */
+function cssLength(size: number | string): string {
+  return typeof size === 'number' ? `${size / 16}rem` : size;
 }
 
 /**
@@ -16,7 +27,7 @@ export interface IconProps {
 export const Icon: React.FC<IconProps> = ({
   name,
   filled = false,
-  size = 24,
+  size = '1.5rem',
   className = '',
   weight = 400,
 }) => {
@@ -25,7 +36,7 @@ export const Icon: React.FC<IconProps> = ({
 
   if (isMaterialSymbol) {
     const style: React.CSSProperties = {
-      fontSize: typeof size === 'number' ? `${size}px` : size,
+      fontSize: cssLength(size),
       fontVariationSettings: `'FILL' ${filled ? 1 : 0}, 'wght' ${weight}, 'GRAD' 0, 'opsz' 24`,
     };
 
@@ -44,14 +55,14 @@ export const Icon: React.FC<IconProps> = ({
   const lucideMap = LucideIcons as unknown as Record<string, React.ComponentType<{ size?: number | string; className?: string }>>;
   const LucideComponent = lucideMap[name];
   if (LucideComponent) {
-    return <LucideComponent size={size} className={className} />;
+    return <LucideComponent size={cssLength(size)} className={className} />;
   }
 
   return (
     <span
       aria-hidden="true"
       className={`material-symbols-rounded select-none inline-flex items-center justify-center ${className}`}
-      style={{ fontSize: typeof size === 'number' ? `${size}px` : size }}
+      style={{ fontSize: cssLength(size) }}
     >
       help_outline
     </span>

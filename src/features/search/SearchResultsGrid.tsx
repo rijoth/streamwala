@@ -2,10 +2,11 @@ import React from 'react';
 import { Channel } from '../../domain/types.ts';
 import { FocusZone, useFocusable } from '../../shared/focus/index.ts';
 import { Icon } from '../../shared/icons/index.ts';
+import { useDesignPx } from '../../shared/utils/designPx.ts';
 import {
   ScrollPositionIndicator,
   VirtualGrid,
-  focusRingClipStyle,
+  useFocusRingClipStyle,
   gridRows,
   useGridScroller,
 } from '../../shared/scroll/index.ts';
@@ -37,12 +38,15 @@ export const SearchResultsGrid: React.FC<SearchResultsGridProps> = ({
   onSelectChannel,
   onToggleFavorite,
 }) => {
+  const designPx = useDesignPx();
+  const clipStyle = useFocusRingClipStyle();
+  const gap = SEARCH_GAP * designPx;
   const { axis, config, columns, itemHeight, rowSize } = useGridScroller({
     screenKey: 'home:search',
     count: channels.length,
-    rowSize: SEARCH_ITEM_HEIGHT + SEARCH_GAP,
-    minItemWidth: 180,
-    gap: SEARCH_GAP,
+    rowSize: SEARCH_ITEM_HEIGHT * designPx + gap,
+    minItemWidth: 180 * designPx,
+    gap,
     maxColumns: 5,
     // Cards are rem-sized, so the row pitch must come from the rendered cell.
     measureItemHeight: true,
@@ -65,7 +69,7 @@ export const SearchResultsGrid: React.FC<SearchResultsGridProps> = ({
 
   return (
     <div className="flex-1 min-h-0 flex flex-col px-8 pb-6">
-      <div className="flex items-center gap-3 py-3 min-h-[20px] text-sm text-[var(--md-sys-color-outline)] px-1">
+      <div className="flex items-center gap-3 py-3 min-h-[1.25rem] text-sm text-[var(--md-sys-color-outline)] px-1">
         <span>
           Found {channels.length} matching {channels.length === 1 ? 'channel' : 'channels'}
         </span>
@@ -78,14 +82,14 @@ export const SearchResultsGrid: React.FC<SearchResultsGridProps> = ({
           data-testid="home-search-viewport"
           data-scroll-axis="vertical"
           className="relative h-full overflow-hidden"
-          style={focusRingClipStyle}
+          style={clipStyle}
         >
           <VirtualGrid<Channel>
             axis={axis}
             items={channels}
             columns={columns}
             itemHeight={itemHeight}
-            gap={SEARCH_GAP}
+            gap={gap}
             className="px-[var(--focus-ring-pad)]"
             getKey={(channel) => channel.id}
             renderItem={(channel, index) => (
@@ -186,7 +190,7 @@ export const SearchResultCard: React.FC<SearchResultCardProps> = ({
       <h4 className="font-bold text-sm truncate w-full text-[var(--md-sys-color-on-surface)]">
         {channel.name}
       </h4>
-      <p className="text-[11px] text-[var(--md-sys-color-outline)] truncate w-full mt-0.5">
+      <p className="text-[0.6875rem] text-[var(--md-sys-color-outline)] truncate w-full mt-0.5">
         {channel.groupName}
       </p>
     </div>

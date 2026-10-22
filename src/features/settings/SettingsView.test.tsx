@@ -99,10 +99,10 @@ describe('SettingsView D-pad reachability (BUG-020)', () => {
     );
   });
 
-  it('offers the reduced TV UI scale factors and applies them', async () => {
+  it('offers the full TV UI scale range and applies it', async () => {
     renderSettings();
 
-    for (const label of ['60%', '70%', '80%', '90%', '100%', '110%', '125%']) {
+    for (const label of ['60%', '75%', '90%', '100%', '110%', '125%', '150%']) {
       expect(screen.getByRole('button', { name: label })).toBeInTheDocument();
     }
 

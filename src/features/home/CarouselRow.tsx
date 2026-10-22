@@ -7,6 +7,7 @@ import {
   useCarouselScroller,
 } from '../../shared/scroll/index.ts';
 import { ChannelTile, HOME_CARD_GAP, HOME_CARD_SIZE } from './ChannelTile.tsx';
+import { useDesignPx } from '../../shared/utils/designPx.ts';
 
 export interface CarouselRowProps {
   /** Vertical row index, used by the page scroller to snap this row. */
@@ -19,6 +20,8 @@ export interface CarouselRowProps {
   items: Channel[];
   onSelect: (channel: Channel) => void;
   action?: { label: string; onClick: () => void };
+  /** First content row only: UP returns to the hero instead of the header. */
+  upFocusKey?: string;
 }
 
 /**
@@ -35,11 +38,13 @@ export const CarouselRow: React.FC<CarouselRowProps> = ({
   items,
   onSelect,
   action,
+  upFocusKey,
 }) => {
+  const designPx = useDesignPx();
   const { axis } = useCarouselScroller({
     memoryKey,
-    cardSize: HOME_CARD_SIZE,
-    gap: HOME_CARD_GAP,
+    cardSize: HOME_CARD_SIZE * designPx,
+    gap: HOME_CARD_GAP * designPx,
   });
 
   return (
@@ -73,6 +78,7 @@ export const CarouselRow: React.FC<CarouselRowProps> = ({
               index={index}
               focusKey={`${focusKey}_${channel.id}`}
               onSelect={() => onSelect(channel)}
+              upFocusKey={upFocusKey}
             />
           ))}
         </ScrollViewport>

@@ -44,7 +44,7 @@ const ProgramCell: React.FC<{
       `}
     >
       <div className="text-xs font-semibold truncate leading-tight">{layout.program.title}</div>
-      <div className="text-[10px] font-mono truncate text-[var(--md-sys-color-outline)]">
+      <div className="text-[0.625rem] font-mono truncate text-[var(--md-sys-color-outline)]">
         {format(layout.clippedStart)}
       </div>
     </div>

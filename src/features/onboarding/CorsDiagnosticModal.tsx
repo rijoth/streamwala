@@ -133,7 +133,7 @@ export const CorsDiagnosticModal: React.FC<CorsDiagnosticModalProps> = ({
                       <Icon name={isSelected ? 'radio_button_checked' : 'radio_button_unchecked'} size={16} />
                       {preset.name}
                     </div>
-                    <div className="text-[11px] opacity-75 mt-0.5 ml-5">{preset.description}</div>
+                    <div className="text-[0.6875rem] opacity-75 mt-0.5 ml-5">{preset.description}</div>
                   </div>
                   <Button
                     variant={isSelected ? 'filled' : 'tonal'}

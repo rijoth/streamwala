@@ -242,7 +242,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   return (
     <div className="relative w-screen h-screen bg-[var(--md-sys-color-surface-dim)] text-[var(--md-sys-color-on-surface)] flex flex-col justify-center items-center p-8 tv-safe-container overflow-y-auto">
       {/* Background ambient lighting */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-[var(--md-sys-color-primary)] opacity-10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[43.75rem] h-[21.875rem] bg-[var(--md-sys-color-primary)] opacity-10 rounded-full blur-[8.75rem] pointer-events-none" />
 
       {/* STEP 1: WELCOME SCREEN */}
       {step === 'welcome' && (

@@ -298,7 +298,10 @@ test('Yellow in the player closes it and focuses Live TV search', async () => {
 });
 
 test('narrowing a scrolled result set clamps the offset instead of leaving a blank viewport', async () => {
-  await page.setViewportSize({ width: 1280, height: 400 });
+  // Height is deliberately below two grid rows at the design unit (the old
+  // fixed-px layout needed 400; proportional geometry packs the 8 demo
+  // channels into two shorter rows).
+  await page.setViewportSize({ width: 1280, height: 240 });
   await page.waitForTimeout(200);
 
   await rail(page, 'Live TV').click();

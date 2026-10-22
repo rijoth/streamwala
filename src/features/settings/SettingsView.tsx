@@ -3,6 +3,7 @@ import { useSettingsStore } from '../../app/settingsStore.ts';
 import { FocusZone, useFocusable } from '../../shared/focus/index.ts';
 import { Button, Card, TextField } from '../../shared/ui/index.ts';
 import { Icon } from '../../shared/icons/index.ts';
+import { useDesignPx } from '../../shared/utils/designPx.ts';
 import { Playlist, PROXY_PRESETS } from '../../domain/types.ts';
 import { PRODUCT_COPYRIGHT, PRODUCT_NAME, PRODUCT_REPOSITORY, PRODUCT_VERSION } from '../../shared/product.ts';
 import { db, savePlaylist } from '../../services/storage/db.ts';
@@ -64,6 +65,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onRefreshData,
 }) => {
   const { settings, updateSettings, resetSettings } = useSettingsStore();
+  const designPx = useDesignPx();
+  const screenFit = designPx / Math.max(0.0001, settings.uiScale);
   const [activeTab, setActiveTab] = useState<'appearance' | 'playback' | 'playlists' | 'network' | 'about'>('appearance');
   const [proxyTemplate, setProxyTemplate] = useState(settings.proxyUrlTemplate);
   const [pinCode, setPinCode] = useState(settings.parentalPin);
@@ -160,7 +163,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <FocusZone focusKey="SETTINGS_SECTION_SAFE_AREA" ownsChildren className="flex flex-col gap-4">
               <h3 className="font-bold text-lg">TV Overscan Safe Area</h3>
               <p className="text-xs text-[var(--md-sys-color-outline)]">
-                Adds 48px horizontal & 32px vertical margins to prevent UI clipping on older Smart TV screens.
+                Adds 48 design-px horizontal & 32 design-px vertical margins to prevent UI clipping on older Smart TV screens.
               </p>
               <div className="flex items-center gap-3">
                 <Button
@@ -196,9 +199,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
             <Card variant="filled" isInteractive={false} className="p-6 flex flex-col gap-4">
               <FocusZone focusKey="SETTINGS_SECTION_SCALE" ownsChildren className="flex flex-col gap-4">
-              <h3 className="font-bold text-lg">TV UI Scale Factor</h3>
+              <h3 className="font-bold text-lg">TV UI Scale (relative to screen fit)</h3>
+              <p className="text-xs text-[var(--md-sys-color-outline)]">
+                Screen fit {Math.round(screenFit * 100)}% → effective {Math.round(designPx * 100)}% of the 1920×1080 design canvas.
+              </p>
               <div className="flex flex-wrap items-center gap-4">
-                {[0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.25].map((scale) => (
+                {[0.6, 0.75, 0.9, 1.0, 1.1, 1.25, 1.5].map((scale) => (
                   <Button
                     key={scale}
                     variant="tonal"
@@ -398,12 +404,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                         <div className="font-bold text-xs flex items-center justify-between">
                           <span>{preset.name}</span>
                           {isSelected && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full status-active-surface text-[var(--sw-on-status-active)] font-bold border">
+                            <span className="text-[0.625rem] px-2 py-0.5 rounded-full status-active-surface text-[var(--sw-on-status-active)] font-bold border">
                               Active
                             </span>
                           )}
                         </div>
-                        <div className="text-[11px] opacity-75 mt-1 leading-snug">
+                        <div className="text-[0.6875rem] opacity-75 mt-1 leading-snug">
                           {preset.description}
                         </div>
                       </FocusableTile>

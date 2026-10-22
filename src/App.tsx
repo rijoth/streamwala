@@ -158,14 +158,25 @@ export default function App() {
    * already active (e.g. Yellow inside the player), where the usual
    * destination-change effect does not re-run.
    */
-  const focusWhenReady = useCallback((key: string, attempt = 0) => {
-    if (focusKeyExists(key)) {
-      if (pendingFocusRef.current === key) pendingFocusRef.current = null;
-      setFocus(key);
+  const focusWhenReady = useCallback((key: string, attempt = 0, stable = 0) => {
+    // Hold the target for a few frames after it first takes focus. The screen
+    // that just mounted may still run its own scroll/focus restore (Live TV
+    // restores the remembered card), which would otherwise steal focus back
+    // from the search field on slower devices. Only a short hold keeps a real
+    // arrow press immediate once the hand-off has settled.
+    if (getCurrentFocusKey() === key) {
+      if (stable >= 8) {
+        if (pendingFocusRef.current === key) pendingFocusRef.current = null;
+        return;
+      }
+      requestAnimationFrame(() => focusWhenReady(key, attempt, stable + 1));
       return;
     }
-    if (attempt >= 120) return;
-    requestAnimationFrame(() => focusWhenReady(key, attempt + 1));
+    if (focusKeyExists(key)) setFocus(key);
+    // ~5s at 60fps: a slow TV WebView can take longer than the old 2s budget
+    // to mount the destination after the player unmounts.
+    if (attempt >= 300) return;
+    requestAnimationFrame(() => focusWhenReady(key, attempt + 1, 0));
   }, []);
 
   /**

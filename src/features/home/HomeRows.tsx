@@ -52,6 +52,14 @@ export const HomeRows: React.FC<HomeRowsProps> = ({
   // Build the vertical row list. `data-scroll-row` indices drive the snap.
   const rows: React.ReactNode[] = [];
   let rowIndex = 0;
+  // Only the first carousel sits directly under the hero; UP from it returns
+  // to the hero action instead of jumping to the header search field.
+  let firstContentUpFocus: string | undefined = featuredChannel ? 'HERO_WATCH' : undefined;
+  const takeFirstContentUpFocus = () => {
+    const key = firstContentUpFocus;
+    firstContentUpFocus = undefined;
+    return key;
+  };
 
   if (featuredChannel) {
     rows.push(
@@ -78,6 +86,7 @@ export const HomeRows: React.FC<HomeRowsProps> = ({
         iconClass="text-[var(--md-sys-color-primary)]"
         items={historyChannels}
         onSelect={onSelectChannel}
+        upFocusKey={takeFirstContentUpFocus()}
       />
     );
   }
@@ -95,6 +104,7 @@ export const HomeRows: React.FC<HomeRowsProps> = ({
         items={favorites}
         onSelect={onSelectChannel}
         action={{ label: 'View All', onClick: onGoToLive }}
+        upFocusKey={takeFirstContentUpFocus()}
       />
     );
   }
@@ -112,6 +122,7 @@ export const HomeRows: React.FC<HomeRowsProps> = ({
         items={liveNowChannels}
         onSelect={onSelectChannel}
         action={{ label: 'Open Guide', onClick: onGoToGuide }}
+        upFocusKey={takeFirstContentUpFocus()}
       />
     );
   }
@@ -128,6 +139,7 @@ export const HomeRows: React.FC<HomeRowsProps> = ({
       items={channels.slice(0, 15)}
       onSelect={onSelectChannel}
       action={{ label: `Browse (${channels.length})`, onClick: onGoToLive }}
+      upFocusKey={takeFirstContentUpFocus()}
     />
   );
 

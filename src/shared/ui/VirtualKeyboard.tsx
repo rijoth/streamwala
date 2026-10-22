@@ -70,7 +70,7 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
       </div>
 
       {/* Text preview display */}
-      <div className="bg-[var(--md-sys-color-surface-container-lowest)] p-4 rounded-xl font-mono text-lg text-[var(--md-sys-color-on-surface)] border border-[var(--md-sys-color-outline-variant)] overflow-x-auto whitespace-nowrap min-h-[58px] flex items-center">
+      <div className="bg-[var(--md-sys-color-surface-container-lowest)] p-4 rounded-xl font-mono text-lg text-[var(--md-sys-color-on-surface)] border border-[var(--md-sys-color-outline-variant)] overflow-x-auto whitespace-nowrap min-h-[3.625rem] flex items-center">
         {value ? (
           <span>{value}</span>
         ) : (

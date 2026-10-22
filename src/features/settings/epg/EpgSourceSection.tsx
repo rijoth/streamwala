@@ -122,7 +122,7 @@ export const EpgSourceSection: React.FC<EpgSourceSectionProps> = ({ manager, onS
                       className={source.enabled ? 'text-[var(--sw-status-active)]' : 'text-[var(--md-sys-color-outline)]'}
                     />
                     <span className="font-semibold text-sm truncate">{source.name}</span>
-                    <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-[var(--md-sys-color-surface-container-highest)] text-[var(--md-sys-color-outline)]">
+                    <span className="text-[0.625rem] uppercase tracking-wide px-1.5 py-0.5 rounded bg-[var(--md-sys-color-surface-container-highest)] text-[var(--md-sys-color-outline)]">
                       {source.kind}
                     </span>
                   </div>

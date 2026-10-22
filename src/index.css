@@ -81,58 +81,68 @@
      the shared token map; the theme variants redefine `--sw-focus-ring`. */
   --md-sys-color-focus-ring: var(--sw-focus-ring);
 
-  /* TV Safe Areas */
-  --tv-safe-x: 48px;
-  --tv-safe-y: 32px;
+  /*
+   * Design unit (ADR 035). The app is authored on a 1920x1080 canvas; one
+   * design pixel is `--u` CSS pixels. Deriving it from the live viewport means
+   * a 4K TV that reports a 1280x720 CSS canvas (Android density 320-480) gets
+   * an exact 2/3 render of the design instead of fixed px chrome that looks
+   * 1.5-2x too large. `min()` keeps the 16:9 ratio exact on either axis, and
+   * the clamp keeps a tiny WebView usable and a very wide one from inflating.
+   * `--ui-scale` is the viewer preference (0.6-1.5) and multiplies this
+   * automatic screen fit, so Settings still means "relative to screen fit".
+   * Pure CSS: no JS measurement, no division, no first-paint flash.
+   */
+  --ui-scale: 1;
+  --u: clamp(0.4px, calc(min(0.05208334vw, 0.0925926vh) * var(--ui-scale)), 2.5px);
 
-  /* Focus geometry. The focus cue is a 3px near-white outline offset 4px from
-     the border box (ADR 030), so the painted overhang per side of a scaled
-     target is w*(scale-1)/2 + (ringOffset + ringWidth)*scale, i.e.
-     0.025w + 7.35px at scale 1.05: a 212px card overhangs 12.65px, a 210px
-     tile 12.60px. --focus-ring-pad is the leading/trailing padding (and the
-     overflow-clip margin) that keeps the ring unclipped; 18px covers every
-     target up to w = 426px and stays close to the 16px grid gap, so a focused
+  /* TV Safe Areas, in design px. */
+  --tv-safe-x: calc(48 * var(--u));
+  --tv-safe-y: calc(32 * var(--u));
+
+  /* Focus geometry. The focus cue is a 3-design-px near-white outline offset
+     4 design px from the border box (ADR 030), so the painted overhang per
+     side of a scaled target is w*(scale-1)/2 + (ringOffset + ringWidth)*scale,
+     i.e. 0.025w + 7.35u at scale 1.05: a 212u card overhangs 12.65u, a 210u
+     tile 12.60u. --focus-ring-pad is the leading/trailing padding (and the
+     overflow-clip margin) that keeps the ring unclipped; 18u covers every
+     target up to w = 426u and stays close to the 16u grid gap, so a focused
      card never paints over its neighbour's content. */
-  --focus-ring-width: 3px;
-  --focus-ring-offset: 4px;
+  --focus-ring-width: calc(3 * var(--u));
+  --focus-ring-offset: calc(4 * var(--u));
   --focus-scale: 1.05;
   /* Transform-only interpolation: paint work (outline, background, shadow)
      flips instantly, so low-end TV boxes never animate a shadow or a colour. */
   --focus-motion-duration: 150ms;
   --focus-motion-easing: cubic-bezier(0.2, 0, 0, 1);
-  /* Small targets (virtual-keyboard keys, ~48px) need more scale to read at 3m;
-     the overhang stays ~4.2px, which fits the same pad. */
+  /* Small targets (virtual-keyboard keys, ~48u) need more scale to read at 3m;
+     the overhang stays ~4.2u, which fits the same pad. */
   --focus-scale-key: 1.08;
-  --focus-ring-pad: 18px;
+  --focus-ring-pad: calc(18 * var(--u));
 
-  /* UI Scaling Factor */
-  --ui-scale: 1;
+  /* Direct channel-number entry overlay: about 48 design px on the canvas. */
+  --channel-number-entry-font-size: calc(48 * var(--u));
 
-  /* Direct channel-number entry overlay: about 48px on a 1080p canvas. */
-  --channel-number-entry-font-size: calc(48px * var(--ui-scale));
-
-  /* Permanent navigation rail geometry (scales with the UI-scale setting) */
-  --rail-width: calc(96px * var(--ui-scale));
-  --rail-item-size: calc(64px * var(--ui-scale));
-  --rail-icon-size: calc(32px * var(--ui-scale));
+  /* Permanent navigation rail geometry */
+  --rail-width: calc(96 * var(--u));
+  --rail-item-size: calc(64 * var(--u));
+  --rail-icon-size: calc(32 * var(--u));
 
   /* Live TV category rail (secondary vertical rail inside the content column).
      Item width is rail-width - 2 * --focus-ring-pad, so the 1.05 focus scale
      and its ring stay inside the clip margin. */
-  --category-rail-width: calc(256px * var(--ui-scale));
-  --category-item-height: calc(56px * var(--ui-scale));
+  --category-rail-width: calc(256 * var(--u));
+  --category-item-height: calc(56 * var(--u));
 
-  /* Channel logo plates. Authored in px * --ui-scale like the rails, not in rem:
-     logo art has fixed optical weight and must follow the TV distance setting,
-     while card heights stay rem so text keeps tracking font size (BUG-022).
-     The inner image is 80% of the plate, so the plate alone drives logo size. */
-  --logo-size-xs: calc(24px * var(--ui-scale)); /* EPG channel column */
-  --logo-size-sm: calc(32px * var(--ui-scale)); /* mini overlay, program sheet */
-  --logo-size-md: calc(40px * var(--ui-scale)); /* live-tv list row */
-  --logo-size-lg: calc(48px * var(--ui-scale)); /* now/next banner */
-  --logo-size-xl: calc(56px * var(--ui-scale)); /* home tile, search grid */
-  --logo-size-2xl: calc(64px * var(--ui-scale)); /* live grid, favourites */
-  --logo-size-hero: calc(256px * var(--ui-scale)); /* hero watermark (decorative) */
+  /* Channel logo plates. Authored in design px, not rem: logo art has fixed
+     optical weight and must follow the same canvas as the rest of the chrome;
+     the inner image is 80% of the plate, so the plate alone drives logo size. */
+  --logo-size-xs: calc(24 * var(--u)); /* EPG channel column */
+  --logo-size-sm: calc(32 * var(--u)); /* mini overlay, program sheet */
+  --logo-size-md: calc(40 * var(--u)); /* live-tv list row */
+  --logo-size-lg: calc(48 * var(--u)); /* now/next banner */
+  --logo-size-xl: calc(56 * var(--u)); /* home tile, search grid */
+  --logo-size-2xl: calc(64 * var(--u)); /* live grid, favourites */
+  --logo-size-hero: calc(256 * var(--u)); /* hero watermark (decorative) */
 
   /* Boot splash (ADR 022). 35vmin is 0.35 of the shorter viewport side: the
      bottom of the native splash's 0.35-0.54 range, matching its densest TV
@@ -141,18 +151,18 @@
      in index.html is asserted to match by brandAssets.test.ts. */
   --brand-mark-size: 35vmin;
   --brand-splash-gap: 3vmin;
-  --brand-title-size: calc(28px * var(--ui-scale));
-  /* Two-line attribution hanging under the wordmark. 24px copyright, 22px URL,
-     7px apart: the URL line is the widest thing on the splash, so it is sized
-     to stay on one line down to 1280x720 at the largest UI scale (see
+  --brand-title-size: calc(28 * var(--u));
+  /* Two-line attribution hanging under the wordmark. 24u copyright, 22u URL,
+     7u apart: the URL line is the widest thing on the splash, so it is sized
+     to stay on one line down to the smallest supported canvas (see
      e2e/splash.spec.ts). */
-  --brand-credit-size: calc(24px * var(--ui-scale));
-  --brand-credit-url-size: calc(22px * var(--ui-scale));
-  --brand-credit-gap: calc(7px * var(--ui-scale));
+  --brand-credit-size: calc(24 * var(--u));
+  --brand-credit-url-size: calc(22 * var(--u));
+  --brand-credit-gap: calc(7 * var(--u));
 
   /* Attribution credit in the content footer. Secondary and low-emphasis, but
-     still 18-20px on a 1920px canvas so it stays legible at 3 metres. */
-  --credit-font-size: calc(18px * var(--ui-scale));
+     still 18-20 design px so it stays legible at 3 metres. */
+  --credit-font-size: calc(18 * var(--u));
 
   /* Remote color-key dots (physical remote button colours, theme-independent) */
   --streamwala-color-key-red: #ef4444;
@@ -160,13 +170,39 @@
   --streamwala-color-key-yellow: #eab308;
   --streamwala-color-key-blue: #3b82f6;
 
-  /* Shape tokens */
-  --md-shape-xs: 4px;
-  --md-shape-sm: 8px;
-  --md-shape-md: 12px;
-  --md-shape-lg: 16px;
-  --md-shape-xl: 28px;
+  /* Shape tokens, in design px. `full` stays a physical pill radius. */
+  --md-shape-xs: calc(4 * var(--u));
+  --md-shape-sm: calc(8 * var(--u));
+  --md-shape-md: calc(12 * var(--u));
+  --md-shape-lg: calc(16 * var(--u));
+  --md-shape-xl: calc(28 * var(--u));
   --md-shape-full: 9999px;
+}
+
+/*
+ * Root font-size follows the design unit, so one `rem` is 16 design px and
+ * every Tailwind text/spacing utility scales with the viewport exactly like
+ * the px-authored tokens above. This is the unification ADR 035 describes:
+ * there is no longer a rem family and a `--ui-scale` px family that can drift
+ * apart. Media-query `rem` still resolves against the initial 16px (MQ4), so
+ * `md:` breakpoints remain physical CSS px.
+ */
+html {
+  font-size: calc(16 * var(--u));
+}
+
+/*
+ * Touch-first shell (tablet flavor). The 1920 design fit assumes leanback
+ * distance; on a 600-1023 CSS px touch viewport a pure width fit would put
+ * body text under 7px. Raise the floor to 0.6 for coarse pointers only. A
+ * sub-1024 Android TV canvas also lands here and gets a slightly larger render
+ * than the strict 2/3 fit, which is still ~40% smaller than the old fixed px
+ * chrome and keeps 10-foot legibility. 1280/1080+ leanback sets are untouched.
+ */
+@media (pointer: coarse) and (max-width: 1023px) {
+  :root {
+    --u: clamp(0.6px, calc(min(0.05208334vw, 0.0925926vh) * var(--ui-scale)), 2.5px);
+  }
 }
 
 /*
@@ -301,7 +337,7 @@ textarea,
   font-family: 'Material Symbols Rounded';
   font-weight: normal;
   font-style: normal;
-  font-size: 24px;
+  font-size: 1.5rem;
   line-height: 1;
   letter-spacing: normal;
   text-transform: none;
@@ -410,22 +446,22 @@ html.theme-light .tv-focused {
   pointer-events: none;
 }
 
-/* 3px underline for tabs, pills and chips. */
+/* 3-design-px underline for tabs, pills and chips. */
 .state-selected-underline::after {
   left: 50%;
-  bottom: 4px;
+  bottom: calc(4 * var(--u));
   width: 40%;
-  min-width: 12px;
-  height: 3px;
+  min-width: calc(12 * var(--u));
+  height: calc(3 * var(--u));
   transform: translateX(-50%);
 }
 
 /* Dot for icon-only destinations (the navigation rail). */
 .state-selected-dot::after {
   left: 50%;
-  bottom: 7px;
-  width: 6px;
-  height: 6px;
+  bottom: calc(7 * var(--u));
+  width: calc(6 * var(--u));
+  height: calc(6 * var(--u));
   transform: translateX(-50%);
 }
 
@@ -541,8 +577,8 @@ html.theme-light .tv-focused {
 
 /* Custom leanback scrollbars (hidden on TV by default) */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: calc(6 * var(--u));
+  height: calc(6 * var(--u));
 }
 ::-webkit-scrollbar-track {
   background: transparent;
@@ -607,7 +643,7 @@ html.theme-light .tv-focused {
 
 /* Focus-only guide jumps: a quiet static inset cue, removed after ~1.6s. */
 .sw-channel-number-highlight {
-  box-shadow: inset 0 0 0 2px var(--md-sys-color-primary);
+  box-shadow: inset 0 0 0 calc(2 * var(--u)) var(--md-sys-color-primary);
 }
 
 @media (prefers-reduced-motion: reduce) {

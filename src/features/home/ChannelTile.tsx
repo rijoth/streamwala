@@ -1,6 +1,11 @@
 import React from 'react';
 import { Channel, Group } from '../../domain/types.ts';
-import { useFocusable } from '../../shared/focus/index.ts';
+import {
+  ALLOW_DEFAULT_NAVIGATION,
+  BLOCK_NAVIGATION,
+  setFocus,
+  useFocusable,
+} from '../../shared/focus/index.ts';
 import { Icon } from '../../shared/icons/index.ts';
 import { useNowNext } from '../../app/epgRuntime.tsx';
 
@@ -12,11 +17,32 @@ export interface ChannelTileProps {
   focusKey: string;
   index: number;
   onSelect: () => void;
+  /** When set, UP on this (first content row) tile returns to the hero. */
+  upFocusKey?: string;
 }
 
 /** Focusable channel card used inside a Home carousel. */
-export const ChannelTile: React.FC<ChannelTileProps> = ({ channel, focusKey, index, onSelect }) => {
-  const { ref, focused } = useFocusable({ focusKey, onEnterPress: onSelect });
+export const ChannelTile: React.FC<ChannelTileProps> = ({
+  channel,
+  focusKey,
+  index,
+  onSelect,
+  upFocusKey,
+}) => {
+  const { ref, focused } = useFocusable({
+    focusKey,
+    onEnterPress: onSelect,
+    // Spatial navigation would otherwise pick the wide header search field as
+    // the nearest target above the first row, leaving no D-pad path back to the
+    // hero. Keep the row-to-hero relationship explicit.
+    onArrowPress: (direction) => {
+      if (direction === 'up' && upFocusKey) {
+        setFocus(upFocusKey);
+        return BLOCK_NAVIGATION;
+      }
+      return ALLOW_DEFAULT_NAVIGATION;
+    },
+  });
   const { current, progress } = useNowNext(channel.id);
 
   return (
@@ -26,7 +52,7 @@ export const ChannelTile: React.FC<ChannelTileProps> = ({ channel, focusKey, ind
       data-scroll-index={index}
       data-channel-id={channel.id}
       onClick={onSelect}
-      style={{ width: HOME_CARD_SIZE }}
+      style={{ width: `${HOME_CARD_SIZE / 16}rem` }}
       className={`
         tv-focus-target shrink-0 p-4 rounded-2xl bg-[var(--md-sys-color-surface-container)] border border-[var(--md-sys-color-outline-variant)]
         flex flex-col items-center text-center cursor-pointer outline-none
@@ -55,11 +81,11 @@ export const ChannelTile: React.FC<ChannelTileProps> = ({ channel, focusKey, ind
       <h4 className="font-bold text-sm truncate w-full text-[var(--md-sys-color-on-surface)]">
         {channel.name}
       </h4>
-      <p className="text-[11px] text-[var(--md-sys-color-outline)] truncate w-full mt-0.5">
+      <p className="text-[0.6875rem] text-[var(--md-sys-color-outline)] truncate w-full mt-0.5">
         {channel.groupName}
       </p>
       <div className="w-full mt-1">
-        <p className="text-[11px] truncate text-[var(--md-sys-color-on-surface-variant)]">
+        <p className="text-[0.6875rem] truncate text-[var(--md-sys-color-on-surface-variant)]">
           {current?.title ?? 'No program information'}
         </p>
         <div className="h-1 mt-1 w-full rounded-full bg-[var(--md-sys-color-surface-container-highest)] overflow-hidden">

@@ -77,6 +77,8 @@ interface RowSnapGeometry {
   viewportBottom: number;
   offset: number;
   expectedOffset: number;
+  /** Design-pixel factor; geometry tolerance scales with it (ADR 035). */
+  designPx: number;
 }
 
 function rowSnapGeometry(page: Page): Promise<RowSnapGeometry | null> {
@@ -109,6 +111,7 @@ function rowSnapGeometry(page: Page): Promise<RowSnapGeometry | null> {
       viewportBottom: viewportRect.bottom,
       offset,
       expectedOffset,
+      designPx: Number.parseFloat(getComputedStyle(document.documentElement).fontSize) / 16,
     };
   });
 }
@@ -124,10 +127,15 @@ async function expectFocusedRowAnchored(page: Page, label: string): Promise<void
         const geo = await rowSnapGeometry(page);
         if (!geo) return 'no-focus';
         if (geo.rowViewportTop === null || geo.expectedRowViewportTop === null) return 'no-row';
+        // A 4K canvas paints at 2x, so the same sub-pixel layout drift is 2x
+        // larger in CSS px. Keep the tolerance proportional to the design unit
+        // instead of relaxing it to a flat physical number.
+        const tolerance = Math.max(2, 2 * geo.designPx);
         const rowDrift = Math.abs(geo.rowViewportTop - geo.expectedRowViewportTop);
         const inside =
-          geo.focusedTop >= geo.viewportTop - 2 && geo.focusedBottom <= geo.viewportBottom + 2;
-        return rowDrift <= 2 && inside
+          geo.focusedTop >= geo.viewportTop - tolerance &&
+          geo.focusedBottom <= geo.viewportBottom + tolerance;
+        return rowDrift <= tolerance && inside
           ? 'ok'
           : `row=${geo.row} rowTopInViewport=${Math.round(
               geo.rowViewportTop

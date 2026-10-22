@@ -10,7 +10,7 @@ import { Icon } from '../../shared/icons/index.ts';
 import {
   VirtualGrid,
   clamp,
-  focusRingClipStyle,
+  useFocusRingClipStyle,
   maxOffset,
   useFocusedItemIndex,
   useGridScroller,
@@ -60,6 +60,7 @@ export const EpgGuideView: React.FC<EpgGuideViewProps> = ({
   onToggleFavorite,
   onOpenSettings,
 }) => {
+  const clipStyle = useFocusRingClipStyle();
   const runtime = useEpgRuntime();
   const { settings } = useSettingsStore();
   const [dayOffset, setDayOffset] = useState(0);
@@ -290,7 +291,7 @@ export const EpgGuideView: React.FC<EpgGuideViewProps> = ({
                         )}
                         <div className="truncate">
                           <div className="text-xs font-bold truncate">{channel.name}</div>
-                          <div className="text-[10px] text-[var(--md-sys-color-outline)] font-mono">
+                          <div className="text-[0.625rem] text-[var(--md-sys-color-outline)] font-mono">
                             CH {typeof channel.number === 'number' && !Number.isNaN(channel.number) ? channel.number : '•'}
                           </div>
                         </div>
@@ -306,7 +307,7 @@ export const EpgGuideView: React.FC<EpgGuideViewProps> = ({
                 ref={hAxis.viewportRef}
                 data-scroll-axis="horizontal"
                 className="relative h-full overflow-hidden"
-                style={focusRingClipStyle}
+                style={clipStyle}
               >
                 <div
                   ref={hAxis.contentRef}
@@ -317,7 +318,7 @@ export const EpgGuideView: React.FC<EpgGuideViewProps> = ({
                     ref={vScroller.axis.viewportRef}
                     data-scroll-axis="vertical"
                     className="h-full overflow-hidden"
-                    style={focusRingClipStyle}
+                    style={clipStyle}
                   >
                     <VirtualGrid<Channel>
                       axis={vScroller.axis}

@@ -7,6 +7,7 @@ import {
   type ArrowHandler,
 } from '../../shared/focus/index.ts';
 import { Icon } from '../../shared/icons/index.ts';
+import { useDesignPx } from '../../shared/utils/designPx.ts';
 import {
   minimalScrollOffset,
   useGridScroller,
@@ -49,14 +50,15 @@ export const CategoryRail: React.FC<CategoryRailProps> = ({
   onSelect,
   onEnterContent,
 }) => {
+  const designPx = useDesignPx();
   const rail = useGridScroller({
     screenKey: 'live:category-rail',
     count: items.length,
-    rowSize: CATEGORY_RAIL_ITEM_HEIGHT + CATEGORY_RAIL_GAP,
+    rowSize: (CATEGORY_RAIL_ITEM_HEIGHT + CATEGORY_RAIL_GAP) * designPx,
     minItemWidth: 1,
     maxColumns: 1,
     columns: 1,
-    gap: CATEGORY_RAIL_GAP,
+    gap: CATEGORY_RAIL_GAP * designPx,
     measureItemHeight: true,
     // The active scope decides the rail position, not a remembered offset.
     restore: false,

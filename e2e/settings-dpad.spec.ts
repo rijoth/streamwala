@@ -102,10 +102,7 @@ test('D-pad walks every section of the Appearance panel', async () => {
 
   // RIGHT stays inside the focused section's row.
   await page.keyboard.press('ArrowRight');
-  await expectFocusOnControl(page, /70%/);
-
-  await page.keyboard.press('ArrowRight');
-  await expectFocusOnControl(page, /80%/);
+  await expectFocusOnControl(page, /75%/);
 
   await page.keyboard.press('ArrowRight');
   await expectFocusOnControl(page, /90%/);
@@ -113,10 +110,15 @@ test('D-pad walks every section of the Appearance panel', async () => {
   await page.keyboard.press('ArrowRight');
   await expectFocusOnControl(page, /100%/);
 
+  await page.keyboard.press('ArrowRight');
+  await expectFocusOnControl(page, /110%/);
+
   // ...and does not leak into the flat tab row when the row ends.
   await page.keyboard.press('ArrowRight');
-  await page.keyboard.press('ArrowRight');
   await expectFocusOnControl(page, /125%/);
+
+  await page.keyboard.press('ArrowRight');
+  await expectFocusOnControl(page, /150%/);
 });
 
 test('OK switches panels and activates the focused tile', async () => {

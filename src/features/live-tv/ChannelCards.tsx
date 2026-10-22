@@ -149,7 +149,7 @@ export const ChannelListItem: React.FC<ChannelItemProps> = ({
           {channel.groupName}
         </p>
         <div className="mt-1">
-          <p className="text-[11px] truncate text-[var(--md-sys-color-on-surface-variant)]">
+          <p className="text-[0.6875rem] truncate text-[var(--md-sys-color-on-surface-variant)]">
             {current?.title ?? 'No program information'}
           </p>
           <div className="h-1 mt-1 w-32 rounded-full bg-[var(--md-sys-color-surface-container-highest)] overflow-hidden">

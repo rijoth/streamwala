@@ -26,7 +26,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ channel, expanded, onW
         relative rounded-3xl overflow-hidden border border-[var(--md-sys-color-outline-variant)] shadow-2xl
         bg-gradient-to-r from-blue-950/80 via-slate-900/60 to-black/80
         transition-opacity duration-200
-        ${expanded ? 'p-8 min-h-[260px] flex flex-col justify-end' : 'px-6 h-[84px] flex items-center'}
+        ${expanded ? 'p-8 min-h-[16.25rem] flex flex-col justify-end' : 'px-6 h-[5.25rem] flex items-center'}
       `}
     >
       <div
@@ -53,7 +53,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ channel, expanded, onW
       >
         <div className="flex items-center gap-2 shrink-0">
           <span
-            className={`px-2.5 py-0.5 rounded-full status-live-surface border text-[11px] font-bold tracking-wider uppercase ${
+            className={`px-2.5 py-0.5 rounded-full status-live-surface border text-[0.6875rem] font-bold tracking-wider uppercase ${
               expanded ? 'animate-pulse' : ''
             }`}
           >

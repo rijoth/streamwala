@@ -83,7 +83,7 @@ function readBasePx(name: string) {
     const raw = getComputedStyle(document.documentElement).getPropertyValue(
       `--logo-size-${token}`
     );
-    const match = raw.match(/(\d+(?:\.\d+)?)px/);
+    const match = raw.match(/calc\(\s*([\d.]+)/);
     return match ? Number(match[1]) : Number.NaN;
   }, name);
 }
@@ -345,17 +345,20 @@ test('every surface scales with --ui-scale at 1920x1080', async () => {
   await setUiScale(1);
 });
 
-test('the 150% scale still fits a 1280x720 canvas', async () => {
+test('the 150% setting still fits a 1280x720 canvas at its automatic fit', async () => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await setUiScale(1.5);
 
+  // A 1280x720 CSS canvas is a 2/3 render of the 1920 design, so the 150%
+  // preference resolves to 100% of the design canvas (0.667 x 1.5 = 1.0).
+  // That is the intended behaviour of a scale-relative-to-screen-fit setting.
   await rail(page, 'Live TV').click();
   await expect(page.getByTestId('live-viewport')).toBeVisible();
-  await expectPlates('[data-testid="live-viewport"]', '2xl', 1.5, 1);
+  await expectPlates('[data-testid="live-viewport"]', '2xl', 1, 1);
 
   await rail(page, 'EPG Guide').click();
   await waitForPlates('xs', 1);
-  await expectPlates(null, 'xs', 1.5, 1);
+  await expectPlates(null, 'xs', 1, 1);
 
   await setUiScale(1);
   await page.setViewportSize({ width: 1920, height: 1080 });

@@ -65,7 +65,7 @@ export const NerdStatsOverlay: React.FC<NerdStatsOverlayProps> = ({
 
           <div className="pt-2 border-t border-white/10">
             <span className="text-white/60 block mb-0.5">Stream Source:</span>
-            <span className="text-white/80 break-all text-[10px] leading-tight block">{maskedUrl}</span>
+            <span className="text-white/80 break-all text-[0.625rem] leading-tight block">{maskedUrl}</span>
           </div>
         </div>
       </div>

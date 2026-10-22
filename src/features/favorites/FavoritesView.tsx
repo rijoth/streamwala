@@ -4,10 +4,11 @@ import { FocusZone, useFocusable } from '../../shared/focus/index.ts';
 import { useChannelSearch } from '../../shared/hooks/useChannelSearch.ts';
 import { Button } from '../../shared/ui/index.ts';
 import { Icon } from '../../shared/icons/index.ts';
+import { useDesignPx } from '../../shared/utils/designPx.ts';
 import {
   ScrollPositionIndicator,
   VirtualGrid,
-  focusRingClipStyle,
+  useFocusRingClipStyle,
   useGridScroller,
 } from '../../shared/scroll/index.ts';
 import { SearchField, useSearchFocusGuard } from '../search/index.ts';
@@ -35,12 +36,15 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
   const { query, setQuery, isSearching, results } = useChannelSearch(favorites);
   const displayFavorites = isSearching ? results : favorites;
 
+  const designPx = useDesignPx();
+  const clipStyle = useFocusRingClipStyle();
+  const gap = FAVORITE_GAP * designPx;
   const { axis, config, columns, itemHeight, rowSize } = useGridScroller({
     screenKey: 'favorites',
     count: displayFavorites.length,
-    rowSize: FAVORITE_ITEM_HEIGHT + FAVORITE_GAP,
-    minItemWidth: 180,
-    gap: FAVORITE_GAP,
+    rowSize: FAVORITE_ITEM_HEIGHT * designPx + gap,
+    minItemWidth: 180 * designPx,
+    gap,
     maxColumns: 5,
     // Cards are rem-sized, so the row pitch must come from the rendered cell.
     measureItemHeight: true,
@@ -93,14 +97,14 @@ export const FavoritesView: React.FC<FavoritesViewProps> = ({
             data-testid="favorites-viewport"
             data-scroll-axis="vertical"
             className="relative h-full overflow-hidden"
-            style={focusRingClipStyle}
+            style={clipStyle}
           >
             <VirtualGrid<Channel>
               axis={axis}
               items={displayFavorites}
               columns={columns}
               itemHeight={itemHeight}
-              gap={FAVORITE_GAP}
+              gap={gap}
                 className="px-[var(--focus-ring-pad)]"
               getKey={(channel) => channel.id}
               renderItem={(channel, index) => (
@@ -219,7 +223,7 @@ const FavoriteCard: React.FC<FavoriteCardProps> = ({
       <h4 className="font-bold text-sm truncate w-full text-[var(--md-sys-color-on-surface)]">
         {channel.name}
       </h4>
-      <p className="text-[11px] text-[var(--md-sys-color-outline)] truncate w-full mt-0.5">
+      <p className="text-[0.6875rem] text-[var(--md-sys-color-outline)] truncate w-full mt-0.5">
         {channel.groupName}
       </p>
     </div>
