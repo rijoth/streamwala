@@ -134,6 +134,45 @@ async function goTo(page, label) {
   await page.waitForTimeout(400); // let async screens (EPG) settle their focus
 }
 
+/**
+ * Captures the player with its control overlay open. The demo HLS stream is
+ * remote, so a cold CDN can miss the 20 s start window; one retry keeps the
+ * docs capture from failing on a transient network hiccup.
+ */
+async function capturePlayer(page, outDir) {
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      await page.locator('[data-channel-id="ch_big_buck_bunny"]').first().click();
+      await page.waitForFunction(
+        () => {
+          const video = document.querySelector('video');
+          return video !== null && video.readyState >= 2 && video.videoWidth > 0;
+        },
+        undefined,
+        { timeout: 20_000 }
+      );
+      // The title card is gone by ~6 s; the following frames are clean 16:9.
+      await page.waitForTimeout(5_000);
+      await page.keyboard.press('Enter');
+      await page.waitForTimeout(600);
+      await capture(page, outDir, '05-player');
+      // BACK closes the control overlay first, then the player.
+      await page.keyboard.press('Escape');
+      await page.keyboard.press('Escape');
+      await page.getByText('Featured Live').waitFor({ timeout: 15_000 });
+      await settle(page);
+      return;
+    } catch (error) {
+      if (attempt === 2) throw error;
+      process.stdout.write('  player did not start, retrying\n');
+      await page.keyboard.press('Escape').catch(() => {});
+      await page.keyboard.press('Escape').catch(() => {});
+      await settle(page).catch(() => {});
+      await goTo(page, 'Home');
+    }
+  }
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (!args.preset) {
@@ -185,14 +224,22 @@ async function main() {
     await goTo(page, 'Live TV');
     await capture(page, outDir, '04-live-tv');
 
+    // 3. Playback with the control overlay open.
+    await goTo(page, 'Home');
+    await capturePlayer(page, outDir);
+
     await goTo(page, 'EPG Guide');
-    await capture(page, outDir, '05-guide');
+    // The guide opens at the start of the day; the capture should show now.
+    await page.getByRole('button', { name: /Jump to now/i }).click();
+    await page.waitForTimeout(900); // the jump animates the timeline
+    await settle(page);
+    await capture(page, outDir, '06-guide');
 
     await goTo(page, 'Favorites');
-    await capture(page, outDir, '06-favorites');
+    await capture(page, outDir, '07-favorites');
 
     await goTo(page, 'Settings');
-    await capture(page, outDir, '07-settings');
+    await capture(page, outDir, '08-settings');
 
     await context.close();
   } finally {

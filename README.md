@@ -4,6 +4,23 @@ Streamwala is a client-side IPTV player for big screens and Android TV. It is a 
 
 I built it because most IPTV players are desktop apps that ignore a remote, or thin wrappers around someone else's service. I wanted something I could point at my own M3U or Xtream account, drive entirely with a TV remote, and run without a server in the middle.
 
+## Screenshots
+
+Taken from the running app at 1920×1080 with the demo playlist loaded. No mockups, no device frames, and no private provider data.
+
+![Streamwala home screen on Android TV](docs/screenshots/tv/03-home.png)
+
+| Live TV | Playback |
+| --- | --- |
+| ![Channel browser with the category rail](docs/screenshots/tv/04-live-tv.png) | ![Playback with the TV control overlay open](docs/screenshots/tv/05-player.png) |
+| **Live TV.** Groups on the left, channels on the right, favourites one press away. | **Playback.** Zapping, aspect ratio, picture-in-picture, fullscreen and stream stats. |
+| ![Program guide timeline](docs/screenshots/tv/06-guide.png) | ![Favourite channels](docs/screenshots/tv/07-favorites.png) |
+| **Program guide.** Two-axis timeline with Now/Next and a live Now line. OK opens details. | **Favorites.** Pinned channels from the active playlist, searchable and always first. |
+| ![Settings](docs/screenshots/tv/08-settings.png) | ![Source picker during onboarding](docs/screenshots/tv/02-playlist-source.png) |
+| **Settings.** Theme, TV safe area, UI scale, playback engine, playlists and proxy. | **Sources.** Demo, M3U/M3U8 URL (with XMLTV), a local file, or Xtream Codes. |
+
+Regenerate them with `node scripts/web-screenshots.mjs tv` (also `tablet`, `tablet-portrait`, `phone` and `phone-landscape`). The script drives the demo playlist, so a capture cannot leak a real provider URL, username or channel.
+
 ## What works
 
 Live TV with channel groups and zapping. Playback tries hls.js, then mpegts.js, then the native video element, so HLS, MPEG-TS and plain MP4 sources all get a chance. Changing channels shows a Now and Next banner, a number pad accepts direct channel entry, and an info button toggles playback stats.
@@ -88,6 +105,12 @@ npm run android:assets   # regenerate icons, banner and splash
 ```
 
 APKs land in `android/app/build/outputs/apk/{mobile,tv}/{debug,release}/`. `docs/ANDROID.md` covers signing, installing and the manifest checks.
+
+The mobile flavour is tablet-only (600dp+) and works in portrait with touch. Same app, same focus engine, no phone layout:
+
+<p align="center">
+  <img src="docs/screenshots/tablet-portrait/03-home.png" alt="Streamwala on a 600dp tablet in portrait" width="360">
+</p>
 
 ## Releases
 
