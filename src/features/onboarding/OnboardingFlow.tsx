@@ -271,7 +271,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-4 mt-4">
+          <div className="flex items-center justify-center mt-4">
             <Button
               variant="filled"
               icon="arrow_forward"
@@ -281,16 +281,6 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
             >
               Get Started
             </Button>
-            {onOpenSettings && (
-              <Button
-                variant="tonal"
-                icon="settings"
-                onClick={onOpenSettings}
-                className="text-base !px-6 !py-4"
-              >
-                Settings
-              </Button>
-            )}
           </div>
         </FocusZone>
       )}
