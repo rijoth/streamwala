@@ -246,7 +246,7 @@ private/
 .specstory/
 .aider*
 .agent/
-.pi/local/
+.pi/
 AGENTS.local.md
 CLAUDE.local.md
 .scratch/
