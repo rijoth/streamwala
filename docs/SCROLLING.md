@@ -11,11 +11,18 @@ animations, and clipped the hero, headings and focus rings).
 1. **Focus is the source of truth.** Scroll position is a pure function of the
    focused item.
 2. **Deterministic.** The same focus target always yields the same offset.
-3. **Index math, not hot-path measurement.** Offsets come from
-   `index × item size` (or cached layout metrics measured on mount/resize).
-   Never `getBoundingClientRect` while focus moves.
-4. **Never queue animations.** A new target retargets the in-flight tween.
-5. **Cheap on TV SoCs.** Only `transform`/`opacity` animate. No
+3. **Index math, not hot-path measurement.** Grids and lists derive offsets
+   from `index × item size`; never `getBoundingClientRect` while focus moves.
+   The one deliberate exception is `useRowSnapScroller`: a page of rows is a
+   handful of elements, so it reads the focused row's `offsetTop` once per
+   focus change. A cache cannot express the transitions Home actually has (the
+   hero collapsing, an EPG/history row inserted above the focused row), and a
+   stale cache painted the focused row above the clip viewport (BUG-028).
+4. **Layout changes re-anchor.** Anything that moves a row or resizes the
+   viewport (which moves the focus line) re-anchors the row that holds focus —
+   see `layoutObserver.ts`.
+5. **Never queue animations.** A new target retargets the in-flight tween.
+6. **Cheap on TV SoCs.** Only `transform`/`opacity` animate. No
    `scroll-behavior: smooth`.
 
 ## Module layout (`src/shared/scroll`)
@@ -26,11 +33,12 @@ animations, and clipped the hero, headings and focus rings).
 | `math.ts` | **Pure** offset math: clamp, focus line, row snap, carousel slot, minimal scroll, visible range, key-repeat step, M3 emphasized-decelerate easing, retargetable tween. |
 | `useScrollAxis.ts` | Transform-based scroll axis: `scrollToOffset` with a retargetable rAF tween, instant mode, `prefers-reduced-motion`, wheel/touch into the same offset model. |
 | `ScrollViewport.tsx` | Clipping viewport + transformed content for an axis. |
-| `useFocusedItemIndex.ts` | Observes `data-focused="true"` and reports `{ index, row, col, x }`. |
-| `useRowMetrics.ts` / `useItemOffsets.ts` | Cached layout metrics (mount/resize only). |
+| `useFocusedItemIndex.ts` | Observes `data-focused="true"` and reports `{ index, row, col, x }`; `readFocusedItem()` is the same read used by the re-anchoring path. |
+| `layoutObserver.ts` / `useLayoutSignal.ts` | Layout-change signal: `ResizeObserver` where available, plus `MutationObserver` (rows added/removed, hero class swap) and viewport `resize`/`visualViewport` fallbacks, coalesced to one callback per frame. TV WebViews older than Chromium 64 have no `ResizeObserver`, and a missing observer used to freeze every cached metric (BUG-028). |
+| `useItemOffsets.ts` | Cached per-item offsets for the EPG timeline (mount/resize only). |
 | `useMeasuredItemHeight.ts` | Layout-pass measurement of the first rendered cell's height, for rem-sized grid/list items. |
 | `useVirtualWindow.ts` / `VirtualGrid.tsx` | Windowing driven by the offset for grids/long lists; the content keeps full index-math height so clamping stays correct. |
-| `useRowSnapScroller.ts` | Vertical page scroller (Home): focused row top on the focus line. |
+| `useRowSnapScroller.ts` | Vertical page scroller (Home): focused row top on the focus line, read from the live layout and re-anchored on every layout/viewport change. |
 | `useCarouselScroller.ts` | Horizontal fixed-slot carousel. |
 | `useGridScroller.ts` | Minimal-scroll grids/lists (including the Live TV category rail, `columns: 1`); derives columns from viewport width. |
 | `useStripScroller.ts` | Horizontal strip for variable-width items (filter chips). |
@@ -121,6 +129,14 @@ Two safety rules keep restoration from fighting the viewer:
 - Item measurements come from `offsetHeight`, never the bounding rect: the
   focused card's `scale(1.04)` transform must not feed back into the row pitch.
 - Do not animate `scrollTop`; animate the content `transform` only.
+- Never gate a re-measure on `ResizeObserver` existing. `observeLayoutChanges`
+  is the only supported way to learn that the layout moved: it degrades to
+  DOM-mutation and viewport signals, and it deliberately ignores the scrolled
+  content's own `transform` so a tween cannot re-trigger measurement every
+  frame (BUG-028).
+- A scroller that re-anchors must read which row *currently* holds focus
+  (`readFocusedItem`) instead of trusting the row index of the last focus event:
+  inserting a row above the focused one changes that index.
 
 ## Not yet migrated
 

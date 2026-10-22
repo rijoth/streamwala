@@ -253,15 +253,21 @@ test('10k channel list: held Down settles aligned and in view', async () => {
 });
 
 test('returning from the player restores the exact card and offset', async () => {
+  // The restore is asynchronous by design: `useScrollRestore` applies the offset
+  // first, then sets focus (on a later frame when the windowed card is not
+  // rendered yet). Poll for the restored state instead of sampling one frame.
+  const snapshot = () =>
+    page.evaluate(() => {
+      const el = document.querySelector('[data-focused="true"]') as HTMLElement | null;
+      const viewport = document.querySelector('[data-testid="live-viewport"]') as HTMLElement | null;
+      return {
+        text: (el?.textContent ?? '').trim(),
+        offset: viewport ? Number(viewport.getAttribute('data-scroll-offset')) : 0,
+      };
+    });
+
   await expectFocusedFullyVisible(page, 'before play');
-  const before = await page.evaluate(() => {
-    const el = document.querySelector('[data-focused="true"]') as HTMLElement | null;
-    const viewport = document.querySelector('[data-testid="live-viewport"]') as HTMLElement | null;
-    return {
-      text: (el?.textContent ?? '').trim(),
-      offset: viewport ? Number(viewport.getAttribute('data-scroll-offset')) : 0,
-    };
-  });
+  const before = await snapshot();
 
   await page.keyboard.press('Enter');
   await expect(page.locator('video')).toBeVisible({ timeout: 10_000 });
@@ -272,16 +278,13 @@ test('returning from the player restores the exact card and offset', async () =>
   await expect(page.locator('video')).toBeHidden();
 
   await expect(page.getByText('All Channels').first()).toBeVisible({ timeout: 10_000 });
-  const after = await page.evaluate(() => {
-    const el = document.querySelector('[data-focused="true"]') as HTMLElement | null;
-    const viewport = document.querySelector('[data-testid="live-viewport"]') as HTMLElement | null;
-    return {
-      text: (el?.textContent ?? '').trim(),
-      offset: viewport ? Number(viewport.getAttribute('data-scroll-offset')) : 0,
-    };
-  });
-  expect(after.text).toBe(before.text);
-  expect(after.offset).toBe(before.offset);
+  await expect
+    .poll(async () => (await snapshot()).text, {
+      timeout: 5_000,
+      message: 'focus is restored to the same card',
+    })
+    .toBe(before.text);
+  expect((await snapshot()).offset, 'offset is restored without a jump').toBe(before.offset);
 });
 
 test('focused item stays visible at 720p, 1080p and 4K', async () => {

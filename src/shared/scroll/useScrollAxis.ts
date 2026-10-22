@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type React from 'react';
 import { ScrollConfig, resolveScrollConfig } from './config.ts';
+import { observeLayoutChanges } from './layoutObserver.ts';
 import { clamp, maxOffset, retargetTween, stepTween, TweenState } from './math.ts';
 
 export type ScrollOrientation = 'vertical' | 'horizontal';
@@ -67,16 +68,26 @@ export function useScrollAxis({ orientation, config }: UseScrollAxisOptions): Sc
     const offset = offsetRef.current;
     const content = contentRef.current;
     if (content) {
-      content.style.transform =
+      const transform =
         orientation === 'vertical'
           ? `translate3d(0, ${-offset}px, 0)`
           : `translate3d(${-offset}px, 0, 0)`;
+      // Idempotent write: re-applying an unchanged offset (a re-anchor that
+      // resolved to the same target) must not dirty style or fire a mutation.
+      if (content.style.transform !== transform) content.style.transform = transform;
     }
     const viewport = viewportRef.current;
     if (viewport) {
-      viewport.dataset.scrollOffset = String(Math.round(offset));
-      viewport.dataset.scrollContentSize = String(Math.round(contentSizeRef.current));
-      viewport.dataset.scrollViewportSize = String(Math.round(viewportSizeRef.current));
+      const rounded = String(Math.round(offset));
+      if (viewport.dataset.scrollOffset !== rounded) viewport.dataset.scrollOffset = rounded;
+      const contentSize = String(Math.round(contentSizeRef.current));
+      if (viewport.dataset.scrollContentSize !== contentSize) {
+        viewport.dataset.scrollContentSize = contentSize;
+      }
+      const viewportSize = String(Math.round(viewportSizeRef.current));
+      if (viewport.dataset.scrollViewportSize !== viewportSize) {
+        viewport.dataset.scrollViewportSize = viewportSize;
+      }
     }
     listenersRef.current.forEach((listener) => listener(offset));
   }, [orientation]);
@@ -274,8 +285,12 @@ export function useScrollAxis({ orientation, config }: UseScrollAxisOptions): Sc
   // first runs. Retry on animation frames until both nodes exist, otherwise a
   // scroller that mounts later would keep a 0x0 size model forever and every
   // programmatic scroll would clamp to zero.
+  //
+  // `observeLayoutChanges` re-measures on `ResizeObserver` where it exists and
+  // on DOM/viewport signals where it does not (older TV WebViews), so the size
+  // model can never stay frozen at its mount-time values (BUG-028).
   useEffect(() => {
-    let observer: ResizeObserver | null = null;
+    let stopWatching: (() => void) | null = null;
     let frame: number | null = null;
     let cancelled = false;
 
@@ -302,10 +317,12 @@ export function useScrollAxis({ orientation, config }: UseScrollAxisOptions): Sc
       measure();
       apply();
 
-      if (typeof ResizeObserver === 'undefined') return;
-      observer = new ResizeObserver(measure);
-      observer.observe(viewport);
-      observer.observe(content);
+      const stopViewport = observeLayoutChanges(viewport, measure);
+      const stopContent = observeLayoutChanges(content, measure);
+      stopWatching = () => {
+        stopViewport();
+        stopContent();
+      };
     };
 
     attach();
@@ -313,7 +330,7 @@ export function useScrollAxis({ orientation, config }: UseScrollAxisOptions): Sc
     return () => {
       cancelled = true;
       if (frame !== null) cancelAnimationFrame(frame);
-      observer?.disconnect();
+      stopWatching?.();
     };
   }, [orientation, setSizes, apply]);
 

@@ -9,8 +9,7 @@ import type React from 'react';
  * with the viewer's font size, but the scroller's index math needs px. Measuring
  * the first rendered cell keeps layout and math in sync for any root font size,
  * browser zoom or font-metric difference (BUG-022). Measurement runs on a layout
- * pass only — mirroring `useRowMetrics` — so the focus hot path stays pure index
- * math.
+ * pass only, so the focus hot path stays pure index math.
  */
 export function useMeasuredItemHeight(
   contentRef: React.RefObject<HTMLElement | null>,

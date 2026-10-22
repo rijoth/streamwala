@@ -13,6 +13,34 @@ export interface FocusedItemInfo {
 }
 
 /**
+ * Reads the indices of the focused item inside `root`, or `null` when nothing
+ * inside it holds focus.
+ *
+ * Shared by the focus observer and by the re-anchoring path: when the layout
+ * above the focused row changes, the focused *element* stays the source of
+ * truth, so its row index is re-read from the DOM instead of trusting the index
+ * recorded by the last focus event (a row inserted above shifts the index).
+ */
+export function readFocusedItem(root: HTMLElement | null): FocusedItemInfo | null {
+  if (!root) return null;
+  const focused = root.querySelector<HTMLElement>('[data-focused="true"]');
+  if (!focused || !root.contains(focused)) return null;
+  const rowEl = focused.closest<HTMLElement>('[data-scroll-row]');
+  const itemEl = focused.closest<HTMLElement>('[data-scroll-item]');
+  const itemIndex =
+    itemEl?.dataset.scrollItem !== undefined ? Number(itemEl.dataset.scrollItem) : undefined;
+  const row = rowEl?.dataset.scrollRow !== undefined ? Number(rowEl.dataset.scrollRow) : 0;
+  const index =
+    focused.dataset.scrollIndex !== undefined
+      ? Number(focused.dataset.scrollIndex)
+      : itemIndex ?? row;
+  const col =
+    focused.dataset.scrollCol !== undefined ? Number(focused.dataset.scrollCol) : itemIndex ?? 0;
+  const x = focused.dataset.scrollX !== undefined ? Number(focused.dataset.scrollX) : 0;
+  return { index, row, col, x };
+}
+
+/**
  * Watches the focus engine's `data-focused="true"` marker inside a viewport and
  * reports the focused item's indices.
  *
@@ -29,22 +57,8 @@ export function useFocusedItemIndex(
     if (!root || typeof MutationObserver === 'undefined') return;
 
     const read = () => {
-      const focused = root.querySelector<HTMLElement>('[data-focused="true"]');
-      if (!focused || !root.contains(focused)) return;
-      const rowEl = focused.closest<HTMLElement>('[data-scroll-row]');
-      const itemEl = focused.closest<HTMLElement>('[data-scroll-item]');
-      const itemIndex = itemEl?.dataset.scrollItem !== undefined ? Number(itemEl.dataset.scrollItem) : undefined;
-      const row = rowEl?.dataset.scrollRow !== undefined ? Number(rowEl.dataset.scrollRow) : 0;
-      const index =
-        focused.dataset.scrollIndex !== undefined
-          ? Number(focused.dataset.scrollIndex)
-          : itemIndex ?? row;
-      const col =
-        focused.dataset.scrollCol !== undefined
-          ? Number(focused.dataset.scrollCol)
-          : itemIndex ?? 0;
-      const x = focused.dataset.scrollX !== undefined ? Number(focused.dataset.scrollX) : 0;
-      onFocusItem({ index, row, col, x });
+      const info = readFocusedItem(root);
+      if (info) onFocusItem(info);
     };
 
     const observer = new MutationObserver(read);
