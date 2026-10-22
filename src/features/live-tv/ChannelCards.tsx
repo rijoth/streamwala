@@ -12,7 +12,7 @@ import { useNowNext } from '../../app/epgRuntime.tsx';
  */
 export const CHANNEL_GRID_ITEM_MIN_HEIGHT = '13rem';
 export const CHANNEL_LIST_ITEM_MIN_HEIGHT = '4rem';
-export const CHANNEL_GRID_ITEM_HEIGHT = 210;
+export const CHANNEL_GRID_ITEM_HEIGHT = 224;
 export const CHANNEL_LIST_ITEM_HEIGHT = 70;
 export const CHANNEL_GAP = 16;
 

@@ -139,8 +139,8 @@ which now also follows the same unit.
 | `--logo-size-sm` | `calc(32 * var(--u))` | player mini overlay, program details sheet |
 | `--logo-size-md` | `calc(40 * var(--u))` | Live TV list row |
 | `--logo-size-lg` | `calc(48 * var(--u))` | player now/next banner |
-| `--logo-size-xl` | `calc(56 * var(--u))` | Home channel tile, Home search grid |
-| `--logo-size-2xl` | `calc(64 * var(--u))` | Live TV grid card, Favorites card |
+| `--logo-size-xl` | `calc(88 * var(--u))` | Home channel tile, Home search grid |
+| `--logo-size-2xl` | `calc(96 * var(--u))` | Live TV grid card, Favorites card |
 | `--logo-size-hero` | `calc(256 * var(--u))` | Home hero watermark (decorative) |
 
 Two rules keep the family honest:

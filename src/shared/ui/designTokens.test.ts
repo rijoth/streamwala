@@ -242,7 +242,7 @@ describe('logo scale', () => {
       );
     }
     // The documented base values; a silent retune of the family fails here.
-    expect(bases).toEqual([24, 32, 40, 48, 56, 64, 256]);
+    expect(bases).toEqual([24, 32, 40, 48, 88, 96, 256]);
   });
 });
 

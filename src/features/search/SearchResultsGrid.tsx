@@ -12,7 +12,7 @@ import {
 } from '../../shared/scroll/index.ts';
 import { useSearchFocusGuard } from './useSearchFocusGuard.ts';
 
-const SEARCH_ITEM_HEIGHT = 168;
+const SEARCH_ITEM_HEIGHT = 192;
 const SEARCH_ITEM_MIN_HEIGHT = '10.5rem';
 const SEARCH_GAP = 16;
 

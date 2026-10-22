@@ -20,7 +20,7 @@ export interface FavoritesViewProps {
   onGoToLive: () => void;
 }
 
-const FAVORITE_ITEM_HEIGHT = 208;
+const FAVORITE_ITEM_HEIGHT = 200;
 const FAVORITE_ITEM_MIN_HEIGHT = '13rem';
 const FAVORITE_GAP = 16;
 

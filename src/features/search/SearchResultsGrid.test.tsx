@@ -124,10 +124,10 @@ describe('SearchResultsGrid focus guard', () => {
     rerender(<Harness channels={[CHANNELS[0], CHANNELS[2]]} />);
 
     // One surviving match (1 column in jsdom) ⇒ content height is one row
-    // (168 px fallback item + 16 px gap) and the stale offset clamps to 0.
+    // (192 px fallback item + 16 px gap) and the stale offset clamps to 0.
     await waitFor(() => {
       const viewport = screen.getByTestId('home-search-viewport');
-      expect(Number(viewport.dataset.scrollContentSize)).toBe(184);
+      expect(Number(viewport.dataset.scrollContentSize)).toBe(208);
       expect(Number(viewport.dataset.scrollOffset)).toBe(0);
     });
 

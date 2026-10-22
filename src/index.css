@@ -140,8 +140,8 @@
   --logo-size-sm: calc(32 * var(--u)); /* mini overlay, program sheet */
   --logo-size-md: calc(40 * var(--u)); /* live-tv list row */
   --logo-size-lg: calc(48 * var(--u)); /* now/next banner */
-  --logo-size-xl: calc(56 * var(--u)); /* home tile, search grid */
-  --logo-size-2xl: calc(64 * var(--u)); /* live grid, favourites */
+  --logo-size-xl: calc(88 * var(--u)); /* home tile, search grid */
+  --logo-size-2xl: calc(96 * var(--u)); /* live grid, favourites */
   --logo-size-hero: calc(256 * var(--u)); /* hero watermark (decorative) */
 
   /* Boot splash (ADR 022). 35vmin is 0.35 of the shorter viewport side: the

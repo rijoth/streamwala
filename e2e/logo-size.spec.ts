@@ -27,8 +27,8 @@ const BASE: Record<string, number> = {
   sm: 32,
   md: 40,
   lg: 48,
-  xl: 56,
-  '2xl': 64,
+  xl: 88,
+  '2xl': 96,
   hero: 256,
 };
 
@@ -182,7 +182,8 @@ test('Home tiles and the hero watermark follow their tokens', async () => {
   await expect(page.getByTestId('home-viewport')).toBeVisible();
 
   const tiles = await expectPlates('[data-testid="home-viewport"]', 'xl', 1, 2);
-  // At 3 m the logo must stay a detail inside the card, not the card itself.
+  // The logo is the tile's primary identifier, but the name/now-next block
+  // below it still has to read: keep the plate below half the card.
   for (const tile of tiles) {
     expect(tile.height, `home tile plate vs card ${tile.cellHeight}`).toBeLessThan(
       tile.cellHeight * 0.5
@@ -199,10 +200,11 @@ test('Live TV grid plates are the 2xl token with an 80% logo', async () => {
 
   const cards = await expectPlates('[data-testid="live-viewport"]', '2xl', 1, 2);
   for (const card of cards) {
-    // 64px inside a 208px card: the plate must not dominate the tile.
+    // 96px inside a card that the number row and two text lines grow past
+    // 220px: the plate identifies the channel without swallowing the card.
     expect(card.cellHeight, 'grid card height').toBeGreaterThan(200);
     expect(card.height, `grid plate vs card ${card.cellHeight}`).toBeLessThan(
-      card.cellHeight * 0.35
+      card.cellHeight * 0.45
     );
   }
 });
@@ -321,8 +323,9 @@ test('every surface scales with --ui-scale at 1920x1080', async () => {
 
   await rail(page, 'Live TV').click();
   await expect(page.getByTestId('live-viewport')).toBeVisible();
-  const cards = await expectPlates('[data-testid="live-viewport"]', '2xl', 1.5, 2);  for (const card of cards) {
-    // A 96px plate in a 208px card is the intended ceiling at 150%.
+  const cards = await expectPlates('[data-testid="live-viewport"]', '2xl', 1.5, 2);
+  for (const card of cards) {
+    // A 144px plate in a 330px card is the intended ceiling at 150%.
     expect(card.height, `grid plate vs card ${card.cellHeight}`).toBeLessThan(
       card.cellHeight * 0.5
     );
